@@ -11,12 +11,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/containeroo/tinyflags"
 	"github.com/gi8lino/jirapanel/internal/config"
 	"github.com/gi8lino/jirapanel/internal/flag"
 	"github.com/gi8lino/jirapanel/internal/jira"
 	"github.com/gi8lino/jirapanel/internal/logging"
 	"github.com/gi8lino/jirapanel/internal/server"
+	"github.com/gi8lino/jirapanel/internal/utils"
+
+	"github.com/containeroo/tinyflags"
 )
 
 // Run starts the package-exporter application.
@@ -50,14 +52,19 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 
 	// Setup jira client
 	var auth jira.AuthFunc
+	var method string
 	switch {
 	case flags.JiraBearerToken != "":
 		auth = jira.NewBearerAuth(flags.JiraBearerToken)
+		method = "Bearer"
 	case flags.JiraEmail != "" && flags.AuthToken != "":
 		auth = jira.NewBasicAuth(flags.JiraEmail, flags.AuthToken)
+		method = "Basic"
 	default:
 		return fmt.Errorf("no valid auth method configured")
 	}
+	logger.Debug("jira auth", "method", method, "header", utils.ObfuscateHeader(utils.GetAuthorizationHeader(auth)))
+
 	c := jira.NewClient(flags.JiraAPIURL, auth, flags.JiraSkipTLSVerify)
 
 	// Setup Server and run forever

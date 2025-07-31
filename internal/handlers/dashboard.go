@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"io/fs"
+	"log/slog"
 	"net/http"
 
 	"github.com/gi8lino/jirapanel/internal/config"
@@ -10,7 +11,7 @@ import (
 )
 
 // Dashboard returns the main dashboard HTTP handler.
-func Dashboard(webFS fs.FS, templateDir string, version string, c *jira.Client, cfg config.DashboardConfig) http.HandlerFunc {
+func Dashboard(webFS fs.FS, templateDir string, version string, c *jira.Client, cfg config.DashboardConfig, logger *slog.Logger) http.HandlerFunc {
 	funcMap := templates.TemplateFuncMap()
 
 	baseTmpl := templates.ParseBaseTemplates(webFS, funcMap)
@@ -19,6 +20,7 @@ func Dashboard(webFS fs.FS, templateDir string, version string, c *jira.Client, 
 	return func(w http.ResponseWriter, r *http.Request) {
 		sections, status, err := templates.RenderSections(r.Context(), cfg, sectionTmpl, c)
 		if err != nil {
+			logger.Error("render sections error", "error", err)
 			http.Error(w, err.Error(), status)
 			return
 		}
@@ -31,6 +33,7 @@ func Dashboard(webFS fs.FS, templateDir string, version string, c *jira.Client, 
 			"RefreshInterval": int(cfg.RefreshInterval.Seconds()), // pass as int
 		})
 		if err != nil {
+			logger.Error("render base error", "error", err)
 			http.Error(w, "render base error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}

@@ -25,14 +25,14 @@ type AuthFunc func(req *http.Request)
 // NewBasicAuth returns an AuthFunc that sets basic authentication headers.
 func NewBasicAuth(email, token string) AuthFunc {
 	return func(req *http.Request) {
-		req.SetBasicAuth(email, token)
+		req.SetBasicAuth(strings.TrimSpace(email), strings.TrimSpace(token))
 	}
 }
 
 // NewBearerAuth returns an AuthFunc that sets bearer token headers.
 func NewBearerAuth(token string) AuthFunc {
 	return func(req *http.Request) {
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(token))
 	}
 }
 

@@ -33,7 +33,7 @@ func NewRouter(
 	root.Handle("POST /healthz", handlers.Healthz())
 
 	// Main dashboard handler (with optional logging)
-	var dashboardHandler http.Handler = handlers.Dashboard(webFS, templateDir, version, client, cfg)
+	var dashboardHandler http.Handler = handlers.Dashboard(webFS, templateDir, version, client, cfg, logger)
 	if debug {
 		dashboardHandler = middleware.Chain(dashboardHandler, middleware.LoggingMiddleware(logger))
 	}
