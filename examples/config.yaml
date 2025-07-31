@@ -19,5 +19,5 @@ layout:
   - title: "Issue Statistics: Open Environment Issues (Assignee)"
     query: filter=17203
     template: assignees.gohtml
-    position: { row: 3, col: 1, colSpan: 2 }
+    position: { row: 3, col: 0, colSpan: 2 }
 refreshInterval: 60s

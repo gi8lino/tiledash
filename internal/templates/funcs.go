@@ -2,7 +2,6 @@ package templates
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 )
