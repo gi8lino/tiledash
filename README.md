@@ -89,7 +89,6 @@ JiraPanel uses Go’s `html/template` engine with custom helpers and supports [B
 
 These helpers are registered for use inside your `.gohtml` templates:
 
-- `default val def` — return `def` if `val` is zero value
 - `add`, `list`, `listany`, `append`, `slice`
 - `dict`, `set`, `keys`, `dig`
 - `formatDate input layout` — format Jira timestamps, e.g.:

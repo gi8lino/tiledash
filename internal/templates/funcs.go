@@ -17,19 +17,6 @@ func templateAppend(slice []any, val any) []any {
 	return append(slice, val)
 }
 
-// templateDefault returns `def` if `val` is the zero value of its type.
-func templateDefault(val, def any) any {
-	if isZero(val) {
-		return def
-	}
-	return val
-}
-
-// isZero checks if a value is the zero value for its type.
-func isZero(v any) bool {
-	return reflect.ValueOf(v).IsZero()
-}
-
 // templateDict returns a map created from alternating key/value arguments.
 // Panics if an odd number of arguments or a non-string key is passed.
 func templateDict(values ...any) (map[string]any, error) {

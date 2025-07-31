@@ -7,7 +7,6 @@ func TemplateFuncMap() template.FuncMap {
 	return template.FuncMap{
 		"add":        templateAdd,
 		"append":     templateAppend,
-		"default":    templateDefault,
 		"dict":       templateDict,
 		"dig":        templateDig,
 		"formatDate": formatDate,
