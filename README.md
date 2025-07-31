@@ -49,6 +49,11 @@ jirapanel
 | `--debug`                | Enable debug logging                                       |
 | `--log-format`           | `text` or `json` (default: `text`)                         |
 
+### Proxy Environment Variables
+
+- `HTTP_PROXY`: URL of the proxy server to use for HTTP requests
+- `HTTPS_PROXY`: URL of the proxy server to use for HTTPS requests
+
 **Mutually exclusive:**
 
 - `--jira-email` + `--jira-token`
