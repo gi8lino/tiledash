@@ -59,26 +59,73 @@ jirapanel
 - `--jira-email` + `--jira-token`
 - `--jira-bearer-token`
 
-## Dashboard Config (`dashboard.yaml`)
+## Dashboard Config (`config.yaml`)
+
+### 🧾 **Dashboard Config Reference**
+
+| **Key**           | **Type**    | **Description**                                                               |
+| ----------------- | ----------- | ----------------------------------------------------------------------------- |
+| `title`           | `string`    | The title of the dashboard (displayed as page heading and `<title>`).         |
+| `grid.columns`    | `int`       | Number of columns in the dashboard grid layout. Must be > 0.                  |
+| `grid.rows`       | `int`       | Number of rows in the dashboard grid layout. Must be > 0.                     |
+| `refreshInterval` | `duration`  | Interval for automatic dashboard refresh (e.g., `60s`, `2m`).                 |
+| `layout`          | `[]section` | List of dashboard sections/cards to display. Each one defines its own layout. |
+
+---
+
+### 🧱 **Section Fields (`layout[]`)**
+
+| **Field**          | **Type**         | **Description**                                                                  |
+| ------------------ | ---------------- | -------------------------------------------------------------------------------- |
+| `title`            | `string`         | Title for this section/card (used in template rendering).                        |
+| `query`            | `string`         | JQL query (e.g., `filter=12345`) to fetch Jira issues for this section.          |
+| `template`         | `string`         | Name of the Go HTML template used to render the section (e.g., `issues.gohtml`). |
+| `position.row`     | `int`            | Zero-based row index of the section's starting position.                         |
+| `position.col`     | `int`            | Zero-based column index of the section's starting position.                      |
+| `position.colSpan` | `int` (optional) | Number of columns this section spans. Defaults to 1 if omitted or 0.             |
+
+---
+
+### 💡 Notes
+
+- **`position.colSpan`** must not exceed `grid.columns` when added to `col`. For example:
+  If `col: 1` and `colSpan: 2`, this overflows a 2-column grid.
+- **Templates** must exist in the specified `templateDir` and be named exactly as listed.
+- **Section order** in `layout[]` affects rendering order — no automatic sorting is done.
+
+### 📁 Example Config
 
 ```yaml
+---
 title: My Jira Dashboard
 grid:
   columns: 2
-  rows: 2
-refreshInterval: 60
+  rows: 4
 layout:
-  - title: Open Issues
-    query: filter=12345
-    params:
-      maxResults: "100"
+  - title: Env Epics
+    query: filter=17201
+    template: epics.gohtml
+    position:
+      row: 0 # row 0 is the first row
+      col: 0 # col 0 is the first column
+  - title: Open Environment Issues
+    query: filter=17203
     template: issues.gohtml
-    position: { row: 0, col: 0 }
-
-  - title: Assignee Stats
-    query: filter=12345
-    template: assignees.gohtml
     position: { row: 0, col: 1 }
+  - title: Two Dimensional Open Environment Issues
+    query: filter=17203
+    template: env_issues.gohtml
+    position:
+      row: 1
+      col: 1
+  - title: "Issue Statistics: Open Environment Issues (Assignee)"
+    query: filter=17203
+    template: assignees.gohtml
+    position:
+      row: 3
+      col: 0
+      colSpan: 2
+refreshInterval: 60s
 ```
 
 ## Templates
