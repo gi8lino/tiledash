@@ -1,0 +1,47 @@
+{{ define "epicName" }}
+  {{- $epics := dict
+      "ENV-19" "Development Environment 1"
+      "ENV-20" "Development Environment 2"
+      "ENV-21" "Development Environment 3"
+      "ENV-22" "Development Environment 4"
+      "ENV-55" "Development Environment 5"
+      "ENV-56" "Development Environment 6"
+      "ENV-26" "Education Environment"
+      "ENV-15" "Emergency Environment"
+      "ENV-16" "External Environment"
+      "ENV-14" "Integration Environment"
+      "ENV-17" "Maintenance Environment"
+      "ENV-18" "Staging Environment"
+  -}}
+  {{ with index $epics . }}
+    {{ . }}
+  {{ else }}
+    <span class="text-muted">–</span>
+  {{ end }}
+{{ end }}
+
+
+{{ define "statusBadgeColor" }}
+  {{- $colors := dict
+      "To Do" "bg-secondary"
+      "Open" "bg-secondary"
+      "Planned" "bg-secondary"
+      "In Progress" "bg-primary"
+      "Working" "bg-primary"
+      "Blocked" "bg-warning text-dark"
+      "On Hold" "bg-warning text-dark"
+      "Done" "bg-success"
+      "Resolved" "bg-success"
+      "Closed" "bg-success"
+      "Healthy" "bg-success"
+      "Rejected" "bg-danger"
+      "Failed" "bg-danger"
+      "Cancelled" "bg-danger"
+  -}}
+  {{ with index $colors . }}
+    {{ . }}
+  {{ else }}
+    bg-info text-dark
+  {{ end }}
+{{ end }}
+

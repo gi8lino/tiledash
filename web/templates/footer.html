@@ -1,0 +1,14 @@
+{{ define "footer" }}
+<footer class="footer fixed-bottom py-1 bg-white border-top">
+  <div class="container text-center">
+    <span class="text-muted" style="font-size: 0.65rem">
+      &copy; 2025 Jira Panel&nbsp;|&nbsp;Version: {{ .Version }}&nbsp;|&nbsp;
+      Auto-refresh:
+      <span id="refresh-interval-label">{{ .RefreshInterval }}</span>s
+    </span>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/tablesort.min.js"></script>
+    <script src="/static/js/jirapanel.js"></script>
+  </div>
+</footer>
+{{ end }}

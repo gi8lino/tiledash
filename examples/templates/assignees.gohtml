@@ -1,0 +1,42 @@
+<h2>{{ .Title }}</h2>
+
+{{- $data := .Data.issues }}
+{{- $assignees := dict }}
+{{- $total := 0 }}
+
+{{/* Group and count issues per assignee */}}
+{{- range $issue := $data }}
+  {{- $assignee := "Unassigned" }}
+  {{- with $issue.fields.assignee.displayName }}
+    {{- $assignee = . }}
+  {{- end }}
+  {{- $count := index $assignees $assignee }}
+  {{- if not $count }}
+    {{- $_ := set $assignees $assignee 1 }}
+  {{- else }}
+    {{- $_ := set $assignees $assignee (add $count 1) }}
+  {{- end }}
+  {{- $total = add $total 1 }}
+{{- end }}
+
+<table class="table table-bordered table-hover align-middle text-left">
+  <thead class="table-dark">
+    <tr>
+      <th>Assignee</th>
+      <th>Count</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{- range $name, $count := $assignees }}
+      <tr>
+        <td>{{ $name }}</td>
+        <td>{{ $count }}</td>
+      </tr>
+    {{- end }}
+    <tr class="table-secondary fw-bold">
+      <td>Total Issues</td>
+      <td>{{ $total }}</td>
+    </tr>
+  </tbody>
+</table>
+

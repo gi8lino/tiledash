@@ -1,0 +1,61 @@
+<h2>{{ .Title }}</h2>
+
+{{/* Build dynamic list of epics used */}}
+{{- $epicSet := dict }}
+{{- range .Data.issues }}
+  {{- $epicKey := dig .fields.customfield_10100 "key" }}
+  {{- if $epicKey }}
+    {{- $_ := set $epicSet $epicKey true }}
+  {{- end }}
+{{- end }}
+{{- $epicKeys := keys $epicSet }}
+
+<table class="table table-bordered table-hover align-middle text-left">
+  <thead class="table-dark">
+    <tr>
+      <th>Component</th>
+      {{- range $epic := $epicKeys }}
+        <th>{{ template "epicName" $epic }}</th>
+      {{- end }}
+      <th>Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{- $components := dict }}
+
+    {{/* Group issues by first component */}}
+    {{ range $issue := .Data.issues }}
+      {{- $fields := $issue.fields }}
+      {{- $comp := "No Component" }}
+      {{- if (gt (len $fields.components) 0) }}
+        {{- $comp = dig (index $fields.components 0) "name" }}
+      {{- end }}
+      {{- $list := index $components $comp }}
+      {{- if not $list }}
+        {{- $_ := set $components $comp (listany $issue) }}
+      {{- else }}
+        {{- $_ := set $components $comp (append $list $issue) }}
+      {{- end }}
+    {{ end }}
+
+    {{/* Print one row per component */}}
+    {{ range $compName, $issues := $components }}
+      <tr>
+        <td>{{ $compName }}</td>
+        {{- $total := 0 }}
+        {{ range $epicKey := $epicKeys }}
+          {{- $count := 0 }}
+          {{- range $issues }}
+            {{- if eq (dig .fields.customfield_10100 "key") $epicKey }}
+              {{- $count = add $count 1 }}
+            {{- end }}
+          {{- end }}
+          <td>{{ $count }}</td>
+          {{- $total = add $total $count }}
+        {{ end }}
+        <td>{{ $total }}</td>
+      </tr>
+    {{ end }}
+  </tbody>
+</table>
+

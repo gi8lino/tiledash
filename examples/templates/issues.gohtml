@@ -1,0 +1,39 @@
+<h2 class="mb-4">{{ .Title }}</h2>
+
+<div class="table-responsive">
+  <table class="table table-bordered table-striped align-left table-hover tablesort" >
+    <thead class="table-dark">
+      <tr>
+        <th scope="col">Summary</th>
+        <th scope="col">Components</th>
+        <th scope="col">Epic</th>
+        <th scope="col">Assignee</th>
+        <th scope="col">Status</th>
+        <th data-sort-default data-sort-reverse scope="col">Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .Data.issues }}
+      <tr>
+        <td>{{ .fields.summary }}</td>
+
+        <td>
+          {{- range $i, $c := .fields.components }} {{ if $i }}, {{ end }}{{
+          $c.name }} {{- else }}
+          <span class="text-muted">–</span>
+          {{- end }}
+        </td>
+
+        <td>{{ template "epicName" .fields.customfield_10100 }}</td>
+        <td>{{ .fields.assignee.displayName }}</td>
+        <td>
+          <span class="badge {{ template "statusBadgeColor" .fields.status.name }}"
+            >{{ .fields.status.name }}</span
+          >
+        </td>
+        <td data-sort="{{ .fields.created }}">{{ formatDate .fields.created "02.01.2006" }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,33 @@
+<h2 class="mb-4">{{ .Title }}</h2>
+
+<div class="table-responsive">
+  <table
+    class="table table-bordered table-striped align-middle table-hover tablesort"
+  >
+    <thead class="table-dark">
+      <tr>
+        <th data-sort-default scope="col">Summary</th>
+        <th scope="col">Status</th>
+        <th scope="col">Assignee</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .Data.issues }}
+      <tr>
+        <td data-sort="{{ .fields.summary }}">{{ .fields.summary }}</td>
+        <td>
+          <span class="badge {{ template "statusBadgeColor" .fields.status.name }}"
+            >{{ .fields.status.name }}</span
+          >
+        </td>
+        <td>
+          {{- if .fields.assignee }} {{ .fields.assignee.displayName }} {{- else
+          }}
+          <span class="text-muted">–</span>
+          {{- end }}
+        </td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>

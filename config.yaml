@@ -1,0 +1,23 @@
+---
+title: My Jira Dashboard
+grid:
+  columns: 2
+  rows: 4
+layout:
+  - title: Env Epics
+    query: filter=17201
+    template: epics.gohtml
+    position: { row: 0, col: 0 }
+  - title: Open Environment Issues
+    query: filter=17203
+    template: issues.gohtml
+    position: { row: 0, col: 1 }
+  - title: Two Dimensional Open Environment Issues
+    query: filter=17203
+    template: env_issues.gohtml
+    position: { row: 1, col: 1 }
+  - title: "Issue Statistics: Open Environment Issues (Assignee)"
+    query: filter=17203
+    template: assignees.gohtml
+    position: { row: 2, col: 1 }
+refreshInterval: 60s

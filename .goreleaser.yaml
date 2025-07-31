@@ -1,0 +1,49 @@
+project_name: JiraPanel
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: ./main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w
+      - -X main.Version={{ .Tag }}
+      - -X main.Commit={{ .FullCommit }}
+
+dockers:
+  - image_templates:
+      - ghcr.io/gi8lino/jirapanel:{{ .Tag }}
+      - ghcr.io/gi8lino/jirapanel:latest
+    use: buildx
+    dockerfile: Dockerfile
+    extra_files:
+      - go.mod
+      - go.sum
+      - main.go
+      - internal
+      - web
+    build_flag_templates:
+      - --build-arg=LDFLAGS=-s -w -X main.Version={{ .Tag }} -X main.Commit={{ .FullCommit }}
+      - --pull
+      - --platform=linux/amd64
+      - --label=org.opencontainers.image.title=JiraPanel
+      - --label=org.opencontainers.image.description=JiraPanel
+      - --label=org.opencontainers.image.url=https://github.com/gi8lino/jirapanel
+      - --label=org.opencontainers.image.source=https://github.com/gi8lino/jirapanel
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.licenses=GPL-3.0
+
+docker_manifests:
+  - name_template: ghcr.io/gi8lino/jirapanel:{{ .Tag }}
+    image_templates:
+      - ghcr.io/gi8lino/jirapanel:{{ .Tag }}
+      - ghcr.io/gi8lino/jirapanel:latest
