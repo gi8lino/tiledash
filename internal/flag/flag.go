@@ -36,11 +36,9 @@ func ParseArgs(version string, args []string, out io.Writer) (Config, error) {
 	tf.SetOutput(out)
 
 	// Server
-	tf.StringVar(&cfg.Config, "config", "dashboard.yaml", "Path to config file").
-		Required().
+	tf.StringVar(&cfg.Config, "config", "config.yaml", "Path to config file").
 		Value()
 	tf.StringVar(&cfg.TemplateDir, "template-dir", "templates", "Path to template directory").
-		Required().
 		Value()
 
 	listenAddr := tf.TCPAddr("listen-address", &net.TCPAddr{IP: nil, Port: 8080}, "HTTP server listen address").
