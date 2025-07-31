@@ -84,5 +84,47 @@ func ValidateConfig(cfg DashboardConfig, tmpl *template.Template) error {
 	if len(errs) > 0 {
 		return fmt.Errorf("config validation failed:\n  - %s", strings.Join(errs, "\n  - "))
 	}
+
+	setStyleDefaults(&cfg.Customization)
+
 	return nil
+}
+
+func setStyleDefaults(c *Customization) {
+	if c.Grid.Gap == "" {
+		c.Grid.Gap = "1rem"
+	}
+	if c.Grid.Padding == "" {
+		c.Grid.Padding = "1rem"
+	}
+	if c.Grid.MarginTop == "" {
+		c.Grid.MarginTop = "2rem"
+	}
+	if c.Card.BorderColor == "" {
+		c.Card.BorderColor = "#ccc"
+	}
+	if c.Card.Padding == "" {
+		c.Card.Padding = "1rem"
+	}
+	if c.Card.BackgroundColor == "" {
+		c.Card.BackgroundColor = "#fff"
+	}
+	if c.Card.BorderRadius == "" {
+		c.Card.BorderRadius = "0.5rem"
+	}
+	if c.Card.BoxShadow == "" {
+		c.Card.BoxShadow = "0 2px 4px rgba(0, 0, 0, 0.05)"
+	}
+	if c.Header.Align == "" {
+		c.Header.Align = "left"
+	}
+	if c.Header.MarginBottom == "" {
+		c.Header.MarginBottom = "2rem"
+	}
+	if c.Font.Family == "" {
+		c.Font.Family = `"Segoe UI", sans-serif`
+	}
+	if c.Font.Size == "" {
+		c.Font.Size = "16px"
+	}
 }

@@ -12,8 +12,8 @@ func ParseBaseTemplates(webFS fs.FS, funcMap template.FuncMap) *template.Templat
 		template.New("base.html").
 			Funcs(funcMap).
 			ParseFS(webFS,
-				path.Join("web/templates", "base.html"),
-				path.Join("web/templates", "footer.html"),
+				path.Join("web/templates", "base.gohtml"),
+				path.Join("web/templates", "footer.gohtml"),
 			),
 	)
 }

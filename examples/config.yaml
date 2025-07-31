@@ -1,5 +1,6 @@
 ---
 title: My Jira Dashboard
+refreshInterval: 60s
 grid:
   columns: 2
   rows: 4
@@ -20,4 +21,20 @@ layout:
     query: filter=17203
     template: assignees.gohtml
     position: { row: 3, col: 0, colSpan: 2 }
-refreshInterval: 60s
+customization:
+  grid:
+    gap: 1rem
+    padding: 1.5rem
+    marginTop: 2rem
+  card:
+    borderColor: "#ddd"
+    padding: 1rem
+    backgroundColor: "#fff"
+    borderRadius: 0.5rem
+    boxShadow: 0 2px 4px rgba(0, 0, 0, 0.05)
+  header:
+    align: center
+    marginBottom: 2rem
+  font:
+    family: "Segoe UI, sans-serif"
+    size: 16px

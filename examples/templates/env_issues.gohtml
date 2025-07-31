@@ -1,6 +1,5 @@
 <h2>{{ .Title }}</h2>
 
-{{/* Build dynamic list of epics used */}}
 {{- $epicSet := dict }}
 {{- range .Data.issues }}
   {{- $epicKey := dig .fields.customfield_10100 "key" }}
@@ -32,7 +31,7 @@
       {{- end }}
       {{- $list := index $components $comp }}
       {{- if not $list }}
-        {{- $_ := set $components $comp (listany $issue) }}
+        {{- $_ := setany $components $comp (list $issue) }}
       {{- else }}
         {{- $_ := set $components $comp (append $list $issue) }}
       {{- end }}

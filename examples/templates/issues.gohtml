@@ -31,7 +31,7 @@
             >{{ .fields.status.name }}</span
           >
         </td>
-        <td data-sort="{{ .fields.created }}">{{ formatDate .fields.created "02.01.2006" }}</td>
+        <td data-sort="{{ .fields.created }}">{{ formatJiraDate .fields.created "02.01.2006" }}</td>
       </tr>
       {{ end }}
     </tbody>

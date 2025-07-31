@@ -134,15 +134,36 @@ JiraPanel uses Go’s `html/template` engine with custom helpers and supports [B
 
 ### 🔧 Built-in Template Functions
 
-These helpers are registered for use inside your `.gohtml` templates:
+These helpers are available inside your `.gohtml` templates:
 
-- `add`, `list`, `listany`, `append`, `slice`
-- `dict`, `set`, `keys`, `dig`
-- `formatDate input layout` — format Jira timestamps, e.g.:
+#### 🧮 Data Manipulation
+
+- `add`, `list`, `append`, `slice`, `dict`, `keys`
+  Standard utilities from [Sprig](https://masterminds.github.io/sprig/).
+
+#### 🗺 Dictionary Helpers
+
+- `setany m key val` — set a key-value pair in a `map[string]any`, modifying it in place.
 
   ```gohtml
-  {{ formatDate .fields.created "02.01.2006" }}
+  {{ $_ := setany $myMap "key" "value" }}
   ```
+
+- `dig m key` — safely extract a string value from a `map[string]any` or return a string directly.
+
+  ```gohtml
+  {{ dig .fields "summary" }}
+  ```
+
+#### 🕒 Jira-Specific
+
+- `formatJiraDate input layout` — parse and format Jira timestamps.
+
+  ```gohtml
+  {{ formatJiraDate .fields.created "02.01.2006" }}
+  ```
+
+> Note: `formatJiraDate` handles Jira's timezone format (`Z` → `+0000`), falling back to raw input if parsing fails.
 
 ### 🎨 Styling and Behavior
 
