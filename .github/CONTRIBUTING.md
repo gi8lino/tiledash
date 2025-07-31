@@ -1,4 +1,4 @@
-# Contributing to jiralinker
+# Contributing to jira-panel
 
 Thank you for your interest in contributing to Cascader! We welcome all contributions, whether they are bug fixes, feature enhancements, or documentation improvements.
 
@@ -7,8 +7,8 @@ Thank you for your interest in contributing to Cascader! We welcome all contribu
 1. **Fork the Repository**: Click the "Fork" button at the top of the repository page.
 2. **Clone Your Fork**:
    ```sh
-   git clone https://github.com/your-username/jiralink.git
-   cd jiralink
+   git clone https://github.com/your-username/jira-panel.git
+   cd jira-panel
    ```
 3. **Create a New Branch**:
    ```sh
