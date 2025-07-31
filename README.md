@@ -152,4 +152,4 @@ See [examples/templates/assignees.gohtml](examples/templates/assignees.gohtml) f
 
 ## License
 
-MIT License
+This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
