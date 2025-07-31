@@ -63,9 +63,12 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	default:
 		return fmt.Errorf("no valid auth method configured")
 	}
-	logger.Debug("jira auth", "method", method, "header", utils.ObfuscateHeader(utils.GetAuthorizationHeader(auth)))
-
 	c := jira.NewClient(flags.JiraAPIURL, auth, flags.JiraSkipTLSVerify)
+
+	logger.Debug("jira auth",
+		"method", method,
+		"header", utils.ObfuscateHeader(utils.GetAuthorizationHeader(auth)),
+	)
 
 	// Setup Server and run forever
 	router := server.NewRouter(
