@@ -21,7 +21,7 @@ func Dashboard(webFS fs.FS, templateDir string, version string, c *jira.Client, 
 		sections, status, err := templates.RenderSections(r.Context(), cfg, sectionTmpl, c)
 		if err != nil {
 			logger.Error("render sections error", "error", err)
-			http.Error(w, err.Error(), status)
+			renderErrorPage(w, status, baseTmpl, cfg.Title, "Failed to render dashboard sections.", err)
 			return
 		}
 
@@ -34,7 +34,7 @@ func Dashboard(webFS fs.FS, templateDir string, version string, c *jira.Client, 
 		})
 		if err != nil {
 			logger.Error("render base error", "error", err)
-			http.Error(w, "render base error: "+err.Error(), http.StatusInternalServerError)
+			renderErrorPage(w, status, baseTmpl, cfg.Title, "Failed to render dashboard layout.", err)
 			return
 		}
 	}
