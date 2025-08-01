@@ -73,8 +73,8 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	case flags.JiraBearerToken != "":
 		auth = jira.NewBearerAuth(flags.JiraBearerToken)
 		method = "Bearer"
-	case flags.JiraEmail != "" && flags.AuthToken != "":
-		auth = jira.NewBasicAuth(flags.JiraEmail, flags.AuthToken)
+	case flags.JiraEmail != "" && flags.JiraAuth != "":
+		auth = jira.NewBasicAuth(flags.JiraEmail, flags.JiraAuth)
 		method = "Basic"
 	default:
 		return fmt.Errorf("no valid auth method configured")

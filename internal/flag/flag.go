@@ -18,7 +18,7 @@ type Config struct {
 	APIToken          string            // Shared token to authorize external API calls
 	JiraAPIURL        *url.URL          // Parsed Jira REST base URL (must end with /rest/api/2 or /3)
 	JiraEmail         string            // Email for cloud/basic authentication
-	AuthToken         string            // API token, password, or bearer token (resolved)
+	JiraAuth          string            // API token or password
 	JiraBearerToken   string            // Bearer token for self-hosted Jira
 	JiraSkipTLSVerify bool              // If true, disables TLS verification
 	Debug             bool              // Enables debug logging
@@ -32,6 +32,7 @@ type Config struct {
 func ParseArgs(version string, args []string, out io.Writer) (Config, error) {
 	var cfg Config
 	tf := tinyflags.NewFlagSet("jirapanel", tinyflags.ContinueOnError)
+	tf.Version(version)
 	tf.EnvPrefix("JIRAPANEL")
 	tf.SetOutput(out)
 
@@ -49,7 +50,7 @@ func ParseArgs(version string, args []string, out io.Writer) (Config, error) {
 		Placeholder("TOKEN").
 		Value()
 
-		// Jira connection
+	// Jira connection
 	tf.URLVar(&cfg.JiraAPIURL, "jira-api-url", &url.URL{}, "Base Jira REST API URL (e.g. https://org.atlassian.net/rest/api/3)").
 		Finalize(func(u *url.URL) *url.URL {
 			// Clone to avoid mutating the original (optional, if needed)
@@ -77,19 +78,19 @@ func ParseArgs(version string, args []string, out io.Writer) (Config, error) {
 			}
 			return nil
 		}).
-		MutualExlusive("creds").
-		RequireTogether("creds").
+		RequireTogether("authpair").
 		Placeholder("EMAIL").
 		Value()
-
-	tf.StringVar(&cfg.AuthToken, "jira-token", "", "Password or API token (used with --jira-email)").
-		RequireTogether("creds").
+	tf.StringVar(&cfg.JiraAuth, "jira-auth", "", "Password or API token (used with --jira-email)").
 		Placeholder("TOKEN").
+		RequireTogether("authpair").
 		Value()
+	tf.GetMutualGroup("authmethod").
+		AddGroup(tf.GetRequireTogetherGroup("authpair"))
 
 	tf.StringVar(&cfg.JiraBearerToken, "jira-bearer-token", "", "Bearer token for self-hosted Jira").
-		MutualExlusive("creds").
-		Placeholder("TOKEN").
+		MutualExlusive("authmethod").
+		Placeholder("BEARER").
 		Value()
 
 	tf.BoolVar(&cfg.JiraSkipTLSVerify, "jira-skip-tls-verify", false, "Disable TLS verification for Jira connections").
