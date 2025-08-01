@@ -10,6 +10,22 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Default values for customization style
+const (
+	defaultGridGap         string = "1rem"
+	defaultGridPadding     string = "1rem"
+	defaultGridMarginTop   string = "2rem"
+	defaultCardBorderColor string = "#ccc"
+	defaultCardPadding     string = "1rem"
+	defaultCardBackground  string = "#fff"
+	defaultCardRadius      string = "0.5rem"
+	defaultCardShadow      string = "0 2px 4px rgba(0, 0, 0, 0.05)"
+	defaultHeaderAlign     string = "left"
+	defaultHeaderMargin    string = "2rem"
+	defaultFontFamily      string = `"Segoe UI", sans-serif`
+	defaultFontSize        string = "16px"
+)
+
 // LoadConfig loads the dashboard configuration from the given path.
 func LoadConfig(path string) (DashboardConfig, error) {
 	cfg := DashboardConfig{}
@@ -39,10 +55,14 @@ func ValidateConfig(cfg DashboardConfig, tmpl *template.Template) error {
 		errs = append(errs, "refreshInterval must be > 0")
 	}
 
-	occupied := make(map[[2]int]string) // track used grid cells
+	occupied := make(map[[2]int]string)
 
 	for i, section := range cfg.Layout {
-		label := fmt.Sprintf("section[%d] (%s)", i, section.Title)
+		label := fmt.Sprintf("section[%d]", i)
+		if section.Title != "" {
+			label += fmt.Sprintf(" (%s)", section.Title)
+		}
+
 		pos := section.Position
 
 		if section.Title == "" {
@@ -54,30 +74,38 @@ func ValidateConfig(cfg DashboardConfig, tmpl *template.Template) error {
 		if section.Template == "" {
 			errs = append(errs, fmt.Sprintf("%s: template is required", label))
 		} else if tmpl.Lookup(section.Template) == nil {
-			errs = append(errs, fmt.Sprintf("%s: template %q not found", label, section.Template))
+			errs = append(errs, fmt.Sprintf(`%s: template %q not found`, label, section.Template))
 		}
 
-		if pos.Row < 0 || pos.Row >= cfg.Grid.Rows {
-			errs = append(errs, fmt.Sprintf("%s: row %d out of bounds (0–%d)", label, pos.Row, cfg.Grid.Rows-1))
-		}
-		if pos.Col < 0 || pos.Col >= cfg.Grid.Columns {
-			errs = append(errs, fmt.Sprintf("%s: col %d out of bounds (0–%d)", label, pos.Col, cfg.Grid.Columns-1))
-		}
-
+		// colSpan default
 		colSpan := pos.ColSpan
 		if colSpan <= 0 {
 			colSpan = 1
+		}
+
+		// Safe bounds
+		maxRow := max(cfg.Grid.Rows-1, 0)
+		maxCol := max(cfg.Grid.Columns-1, 0)
+
+		if pos.Row < 0 || pos.Row > maxRow {
+			errs = append(errs, fmt.Sprintf("%s: row %d out of bounds (max %d)", label, pos.Row, maxRow))
+		}
+		if pos.Col < 0 || pos.Col > maxCol {
+			errs = append(errs, fmt.Sprintf("%s: col %d out of bounds (max %d)", label, pos.Col, maxCol))
 		}
 		if pos.Col+colSpan > cfg.Grid.Columns {
 			errs = append(errs, fmt.Sprintf("%s: colSpan %d overflows grid width %d", label, colSpan, cfg.Grid.Columns))
 		}
 
-		for c := pos.Col; c < pos.Col+colSpan; c++ {
-			key := [2]int{pos.Row, c}
-			if other, ok := occupied[key]; ok {
-				errs = append(errs, fmt.Sprintf("%s: overlaps cell (%d,%d) used by section %q", label, pos.Row, c, other))
+		// Only track occupied cells if position is in bounds
+		if pos.Row >= 0 && pos.Col >= 0 && pos.Col+colSpan <= cfg.Grid.Columns {
+			for c := pos.Col; c < pos.Col+colSpan; c++ {
+				key := [2]int{pos.Row, c}
+				if other, ok := occupied[key]; ok {
+					errs = append(errs, fmt.Sprintf("%s: overlaps cell (%d,%d) used by section %q", label, pos.Row, c, other))
+				}
+				occupied[key] = section.Title
 			}
-			occupied[key] = section.Title
 		}
 	}
 
@@ -86,45 +114,31 @@ func ValidateConfig(cfg DashboardConfig, tmpl *template.Template) error {
 	}
 
 	setStyleDefaults(&cfg.Customization)
-
 	return nil
 }
 
+// setDefault assigns dst to val only if *dst is empty.
+func setDefault(dst *string, val string) {
+	if *dst == "" {
+		*dst = val
+	}
+}
+
+// setStyleDefaults fills in missing customization fields with default values.
 func setStyleDefaults(c *Customization) {
-	if c.Grid.Gap == "" {
-		c.Grid.Gap = "1rem"
-	}
-	if c.Grid.Padding == "" {
-		c.Grid.Padding = "1rem"
-	}
-	if c.Grid.MarginTop == "" {
-		c.Grid.MarginTop = "2rem"
-	}
-	if c.Card.BorderColor == "" {
-		c.Card.BorderColor = "#ccc"
-	}
-	if c.Card.Padding == "" {
-		c.Card.Padding = "1rem"
-	}
-	if c.Card.BackgroundColor == "" {
-		c.Card.BackgroundColor = "#fff"
-	}
-	if c.Card.BorderRadius == "" {
-		c.Card.BorderRadius = "0.5rem"
-	}
-	if c.Card.BoxShadow == "" {
-		c.Card.BoxShadow = "0 2px 4px rgba(0, 0, 0, 0.05)"
-	}
-	if c.Header.Align == "" {
-		c.Header.Align = "left"
-	}
-	if c.Header.MarginBottom == "" {
-		c.Header.MarginBottom = "2rem"
-	}
-	if c.Font.Family == "" {
-		c.Font.Family = `"Segoe UI", sans-serif`
-	}
-	if c.Font.Size == "" {
-		c.Font.Size = "16px"
-	}
+	setDefault(&c.Grid.Gap, defaultGridGap)
+	setDefault(&c.Grid.Padding, defaultGridPadding)
+	setDefault(&c.Grid.MarginTop, defaultGridMarginTop)
+
+	setDefault(&c.Card.BorderColor, defaultCardBorderColor)
+	setDefault(&c.Card.Padding, defaultCardPadding)
+	setDefault(&c.Card.BackgroundColor, defaultCardBackground)
+	setDefault(&c.Card.BorderRadius, defaultCardRadius)
+	setDefault(&c.Card.BoxShadow, defaultCardShadow)
+
+	setDefault(&c.Header.Align, defaultHeaderAlign)
+	setDefault(&c.Header.MarginBottom, defaultHeaderMargin)
+
+	setDefault(&c.Font.Family, defaultFontFamily)
+	setDefault(&c.Font.Size, defaultFontSize)
 }

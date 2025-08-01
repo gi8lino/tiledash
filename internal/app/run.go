@@ -53,7 +53,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		return fmt.Errorf("loading config error: %w", err)
 	}
 
-	// Try to load templates
+	// Try to parse templates
 	tmpl, err := template.New("").
 		Funcs(templates.TemplateFuncMap()).
 		ParseGlob(path.Join(flags.TemplateDir, "*.gohtml"))
