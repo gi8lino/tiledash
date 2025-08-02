@@ -1,58 +1,65 @@
-<h2>{{ .Title }}</h2>
+<h2 class="mb-4">{{ .Title }}</h2> <!-- Render the section title with bottom margin -->
 
-{{- $epicSet := dict }}
+{{- $epicSet := dict }} <!-- Create a set to collect unique epic keys -->
+
+<!-- Extract epic keys from all issues -->
 {{- range .Data.issues }}
-  {{- $epicKey := dig .fields.customfield_10100 "key" }}
+  {{- $epicKey := dig .fields.customfield_10100 "key" }} <!-- Safely extract epic key -->
   {{- if $epicKey }}
-    {{- $_ := set $epicSet $epicKey true }}
+    {{- $_ := set $epicSet $epicKey true }} <!-- Add to set if not nil -->
   {{- end }}
 {{- end }}
-{{- $epicKeys := keys $epicSet }}
+
+{{- $epicKeys := keys $epicSet }} <!-- Collect unique epic keys into a list -->
 
 <table class="table table-bordered table-hover align-middle text-left">
   <thead class="table-dark">
     <tr>
-      <th>Component</th>
+      <th>Component</th> <!-- First column shows component name -->
       {{- range $epic := $epicKeys }}
-        <th>{{ template "epicName" $epic }}</th>
+        <th>{{ template "epicName" $epic }}</th> <!-- One column per epic -->
       {{- end }}
-      <th>Total</th>
+      <th>Total</th> <!-- Final column shows total issue count -->
     </tr>
   </thead>
   <tbody>
-    {{- $components := dict }}
+    {{- $components := dict }} <!-- Map: component name → list of issues -->
 
-    {{/* Group issues by first component */}}
+    <!-- Group issues by their first component -->
     {{ range $issue := .Data.issues }}
       {{- $fields := $issue.fields }}
-      {{- $comp := "No Component" }}
+      {{- $comp := "No Component" }} <!-- Default if no components -->
+
       {{- if (gt (len $fields.components) 0) }}
-        {{- $comp = dig (index $fields.components 0) "name" }}
+        {{- $comp = dig (index $fields.components 0) "name" }} <!-- Use first component name -->
       {{- end }}
-      {{- $list := index $components $comp }}
+
+      {{- $list := index $components $comp }} <!-- Get current list for this component -->
       {{- if not $list }}
-        {{- $_ := setany $components $comp (list $issue) }}
+        {{- $_ := setany $components $comp (list $issue) }} <!-- First issue for this component -->
       {{- else }}
-        {{- $_ := set $components $comp (append $list $issue) }}
+        {{- $_ := set $components $comp (append $list $issue) }} <!-- Append to existing list -->
       {{- end }}
     {{ end }}
 
-    {{/* Print one row per component */}}
+    <!-- Render one row per component -->
     {{ range $compName, $issues := $components }}
       <tr>
-        <td>{{ $compName }}</td>
-        {{- $total := 0 }}
+        <td>{{ $compName }}</td> <!-- Component name -->
+        {{- $total := 0 }} <!-- Counter for total issues in this row -->
+
+        <!-- Count issues per epic for this component -->
         {{ range $epicKey := $epicKeys }}
           {{- $count := 0 }}
           {{- range $issues }}
             {{- if eq (dig .fields.customfield_10100 "key") $epicKey }}
-              {{- $count = add $count 1 }}
+              {{- $count = add $count 1 }} <!-- Match: increment count -->
             {{- end }}
           {{- end }}
-          <td>{{ $count }}</td>
-          {{- $total = add $total $count }}
+          <td>{{ $count }}</td> <!-- Display count for this epic -->
+          {{- $total = add $total $count }} <!-- Add to row total -->
         {{ end }}
-        <td>{{ $total }}</td>
+        <td>{{ $total }}</td> <!-- Display total for this component -->
       </tr>
     {{ end }}
   </tbody>
