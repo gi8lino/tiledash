@@ -25,13 +25,13 @@ import (
 )
 
 // Run starts the package-exporter application.
-func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string, w io.Writer) error {
+func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string, w io.Writer, getEnv func(string) string) error {
 	// Create a new context that listens for interrupt signals
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	// Parse command-line flags
-	flags, err := flag.ParseArgs(version, args, w)
+	flags, err := flag.ParseArgs(version, args, w, getEnv)
 	if err != nil {
 		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
 			fmt.Fprint(w, err.Error()) // nolint:errcheck
@@ -96,7 +96,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		flags.Debug,
 		version,
 	)
-	err = server.RunHTTPServer(ctx, router, flags.ListenAddr, logger)
+	err = server.Run(ctx, flags.ListenAddr, router, logger)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("HTTP server exited with error", "error", err)
 	}

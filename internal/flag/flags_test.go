@@ -9,6 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// mockGetEnv is only necessary since i use direnv which will interfear with my tests
+func mockGetEnv(key string) string {
+	return ""
+}
+
 func TestParseArgs(t *testing.T) {
 	t.Parallel()
 
@@ -22,7 +27,7 @@ func TestParseArgs(t *testing.T) {
 		}
 		var out strings.Builder
 
-		cfg, err := flag.ParseArgs("v1.2.3", args, &out)
+		cfg, err := flag.ParseArgs("v1.2.3", args, &out, mockGetEnv)
 		require.NoError(t, err)
 		require.Equal(t, "user@example.com", cfg.JiraEmail)
 		require.Equal(t, "abc123", cfg.JiraAuth)
@@ -40,7 +45,7 @@ func TestParseArgs(t *testing.T) {
 		}
 		var out strings.Builder
 
-		cfg, err := flag.ParseArgs("1.0.0", args, &out)
+		cfg, err := flag.ParseArgs("1.0.0", args, &out, mockGetEnv)
 		require.NoError(t, err)
 		require.Equal(t, "bear123", cfg.JiraBearerToken)
 		require.Equal(t, "", cfg.JiraEmail)
@@ -57,7 +62,7 @@ func TestParseArgs(t *testing.T) {
 		}
 		var out strings.Builder
 
-		_, err := flag.ParseArgs("0.0.1", args, &out)
+		_, err := flag.ParseArgs("0.0.1", args, &out, mockGetEnv)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "email must contain @")
 	})
@@ -71,7 +76,7 @@ func TestParseArgs(t *testing.T) {
 		}
 		var out strings.Builder
 
-		_, err := flag.ParseArgs("0.0.1", args, &out)
+		_, err := flag.ParseArgs("0.0.1", args, &out, mockGetEnv)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "URL path must end with")
 	})
@@ -87,7 +92,7 @@ func TestParseArgs(t *testing.T) {
 		}
 		var out strings.Builder
 
-		cfg, err := flag.ParseArgs("1.0.0", args, &out)
+		cfg, err := flag.ParseArgs("1.0.0", args, &out, mockGetEnv)
 		require.NoError(t, err)
 		require.Equal(t, "127.0.0.1:9090", cfg.ListenAddr)
 	})
@@ -103,7 +108,7 @@ func TestParseArgs(t *testing.T) {
 		}
 		var out strings.Builder
 
-		cfg, err := flag.ParseArgs("dev", args, &out)
+		cfg, err := flag.ParseArgs("dev", args, &out, mockGetEnv)
 		require.NoError(t, err)
 		require.Equal(t, "json", string(cfg.LogFormat))
 	})
@@ -118,7 +123,7 @@ func TestParseArgs(t *testing.T) {
 		}
 		var out strings.Builder
 
-		cfg, err := flag.ParseArgs("dev", args, &out)
+		cfg, err := flag.ParseArgs("dev", args, &out, mockGetEnv)
 		require.NoError(t, err)
 		require.Equal(t, "config.yaml", cfg.Config)
 		require.Equal(t, "templates", cfg.TemplateDir)
@@ -136,7 +141,7 @@ func TestParseArgs(t *testing.T) {
 		}
 		var out strings.Builder
 
-		cfg, err := flag.ParseArgs("dev", args, &out)
+		cfg, err := flag.ParseArgs("dev", args, &out, mockGetEnv)
 		require.NoError(t, err)
 		require.Equal(t, time.Duration(0), cfg.RefreshInterval)
 	})

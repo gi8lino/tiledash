@@ -29,10 +29,11 @@ type Config struct {
 }
 
 // ParseArgs parses CLI arguments into Config, handling version/help flags.
-func ParseArgs(version string, args []string, out io.Writer) (Config, error) {
+func ParseArgs(version string, args []string, out io.Writer, getEnv func(string) string) (Config, error) {
 	var cfg Config
 	tf := tinyflags.NewFlagSet("jirapanel", tinyflags.ContinueOnError)
 	tf.Version(version)
+	tf.SetGetEnvFn(getEnv) // useful for testing
 	tf.EnvPrefix("JIRAPANEL")
 	tf.SetOutput(out)
 

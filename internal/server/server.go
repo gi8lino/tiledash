@@ -8,42 +8,42 @@ import (
 	"time"
 )
 
-// RunHTTPServer starts the HTTP server and handles shutdown on context cancellation.
-func RunHTTPServer(ctx context.Context, mux http.Handler, addr string, logger *slog.Logger) error {
-	// Create an HTTP server with the mux as the handler.
-	httpServer := &http.Server{
-		Addr:              addr,
-		Handler:           mux,
+// Run sets up and manages the reverse proxy HTTP server.
+func Run(ctx context.Context, listenAddr string, router http.Handler, logger *slog.Logger) error {
+	// Create server
+	server := &http.Server{
+		Addr:              listenAddr,
+		Handler:           router,
 		ReadHeaderTimeout: 10 * time.Second,
 		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 
-	// Start the HTTP server in its own goroutine.
+	// Start server in a goroutine
 	go func() {
-		logger.Info("Starting server", "address", httpServer.Addr)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("Server error", "err", err)
+		logger.Info("starting server", "listenAddr", server.Addr)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("server error", "err", err)
 		}
 	}()
 
-	// Use a WaitGroup to wait for shutdown to complete.
+	// Graceful shutdown on context cancel
 	var wg sync.WaitGroup
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
-		// Wait until the context is canceled.
 		<-ctx.Done()
-		logger.Info("Shutting down server")
-		// Create a context with timeout for the shutdown.
+		logger.Info("shutting down server")
+
 		shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
-		if err := httpServer.Shutdown(shutdownCtx); err != nil {
-			logger.Error("Server shutdown error", "err", err)
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			logger.Error("shutdown error", "err", err)
 		}
 	}()
 
-	wg.Wait() // Wait for the shutdown goroutine to complete.
+	wg.Wait()
 
 	return nil
 }

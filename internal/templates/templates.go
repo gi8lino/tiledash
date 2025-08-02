@@ -9,7 +9,7 @@ import (
 // ParseBaseTemplates parses the base and footer templates.
 func ParseBaseTemplates(webFS fs.FS, funcMap template.FuncMap) *template.Template {
 	return template.Must(
-		template.New("base.html").
+		template.New("base").
 			Funcs(funcMap).
 			ParseFS(webFS,
 				path.Join("web/templates", "base.gohtml"),
@@ -20,10 +20,12 @@ func ParseBaseTemplates(webFS fs.FS, funcMap template.FuncMap) *template.Templat
 }
 
 // ParseSectionTemplates parses the user-defined section templates.
-func ParseSectionTemplates(templateDir string, funcMap template.FuncMap) *template.Template {
-	return template.Must(
-		template.New("").
-			Funcs(funcMap).
-			ParseGlob(path.Join(templateDir, "*.gohtml")),
-	)
+func ParseSectionTemplates(fsys fs.FS, funcMap template.FuncMap) *template.Template {
+	tmpl := template.New("").Funcs(funcMap)
+
+	parsed, err := tmpl.ParseFS(fsys, "web/templates/*.gohtml")
+	if err != nil {
+		panic(err) // keep Must-like behavior
+	}
+	return parsed
 }
