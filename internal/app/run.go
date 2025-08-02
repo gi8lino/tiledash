@@ -67,20 +67,11 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	}
 
 	// Setup jira client
-	var auth jira.AuthFunc
-	var method string
-	switch {
-	case flags.JiraBearerToken != "":
-		auth = jira.NewBearerAuth(flags.JiraBearerToken)
-		method = "Bearer"
-	case flags.JiraEmail != "" && flags.JiraAuth != "":
-		auth = jira.NewBasicAuth(flags.JiraEmail, flags.JiraAuth)
-		method = "Basic"
-	default:
-		return fmt.Errorf("no valid auth method configured")
+	auth, method, err := jira.ResolveAuth(flags.JiraBearerToken, flags.JiraEmail, flags.JiraAuth)
+	if err != nil {
+		return err
 	}
 	c := jira.NewClient(flags.JiraAPIURL, auth, flags.JiraSkipTLSVerify)
-
 	logger.Debug("jira auth",
 		"method", method,
 		"header", utils.ObfuscateHeader(utils.GetAuthorizationHeader(auth)),
