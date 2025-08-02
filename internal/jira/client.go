@@ -12,28 +12,16 @@ import (
 	"strings"
 )
 
+// Searcher is an interface for Jira search API calls.
+type Searcher interface {
+	SearchByJQL(ctx context.Context, jql string, params map[string]string) ([]byte, int, error)
+}
+
 // Client handles communication with the Jira REST API.
 type Client struct {
 	APIURL *url.URL     // Base API URL (must include /rest/api/X)
 	Client *http.Client // Underlying HTTP client
 	auth   AuthFunc
-}
-
-// AuthFunc is a function that modifies the HTTP request to apply authentication.
-type AuthFunc func(req *http.Request)
-
-// NewBasicAuth returns an AuthFunc that sets basic authentication headers.
-func NewBasicAuth(email, token string) AuthFunc {
-	return func(req *http.Request) {
-		req.SetBasicAuth(strings.TrimSpace(email), strings.TrimSpace(token))
-	}
-}
-
-// NewBearerAuth returns an AuthFunc that sets bearer token headers.
-func NewBearerAuth(token string) AuthFunc {
-	return func(req *http.Request) {
-		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(token))
-	}
 }
 
 // NewClient returns a Jira client with the given base URL and authentication function.

@@ -132,6 +132,12 @@ refreshInterval: 60s
 
 JiraPanel uses Go’s `html/template` engine with custom helpers and supports [Bootstrap](https://getbootstrap.com/) (v5.3.0) styling and [Tablesort.js](https://github.com/tristen/tablesort) (v5.6.0) for client-side sorting.
 
+### 📁 Section Templates
+
+> **Important:** Section templates **must end with `.gohtml`**. For example: `epics.gohtml`, `issues.gohtml`.
+
+They must exist inside the directory specified via `--template-dir`. If a section template listed in your `config.yaml` is missing or malformed, the dashboard will fail to render and display an error.
+
 ### 🔧 Built-in Template Functions
 
 These helpers are available inside your `.gohtml` templates:

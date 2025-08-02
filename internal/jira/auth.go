@@ -1,6 +1,27 @@
 package jira
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+	"strings"
+)
+
+// AuthFunc is a function that modifies the HTTP request to apply authentication.
+type AuthFunc func(req *http.Request)
+
+// NewBasicAuth returns an AuthFunc that sets basic authentication headers.
+func NewBasicAuth(email, token string) AuthFunc {
+	return func(req *http.Request) {
+		req.SetBasicAuth(strings.TrimSpace(email), strings.TrimSpace(token))
+	}
+}
+
+// NewBearerAuth returns an AuthFunc that sets bearer token headers.
+func NewBearerAuth(token string) AuthFunc {
+	return func(req *http.Request) {
+		req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(token))
+	}
+}
 
 // ResolveAuth returns the appropriate AuthFunc based on provided credentials.
 // It supports either Bearer token or Basic (email + API token) authentication.

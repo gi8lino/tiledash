@@ -10,21 +10,25 @@ import (
 	"github.com/gi8lino/jirapanel/internal/templates"
 )
 
+// Dashboard returns a handler function that renders a dashboard.
 func Dashboard(
 	webFS fs.FS,
-	templateDir string, // can be kept or removed — unused now
+	templateDir string,
 	version string,
-	c *jira.Client,
+	s jira.Searcher,
 	cfg config.DashboardConfig,
 	logger *slog.Logger,
 ) http.HandlerFunc {
 	funcMap := templates.TemplateFuncMap()
 
 	baseTmpl := templates.ParseBaseTemplates(webFS, funcMap)
-	sectionTmpl := templates.ParseSectionTemplates(webFS, funcMap)
+	sectionTmpl, err := templates.ParseSectionTemplates(templateDir, funcMap)
+	if err != nil {
+		panic(err) // keep Must-like behavior
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		sections, status, err := templates.RenderSections(r.Context(), cfg, sectionTmpl, c)
+		sections, status, err := templates.RenderSections(r.Context(), cfg, sectionTmpl, s)
 		if err != nil {
 			logger.Error("render sections error", "error", err)
 			renderErrorPage(w, status, baseTmpl, cfg.Title, "Failed to render dashboard sections.", err)

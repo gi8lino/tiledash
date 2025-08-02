@@ -3,7 +3,7 @@ package templates
 import (
 	"html/template"
 	"io/fs"
-	"path"
+	"path/filepath"
 )
 
 // ParseBaseTemplates parses the base and footer templates.
@@ -12,20 +12,29 @@ func ParseBaseTemplates(webFS fs.FS, funcMap template.FuncMap) *template.Templat
 		template.New("base").
 			Funcs(funcMap).
 			ParseFS(webFS,
-				path.Join("web/templates", "base.gohtml"),
-				path.Join("web/templates", "footer.gohtml"),
-				path.Join("web/templates", "error.gohtml"),
+				"web/templates/base.gohtml",
+				"web/templates/footer.gohtml",
+				"web/templates/error.gohtml",
 			),
 	)
 }
 
-// ParseSectionTemplates parses the user-defined section templates.
-func ParseSectionTemplates(fsys fs.FS, funcMap template.FuncMap) *template.Template {
+// ParseSectionTemplates parses user-defined section templates, ignoring missing files.
+func ParseSectionTemplates(templateDir string, funcMap template.FuncMap) (*template.Template, error) {
 	tmpl := template.New("").Funcs(funcMap)
 
-	parsed, err := tmpl.ParseFS(fsys, "web/templates/*.gohtml")
+	matches, err := filepath.Glob(filepath.Join(templateDir, "*.gohtml"))
 	if err != nil {
-		panic(err) // keep Must-like behavior
+		return nil, err // actual glob error
 	}
-	return parsed
+
+	if len(matches) == 0 {
+		return tmpl, nil // return empty template set without error
+	}
+
+	parsed, err := tmpl.ParseFiles(matches...)
+	if err != nil {
+		return nil, err
+	}
+	return parsed, nil
 }

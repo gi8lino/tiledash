@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -11,6 +12,7 @@ import (
 	"github.com/gi8lino/jirapanel/internal/config"
 	"github.com/gi8lino/jirapanel/internal/jira"
 	"github.com/gi8lino/jirapanel/internal/server"
+	"github.com/gi8lino/jirapanel/internal/testutils"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,7 +33,6 @@ func TestNewRouter(t *testing.T) {
 	}
 
 	// Dummy dependencies
-	templateDir := "/web/templates"
 	version := "vTEST"
 	debug := true
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
@@ -42,8 +43,12 @@ func TestNewRouter(t *testing.T) {
 	// Dummy Jira client
 	client := &jira.Client{}
 
+	// Create real section templates dir with at least one .gohtml file
+	tmpDir := t.TempDir()
+	testutils.MustWriteFile(t, filepath.Join(tmpDir, "dummy.gohtml"), `{{define "section_example.html"}}<div>{{.Title}}</div>{{end}}`)
+
 	// Build the router
-	router := server.NewRouter(webFS, templateDir, client, cfg, logger, debug, version)
+	router := server.NewRouter(webFS, tmpDir, client, cfg, logger, debug, version)
 
 	t.Run("GET /", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)

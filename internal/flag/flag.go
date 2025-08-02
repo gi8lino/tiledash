@@ -40,15 +40,10 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 	// Server
 	tf.StringVar(&cfg.Config, "config", "config.yaml", "Path to config file").
 		Value()
-	tf.StringVar(&cfg.TemplateDir, "template-dir", "templates", "Path to template directory").
+	tf.StringVar(&cfg.TemplateDir, "template-dir", "templates", "Path to template directory. ").
 		Value()
-
 	listenAddr := tf.TCPAddr("listen-address", &net.TCPAddr{IP: nil, Port: 8080}, "HTTP server listen address").
 		Placeholder("ADDR:PORT").
-		Value()
-
-	tf.StringVar(&cfg.APIToken, "api-token", "", "Shared token to authorize external API requests").
-		Placeholder("TOKEN").
 		Value()
 
 	// Jira connection
@@ -72,6 +67,7 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 		Placeholder("URL").
 		Value()
 
+	// Jira authentication
 	tf.StringVar(&cfg.JiraEmail, "jira-email", "", "Email for cloud/basic authentication").
 		Validate(func(email string) error {
 			if !strings.Contains(email, "@") {

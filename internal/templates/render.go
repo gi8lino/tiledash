@@ -13,7 +13,7 @@ import (
 )
 
 // RenderSections fetches data and renders each dashboard section.
-func RenderSections(ctx context.Context, cfg config.DashboardConfig, tmpl *template.Template, client *jira.Client) (sections []map[string]any, statusCode int, err error) {
+func RenderSections(ctx context.Context, cfg config.DashboardConfig, tmpl *template.Template, client jira.Searcher) (sections []map[string]any, statusCode int, err error) {
 	for _, section := range cfg.Layout {
 		respBody, status, err := client.SearchByJQL(ctx, section.Query, section.Params)
 		if err != nil {
@@ -26,11 +26,10 @@ func RenderSections(ctx context.Context, cfg config.DashboardConfig, tmpl *templ
 		}
 
 		var buf bytes.Buffer
-		err = tmpl.ExecuteTemplate(&buf, section.Template, map[string]any{
+		if err = tmpl.ExecuteTemplate(&buf, section.Template, map[string]any{
 			"Title": section.Title,
 			"Data":  jsonData,
-		})
-		if err != nil {
+		}); err != nil {
 			return nil, http.StatusInternalServerError, fmt.Errorf("template error: %w", err)
 		}
 
