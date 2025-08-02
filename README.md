@@ -71,8 +71,6 @@ jirapanel
 | `refreshInterval` | `duration`  | Interval for automatic dashboard refresh (e.g., `60s`, `2m`).                 |
 | `layout`          | `[]section` | List of dashboard sections/cards to display. Each one defines its own layout. |
 
----
-
 ### 🧱 **Section Fields (`layout[]`)**
 
 | **Field**          | **Type**         | **Description**                                                                  |
@@ -83,8 +81,6 @@ jirapanel
 | `position.row`     | `int`            | Zero-based row index of the section's starting position.                         |
 | `position.col`     | `int`            | Zero-based column index of the section's starting position.                      |
 | `position.colSpan` | `int` (optional) | Number of columns this section spans. Defaults to 1 if omitted or 0.             |
-
----
 
 ### 💡 Notes
 
@@ -127,6 +123,112 @@ layout:
       colSpan: 2
 refreshInterval: 60s
 ```
+
+Here’s the **improved `Creating a New Section Template`** section for your `README.md`, incorporating your simpler aggregation example, Sprig mention, and pointer to additional examples:
+
+## 🧩 Creating a New Section Template
+
+To visualize custom data from Jira, you can create **your own `.gohtml` section templates** using standard Go templates with helpers.
+
+### 1. 🔍 Fetch Real Data to Explore
+
+Use `curl` to preview the Jira data that your template will receive:
+
+```sh
+curl -s \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Accept: application/json" \
+  "https://jira.example.com/rest/api/2/search?jql=filter=17203" \
+  > issues.json
+```
+
+Inspect `issues.json` to see fields like:
+
+- `.fields.summary`
+- `.fields.assignee.displayName`
+- `.fields.status.name`
+- `.fields.components`, etc.
+
+### 2. 🧱 Write a template based on that Structure
+
+Each dashboard **section** corresponds to a `.gohtml` file in your `--template-dir`.
+
+Here’s a simple example that **groups issues by assignee and counts them**:
+
+```gohtml
+<h2>{{ .Title }}</h2> <!-- Render the section title -->
+
+{{- $data := .Data.issues }} <!-- Assign issues list to a local variable -->
+{{- $assignees := dict }}    <!-- Create an empty map to count issues per assignee -->
+{{- $total := 0 }}           <!-- Counter for total number of issues -->
+
+{{/* Group and count issues per assignee */}}
+{{- range $issue := $data }}
+  {{- $assignee := "Unassigned" }} <!-- Default label if no assignee -->
+  {{- with $issue.fields.assignee.displayName }}
+    {{- $assignee = . }} <!-- Use display name if present -->
+  {{- end }}
+  {{- $count := index $assignees $assignee }} <!-- Get current count for this assignee -->
+  {{- if not $count }}
+    {{- $_ := set $assignees $assignee 1 }} <!-- First occurrence -->
+  {{- else }}
+    {{- $_ := set $assignees $assignee (add $count 1) }} <!-- Increment count -->
+  {{- end }}
+  {{- $total = add $total 1 }} <!-- Increment total count -->
+{{- end }}
+
+<table class="table table-bordered table-hover align-middle text-left">
+  <thead class="table-dark">
+    <tr>
+      <th>Assignee</th>
+      <th>Count</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{- range $name, $count := $assignees }}
+      <tr>
+        <td>{{ $name }}</td> <!-- Assignee name -->
+        <td>{{ $count }}</td> <!-- Number of issues assigned -->
+      </tr>
+    {{- end }}
+    <tr class="table-secondary fw-bold">
+      <td>Total Issues</td>
+      <td>{{ $total }}</td> <!-- Total issues in the section -->
+    </tr>
+  </tbody>
+</table>
+```
+
+This template is minimal but still demonstrates:
+
+- Data extraction (`.Data.issues`)
+- Safe access to fields
+- Aggregation by key (`assignee`)
+- Total summing
+- Clean HTML table output
+
+### 3. 🧠 Template Helpers
+
+All templates have access to:
+
+- **[Sprig functions](https://masterminds.github.io/sprig/)** like `dict`, `list`, `add`, `len`, `slice`, `date`, etc.
+- **Custom helpers** like:
+
+  - `set`, `setany`, `dig`
+  - `formatJiraDate`
+
+You can also define reusable logic in a separate `.gohtml` and use `{{ template "name" . }}` to include it.
+
+### 4. 📁 Browse Examples
+
+See the [`examples/templates/`](examples/templates/) folder for more real-world templates, including:
+
+- `assignees.gohtml` — count issues per assignee
+- `epics.gohtml` — group by epic
+- `env_issues.gohtml` — issue table with columns
+- `functions.gohtml` — reusable helpers
+
+With just YAML and `.gohtml` templates, you can build flexible, data-rich Jira dashboards tailored to your needs.
 
 ## Templates
 
@@ -189,24 +291,6 @@ Example:
         <td>{{ .name }}</td>
         <td>{{ .count }}</td>
       </tr>
-    {{ end }}
-  </tbody>
-</table>
-```
-
-### 📁 Example File
-
-See [examples/templates/assignees.gohtml](examples/templates/assignees.gohtml) for a complete usage example:
-
-```gohtml
-<h2>{{ .Title }}</h2>
-<table class="table table-bordered tablesort">
-  <thead>
-    <tr><th>Assignee</th><th>Issues</th></tr>
-  </thead>
-  <tbody>
-    {{ range .Data.issues }}
-      ...
     {{ end }}
   </tbody>
 </table>
