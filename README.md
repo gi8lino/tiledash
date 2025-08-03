@@ -15,17 +15,17 @@
 
 ```sh
 jirapanel \
-  --config dashboard.yaml \
+  --config config.yaml \
   --template-dir templates \
   --jira-api-url https://yourcompany.atlassian.net/rest/api/3 \
   --jira-email alice@yourcompany.com \
-  --jira-token xxxx
+  --jira-auth xxxx
 ```
 
 Or using environment variables:
 
 ```sh
-JIRAPANEL_CONFIG=dashboard.yaml \
+JIRAPANEL_CONFIG=config.yaml \
 JIRAPANEL_TEMPLATE_DIR=templates \
 JIRAPANEL_JIRA_API_URL=https://yourcompany.atlassian.net/rest/api/3 \
 JIRAPANEL_JIRA_EMAIL=alice@yourcompany.com \
@@ -43,7 +43,7 @@ jirapanel
 | `--api-token`            | Optional token for external APIs                           |
 | `--jira-api-url`         | Jira REST base URL (`/rest/api/2` or `/3`). **Required**   |
 | `--jira-email`           | Email for basic/cloud auth                                 |
-| `--jira-token`           | API token or password (used with `--jira-email`)           |
+| `--jira-auth`            | API token or password (used with `--jira-email`)           |
 | `--jira-bearer-token`    | Bearer token (self-hosted Jira alternative to email/token) |
 | `--jira-skip-tls-verify` | Disable TLS verification (not recommended)                 |
 | `--debug`                | Enable debug logging                                       |
@@ -56,7 +56,7 @@ jirapanel
 
 **Mutually exclusive:**
 
-- `--jira-email` + `--jira-token`
+- `--jira-email` + `--jira-auth`
 - `--jira-bearer-token`
 
 ## Dashboard Config (`config.yaml`)
@@ -124,15 +124,13 @@ layout:
 refreshInterval: 60s
 ```
 
-Here’s the **improved `Creating a New Section Template`** section for your `README.md`, incorporating your simpler aggregation example, Sprig mention, and pointer to additional examples:
-
 ## 🧩 Creating a New Section Template
 
 To visualize custom data from Jira, you can create **your own `.gohtml` section templates** using standard Go templates with helpers.
 
 ### 1. 🔍 Fetch Real Data to Explore
 
-Use `curl` to preview the Jira data that your template will receive:
+Use `curl` to preview the **raw Jira issue data** your template will receive:
 
 ```sh
 curl -s \
@@ -142,7 +140,31 @@ curl -s \
   > issues.json
 ```
 
-Inspect `issues.json` to see fields like:
+The response will be a JSON object with this structure:
+
+```json
+{
+  "issues": [
+    {
+      "fields": {
+        "summary": "Issue summary here",
+        "assignee": {
+          "displayName": "Alice Example"
+        },
+        "status": {
+          "name": "In Progress"
+        },
+        "components": [
+          { "name": "API" }
+        ]
+      }
+    },
+    ...
+  ]
+}
+```
+
+Your template will access this via `.Data.issues`, so for each issue, you can use:
 
 - `.fields.summary`
 - `.fields.assignee.displayName`
@@ -307,7 +329,7 @@ Example:
 
 ## Auto-Refresh
 
-- Interval defined via `refreshInterval` in `dashboard.yaml`
+- Interval defined via `refreshInterval` in `config.yaml`
 - Exposed as `<meta name="refresh-interval" content="60">`
 - JS reads and updates the reload interval dynamically
 - Displayed in footer via `{{ .RefreshInterval }}`
