@@ -45,6 +45,7 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 	listenAddr := tf.TCPAddr("listen-address", &net.TCPAddr{IP: nil, Port: 8080}, "HTTP server listen address").
 		Placeholder("ADDR:PORT").
 		Value()
+	cfg.ListenAddr = (*listenAddr).String()
 
 	// Jira connection
 	tf.URLVar(&cfg.JiraAPIURL, "jira-api-url", &url.URL{}, "Base Jira REST API URL (e.g. https://org.atlassian.net/rest/api/3)").
@@ -75,18 +76,18 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 			}
 			return nil
 		}).
-		RequireTogether("authpair").
+		AllOrNone("basic-auth").
 		Placeholder("EMAIL").
 		Value()
 	tf.StringVar(&cfg.JiraAuth, "jira-auth", "", "Password or API token (used with --jira-email)").
 		Placeholder("TOKEN").
-		RequireTogether("authpair").
+		AllOrNone("basic-auth").
 		Value()
-	tf.GetMutualGroup("authmethod").
-		AddGroup(tf.GetRequireTogetherGroup("authpair"))
+	tf.GetOneOfGroup("auth-method").
+		AddGroup(tf.GetAllOrNoneGroup("basic-auth"))
 
 	tf.StringVar(&cfg.JiraBearerToken, "jira-bearer-token", "", "Bearer token for self-hosted Jira").
-		MutualExlusive("authmethod").
+		OneOfGroup("auth-method").
 		Placeholder("BEARER").
 		Value()
 
@@ -100,14 +101,12 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 		Choices("text", "json").
 		Short("l").
 		Value()
+	cfg.LogFormat = logging.LogFormat(*logFormat)
 
 	// Parse flags
 	if err := tf.Parse(args); err != nil {
 		return Config{}, err
 	}
 
-	// Update config
-	cfg.LogFormat = logging.LogFormat(*logFormat)
-	cfg.ListenAddr = (*listenAddr).String()
 	return cfg, nil
 }

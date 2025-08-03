@@ -54,9 +54,10 @@ jirapanel
 - `HTTP_PROXY`: URL of the proxy server to use for HTTP requests
 - `HTTPS_PROXY`: URL of the proxy server to use for HTTPS requests
 
-**Mutually exclusive:**
+**Groups:**
 
 - `--jira-email` + `--jira-auth`
+  or
 - `--jira-bearer-token`
 
 ## Dashboard Config (`config.yaml`)

@@ -63,8 +63,6 @@ func ValidateConfig(cfg DashboardConfig, tmpl *template.Template) error {
 			label += fmt.Sprintf(" (%s)", section.Title)
 		}
 
-		pos := section.Position
-
 		if section.Title == "" {
 			errs = append(errs, fmt.Sprintf("%s: title is required", label))
 		}
@@ -78,6 +76,7 @@ func ValidateConfig(cfg DashboardConfig, tmpl *template.Template) error {
 		}
 
 		// colSpan default
+		pos := section.Position
 		colSpan := pos.ColSpan
 		if colSpan <= 0 {
 			colSpan = 1
