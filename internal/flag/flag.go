@@ -45,7 +45,6 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 	listenAddr := tf.TCPAddr("listen-address", &net.TCPAddr{IP: nil, Port: 8080}, "HTTP server listen address").
 		Placeholder("ADDR:PORT").
 		Value()
-	cfg.ListenAddr = (*listenAddr).String()
 
 	// Jira connection
 	tf.URLVar(&cfg.JiraAPIURL, "jira-api-url", &url.URL{}, "Base Jira REST API URL (e.g. https://org.atlassian.net/rest/api/3)").
@@ -101,12 +100,14 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 		Choices("text", "json").
 		Short("l").
 		Value()
-	cfg.LogFormat = logging.LogFormat(*logFormat)
 
 	// Parse flags
 	if err := tf.Parse(args); err != nil {
 		return Config{}, err
 	}
+	// This needs to be done after parsing, since the flag value is not set until after the Parse call.
+	cfg.LogFormat = logging.LogFormat(*logFormat)
+	cfg.ListenAddr = (*listenAddr).String()
 
 	return cfg, nil
 }

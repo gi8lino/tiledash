@@ -83,7 +83,7 @@ refreshInterval: 30s
 		err := app.Run(ctx, webFS, "v1", "c0ffee", args, &buf, dummyEnv)
 
 		require.Error(t, err)
-		assert.EqualError(t, err, "parsing error: mutually exclusive flags used in group \"authmethod\": --jira-bearer-token vs [--jira-email, --jira-auth]")
+		assert.EqualError(t, err, "parsing error: mutually exclusive flags used in group \"auth-method\": --jira-bearer-token vs [--jira-email, --jira-auth]")
 	})
 
 	t.Run("Help Requested", func(t *testing.T) {
