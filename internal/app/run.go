@@ -58,7 +58,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	}
 
 	// Validate config
-	if err := config.ValidateConfig(cfg, tmpl); err != nil {
+	if err := config.ValidateConfig(&cfg, tmpl); err != nil {
 		return fmt.Errorf("validating config error: %w", err)
 	}
 

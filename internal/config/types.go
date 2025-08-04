@@ -3,11 +3,11 @@ package config
 import "time"
 
 type DashboardConfig struct {
-	Title           string        `yaml:"title"`
-	Grid            Grid          `yaml:"grid"`
-	Layout          []Section     `yaml:"layout"`
-	RefreshInterval time.Duration `yaml:"refreshInterval"`
-	Customization   Customization `yaml:"customization"`
+	Title           string         `yaml:"title"`
+	Grid            Grid           `yaml:"grid"`
+	Layout          []Section      `yaml:"layout"`
+	RefreshInterval time.Duration  `yaml:"refreshInterval"`
+	Customization   *Customization `yaml:"customization,omitempty"`
 }
 
 type Grid struct {

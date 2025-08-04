@@ -42,7 +42,7 @@ func LoadConfig(path string) (DashboardConfig, error) {
 }
 
 // ValidateConfig checks the consistency and correctness of a dashboard config and its templates.
-func ValidateConfig(cfg DashboardConfig, tmpl *template.Template) error {
+func ValidateConfig(cfg *DashboardConfig, tmpl *template.Template) error {
 	var errs []string
 
 	if cfg.Grid.Columns <= 0 {
@@ -112,7 +112,13 @@ func ValidateConfig(cfg DashboardConfig, tmpl *template.Template) error {
 		return fmt.Errorf("config validation failed:\n  - %s", strings.Join(errs, "\n  - "))
 	}
 
-	setStyleDefaults(&cfg.Customization)
+	// Always initialize Customization if not provided
+	if cfg.Customization == nil {
+		cfg.Customization = &Customization{}
+	}
+
+	setStyleDefaults(cfg.Customization)
+
 	return nil
 }
 
