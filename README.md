@@ -335,6 +335,70 @@ Example:
 - JS reads and updates the reload interval dynamically
 - Displayed in footer via `{{ .RefreshInterval }}`
 
+### 🧩 Kubernetes Deployment via Kustomize
+
+This directory provides a ready-to-deploy Kubernetes setup using [`kustomize`](https://kubectl.docs.kubernetes.io/).
+
+It generates a `Deployment` that bundles:
+
+- Your `config.yaml` application configuration
+- All `.gohtml` templates
+- The core app manifests (`Deployment`, `Service`, `Ingress`, etc.)
+
+#### 📁 Structure
+
+```bash
+examples/
+├── config.yaml                    # Application configuration
+├── templates/                     # Go HTML templates for the dashboard
+├── kubernetes/
+│   ├── deployment.yaml            # App deployment spec
+│   ├── service.yaml               # Exposes the app
+│   ├── ingress.yaml               # Optional ingress (if enabled)
+│   ├── secret.yaml                # Add your secrets here
+│   ├── namespace.yaml             # Defines the app namespace
+│   ├── kustomization.yaml         # Kustomize entry point
+```
+
+#### ⚙️ How it works
+
+- `kustomization.yaml` uses `configMapGenerator` to package:
+
+  - `../config.yaml` → as `ConfigMap/jirapanel-config`
+  - all templates → as `ConfigMap/jirapanel-templates`
+
+- These ConfigMaps are mounted into the container at runtime.
+
+Kustomize automatically appends a **hash suffix** to the ConfigMap names (e.g. `jirapanel-config-fd8d7f97b9`) when their content changes. The `Deployment` references them by logical name (`jirapanel-config`, `jirapanel-templates`), and Kustomize resolves the hashed names at build time.
+This has the advantage that **when you update the config or templates, the hash changes, triggering a rollout restart of the container** — ensuring your app always runs with the latest configuration.
+
+#### 🚀 Deploy locally
+
+You can preview the full manifest with:
+
+```bash
+kustomize build examples/kubernetes
+```
+
+Or apply directly:
+
+```bash
+kubectl apply -k examples/kubernetes
+```
+
+#### 🔧 Disabling Hashing (for local testing)
+
+To disable content-based hashes on ConfigMaps (e.g., for stable volume mounts during development), set:
+
+```yaml
+generatorOptions:
+  disableNameSuffixHash: true
+```
+
+in `examples/kubernetes/kustomization.yaml`.
+
+> ⚠️ It's recommended to **keep the hash enabled** in production for safe config rollouts.
+
 ## License
 
 This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.

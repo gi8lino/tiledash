@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jirapanel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jirapanel
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: jirapanel
+    spec:
+      containers:
+        - name: jirapanel
+          image: ghcr.io/gi8lino/jirapanel:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Europe/Zurich
+            - name: JIRAPANEL_JIRA_API_URL
+              value: https://jira.example.com/rest/api/2
+          envFrom:
+            - secretRef:
+                name: jirapanel-jira-credentials
+          ports:
+            - name: http
+              containerPort: 8080
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 30
+            timeoutSeconds: 2
+            periodSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 2
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 100m
+          volumeMounts:
+            - name: config
+              mountPath: /config.yaml
+              subPath: config.yaml
+            - name: templates
+              mountPath: /templates
+      volumes:
+        - name: config
+          configMap:
+            name: jirapanel-config
+            defaultMode: 0755
+        - name: templates
+          configMap:
+            name: jirapanel-templates
+            defaultMode: 0755
