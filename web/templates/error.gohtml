@@ -5,11 +5,18 @@
     <meta charset="UTF-8" />
     <title>Error – {{ .Title }}</title>
     <link rel="stylesheet" href="/static/css/bootstrap.min.css" />
+    <style>
+      html, body {
+        height: 100%;
+      }
+    </style>
   </head>
-  <body class="container mt-5">
-    <h1 class="text-danger">Error</h1>
-    <p class="lead">{{ .Message }}</p>
-    <p class="lead">{{ .Error }}</p>
+  <body class="d-flex justify-content-center align-items-center text-center vh-100">
+    <div>
+      <h1 class="text-danger">Error</h1>
+      <p class="lead">{{ .Message }}</p>
+      <p class="lead">{{ .Error }}</p>
+    </div>
   </body>
 </html>
 {{ end }}
