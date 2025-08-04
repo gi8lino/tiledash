@@ -10,7 +10,7 @@
       body {
         margin: 0;
         padding: 2rem;
-        font-family: {{ .Customization.Font.Family }};
+        font-family: {{ .Customization.Font.Family | quote }};
         font-size: {{ .Customization.Font.Size }};
       }
 
@@ -46,7 +46,19 @@
     <div class="grid">
       {{ range .Sections }}
         <div class="card" style="grid-column: span {{ or .ColSpan 1 }}">
-          {{ .HTML }}
+          {{ if .HTML }}
+            {{ .HTML }}
+          {{ else if .Error }}
+            <div class="alert alert-danger" role="alert">
+              <strong>Error:</strong> {{ .Error }}
+            </div>
+          {{ else }}
+            <div class="text-center p-4">
+              <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          {{ end }}
         </div>
       {{ end }}
     </div>

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // Searcher is an interface for Jira search API calls.
@@ -25,7 +26,7 @@ type Client struct {
 }
 
 // NewClient returns a Jira client with the given base URL and authentication function.
-func NewClient(apiURL *url.URL, auth AuthFunc, skipVerify bool) *Client {
+func NewClient(apiURL *url.URL, auth AuthFunc, skipVerify bool, timeout time.Duration) *Client {
 	tr := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{
@@ -34,8 +35,11 @@ func NewClient(apiURL *url.URL, auth AuthFunc, skipVerify bool) *Client {
 	}
 	return &Client{
 		APIURL: apiURL,
-		Client: &http.Client{Transport: tr},
-		auth:   auth,
+		Client: &http.Client{
+			Transport: tr,
+			Timeout:   timeout,
+		},
+		auth: auth,
 	}
 }
 

@@ -67,7 +67,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	if err != nil {
 		return err
 	}
-	c := jira.NewClient(flags.JiraAPIURL, auth, flags.JiraSkipTLSVerify)
+	c := jira.NewClient(flags.JiraAPIURL, auth, flags.JiraSkipTLSVerify, flags.JiraTimeout)
 	logger.Debug("jira auth",
 		"method", method,
 		"header", utils.ObfuscateHeader(utils.GetAuthorizationHeader(auth)),

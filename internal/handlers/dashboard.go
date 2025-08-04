@@ -41,6 +41,7 @@ func Dashboard(
 			"Title":           cfg.Title,
 			"Sections":        sections,
 			"RefreshInterval": int(cfg.RefreshInterval.Seconds()),
+			"Customization":   &cfg.Customization,
 		})
 		if err != nil {
 			logger.Error("render base error", "error", err)

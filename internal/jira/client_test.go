@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,7 @@ func TestNewClient(t *testing.T) {
 			r.Header.Set("Authorization", "Bearer dummy")
 		}
 
-		client := NewClient(parsed, auth, true)
+		client := NewClient(parsed, auth, true, 2*time.Second)
 
 		assert.Equal(t, parsed, client.APIURL)
 		assert.NotNil(t, client.Client)
@@ -53,7 +54,7 @@ func TestSearchByJQL(t *testing.T) {
 	t.Run("empty JQL returns error", func(t *testing.T) {
 		t.Parallel()
 
-		server := NewClient(&url.URL{}, func(r *http.Request) {}, false)
+		server := NewClient(&url.URL{}, func(r *http.Request) {}, false, 2*time.Second)
 		resp, code, err := server.SearchByJQL(context.Background(), "", nil)
 
 		assert.Error(t, err)
@@ -122,7 +123,7 @@ func TestDoRequest(t *testing.T) {
 	t.Run("returns error for invalid URL path", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewClient(mustParseURL(t, "https://example.com"), func(r *http.Request) {}, false)
+		c := NewClient(mustParseURL(t, "https://example.com"), func(r *http.Request) {}, false, 2*time.Second)
 		_, code, err := c.doRequest(context.Background(), http.MethodGet, "%%%", nil)
 
 		assert.Error(t, err)
@@ -160,7 +161,7 @@ func TestDoRequest(t *testing.T) {
 	t.Run("returns error on marshaling failure", func(t *testing.T) {
 		t.Parallel()
 
-		client := NewClient(mustParseURL(t, "https://example.com"), func(r *http.Request) {}, false)
+		client := NewClient(mustParseURL(t, "https://example.com"), func(r *http.Request) {}, false, 2*time.Second)
 		_, code, err := client.doRequest(context.Background(), http.MethodPost, "foo", func() {}) // unmarshalable
 
 		assert.Error(t, err)

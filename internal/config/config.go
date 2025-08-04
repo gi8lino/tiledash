@@ -23,7 +23,7 @@ const (
 	defaultHeaderAlign        string = "left"
 	defaultHeaderMarginBottom string = "1rem"
 	defaultFooterMarginTop    string = "1rem"
-	defaultFontFamily         string = `"Segoe UI", sans-serif`
+	defaultFontFamily         string = `Segoe UI, sans-serif`
 	defaultFontSize           string = "16px"
 )
 

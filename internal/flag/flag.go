@@ -17,6 +17,7 @@ type Config struct {
 	ListenAddr        string            // HTTP bind address (e.g. ":8080")
 	APIToken          string            // Shared token to authorize external API calls
 	JiraAPIURL        *url.URL          // Parsed Jira REST base URL (must end with /rest/api/2 or /3)
+	JiraTimeout       time.Duration     // Timeout for Jira API requests
 	JiraEmail         string            // Email for cloud/basic authentication
 	JiraAuth          string            // API token or password
 	JiraBearerToken   string            // Bearer token for self-hosted Jira
@@ -65,6 +66,14 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 			}
 		}).
 		Placeholder("URL").
+		Value()
+	tf.DurationVar(&cfg.JiraTimeout, "jira-timeout", 10*time.Second, "Timeout for Jira API requests").
+		Validate(func(d time.Duration) error {
+			if d < 1 {
+				return fmt.Errorf("timeout must be > 0")
+			}
+			return nil
+		}).
 		Value()
 
 	// Jira authentication
