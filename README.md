@@ -36,7 +36,7 @@ jirapanel
 ## CLI Flags
 
 | Flag                     | Description                                                |
-| ------------------------ | ---------------------------------------------------------- |
+| :----------------------- | :--------------------------------------------------------- |
 | `--config`               | Path to dashboard config file (YAML). **Required**         |
 | `--template-dir`         | Directory with template files. **Required**                |
 | `--listen-address`       | HTTP listen address (default `:8080`)                      |
@@ -65,7 +65,7 @@ jirapanel
 ### 🧾 **Dashboard Config Reference**
 
 | **Key**           | **Type**    | **Description**                                                               |
-| ----------------- | ----------- | ----------------------------------------------------------------------------- |
+| :---------------- | :---------- | :---------------------------------------------------------------------------- |
 | `title`           | `string`    | The title of the dashboard (displayed as page heading and `<title>`).         |
 | `grid.columns`    | `int`       | Number of columns in the dashboard grid layout. Must be > 0.                  |
 | `grid.rows`       | `int`       | Number of rows in the dashboard grid layout. Must be > 0.                     |
@@ -75,7 +75,7 @@ jirapanel
 ### 🧱 **Section Fields (`layout[]`)**
 
 | **Field**          | **Type**         | **Description**                                                                  |
-| ------------------ | ---------------- | -------------------------------------------------------------------------------- |
+| :----------------- | :--------------- | :------------------------------------------------------------------------------- |
 | `title`            | `string`         | Title for this section/card (used in template rendering).                        |
 | `query`            | `string`         | JQL query (e.g., `filter=12345`) to fetch Jira issues for this section.          |
 | `template`         | `string`         | Name of the Go HTML template used to render the section (e.g., `issues.gohtml`). |
@@ -124,6 +124,56 @@ layout:
       colSpan: 2
 refreshInterval: 60s
 ```
+
+### 🎨 Customization (`customization` block)
+
+You can optionally fine-tune the look and feel of the dashboard using the `customization` section in your `config.yaml`. If omitted, sensible defaults are used.
+
+| Key                                  | Type     | Description                       | Default                           |
+| :----------------------------------- | :------- | :-------------------------------- | :-------------------------------- |
+| `customization.grid.gap`             | `string` | Spacing between grid cells        | `"2rem"`                          |
+| `customization.grid.padding`         | `string` | Padding inside the grid container | `"1rem"`                          |
+| `customization.grid.marginTop`       | `string` | Space above the grid              | `"2rem"`                          |
+| `customization.grid.marginBottom`    | `string` | Space below the grid              | `"2rem"`                          |
+| `customization.card.borderColor`     | `string` | Card border color                 | `"#ccc"`                          |
+| `customization.card.padding`         | `string` | Padding inside cards              | `"1rem"`                          |
+| `customization.card.backgroundColor` | `string` | Card background color             | `"#fff"`                          |
+| `customization.card.borderRadius`    | `string` | Card border radius                | `"0.5rem"`                        |
+| `customization.card.boxShadow`       | `string` | Card shadow                       | `"0 2px 4px rgba(0, 0, 0, 0.05)"` |
+| `customization.header.align`         | `string` | Alignment of the `<h1>` title     | `"left"`                          |
+| `customization.header.marginBottom`  | `string` | Space below the header            | `"1rem"`                          |
+| `customization.footer.marginTop`     | `string` | Space above the footer            | `"1rem"`                          |
+| `customization.font.family`          | `string` | Font family for the dashboard     | `"Segoe UI", sans-serif`          |
+| `customization.font.size`            | `string` | Font size (any valid CSS size)    | `"16px"`                          |
+
+All values are directly injected into the rendered HTML/CSS. You can use any valid CSS value (e.g. `px`, `rem`, `%`, color codes).
+
+#### Example
+
+```yaml
+customization:
+  grid:
+    gap: 1rem
+    padding: 1.5rem
+    marginTop: 2rem
+    marginBottom: 2rem
+  card:
+    borderColor: "#ddd"
+    padding: 1rem
+    backgroundColor: "#fff"
+    borderRadius: 0.5rem
+    boxShadow: 0 2px 4px rgba(0, 0, 0, 0.05)
+  header:
+    align: center
+    marginBottom: 1rem
+  footer:
+    marginTop: 1rem
+  font:
+    family: "Segoe UI, sans-serif"
+    size: 16px
+```
+
+> ⚙️ If `customization` is omitted or incomplete, defaults are automatically filled in.
 
 ## 🧩 Creating a New Section Template
 
@@ -322,7 +372,7 @@ Example:
 ## Endpoints
 
 | Method | Path        | Description     |
-| ------ | ----------- | --------------- |
+| :----- | :---------- | :-------------- |
 | GET    | `/`         | Dashboard view  |
 | GET    | `/healthz`  | Health check    |
 | POST   | `/healthz`  | Health check    |

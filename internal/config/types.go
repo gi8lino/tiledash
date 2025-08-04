@@ -33,6 +33,7 @@ type Customization struct {
 	Grid   GridStyle   `yaml:"grid"`
 	Card   CardStyle   `yaml:"card"`
 	Header HeaderStyle `yaml:"header"`
+	Footer FooterStyle `yaml:"footer"`
 	Font   FontStyle   `yaml:"font"`
 }
 
@@ -53,6 +54,10 @@ type CardStyle struct {
 type HeaderStyle struct {
 	Align        string `yaml:"align"`
 	MarginBottom string `yaml:"marginBottom"`
+}
+
+type FooterStyle struct {
+	MarginTop string `yaml:"marginTop"`
 }
 
 type FontStyle struct {

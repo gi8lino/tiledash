@@ -36,7 +36,9 @@ customization:
     boxShadow: 0 2px 4px rgba(0, 0, 0, 0.05)
   header:
     align: center
-    marginBottom: 2rem
+    marginBottom: 1rem
+  footer:
+    marginTop: 1rem
   font:
     family: "Segoe UI, sans-serif"
     size: 16px

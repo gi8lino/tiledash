@@ -12,18 +12,19 @@ import (
 
 // Default values for customization style
 const (
-	defaultGridGap         string = "1rem"
-	defaultGridPadding     string = "1rem"
-	defaultGridMarginTop   string = "2rem"
-	defaultCardBorderColor string = "#ccc"
-	defaultCardPadding     string = "1rem"
-	defaultCardBackground  string = "#fff"
-	defaultCardRadius      string = "0.5rem"
-	defaultCardShadow      string = "0 2px 4px rgba(0, 0, 0, 0.05)"
-	defaultHeaderAlign     string = "left"
-	defaultHeaderMargin    string = "2rem"
-	defaultFontFamily      string = `"Segoe UI", sans-serif`
-	defaultFontSize        string = "16px"
+	defaultGridGap            string = "1rem"
+	defaultGridPadding        string = "1rem"
+	defaultGridMarginTop      string = "2rem"
+	defaultCardBorderColor    string = "#ccc"
+	defaultCardPadding        string = "1rem"
+	defaultCardBackground     string = "#fff"
+	defaultCardRadius         string = "0.5rem"
+	defaultCardShadow         string = "0 2px 4px rgba(0, 0, 0, 0.05)"
+	defaultHeaderAlign        string = "left"
+	defaultHeaderMarginBottom string = "1rem"
+	defaultFooterMarginTop    string = "1rem"
+	defaultFontFamily         string = `"Segoe UI", sans-serif`
+	defaultFontSize           string = "16px"
 )
 
 // LoadConfig loads the dashboard configuration from the given path.
@@ -142,7 +143,9 @@ func setStyleDefaults(c *Customization) {
 	setDefault(&c.Card.BoxShadow, defaultCardShadow)
 
 	setDefault(&c.Header.Align, defaultHeaderAlign)
-	setDefault(&c.Header.MarginBottom, defaultHeaderMargin)
+	setDefault(&c.Header.MarginBottom, defaultHeaderMarginBottom)
+
+	setDefault(&c.Footer.MarginTop, defaultFooterMarginTop)
 
 	setDefault(&c.Font.Family, defaultFontFamily)
 	setDefault(&c.Font.Size, defaultFontSize)

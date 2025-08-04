@@ -247,7 +247,7 @@ func TestSetStyleDefaults(t *testing.T) {
 		assert.Equal(t, defaultCardRadius, c.Card.BorderRadius)
 		assert.Equal(t, defaultCardShadow, c.Card.BoxShadow)
 		assert.Equal(t, defaultHeaderAlign, c.Header.Align)
-		assert.Equal(t, defaultHeaderMargin, c.Header.MarginBottom)
+		assert.Equal(t, defaultHeaderMarginBottom, c.Header.MarginBottom)
 		assert.Equal(t, defaultFontFamily, c.Font.Family)
 		assert.Equal(t, defaultFontSize, c.Font.Size)
 	})

@@ -22,9 +22,10 @@
       .grid {
         display: grid;
         grid-template-columns: repeat({{ .Grid.Columns }}, 1fr);
+        grid-auto-rows: minmax(0, auto);
         gap: {{ .Customization.Grid.Gap }};
-        padding: {{ .Customization.Grid.Padding }}; /* space inside the grid container */
-        margin-top: {{ .Customization.Grid.MarginTop }}; /* space from header */
+        padding: {{ .Customization.Grid.Padding }};
+        margin-top: {{ .Customization.Grid.MarginTop }};
       }
 
       .card {
@@ -34,18 +35,23 @@
         box-shadow: {{ .Customization.Card.BoxShadow }};
         border-radius: {{ .Customization.Card.BorderRadius }};
       }
+
+      footer {
+        margin-top: {{ .Customization.Footer.MarginTop }};
+      }
     </style>
   </head>
   <body>
     <h1>{{ .Title }}</h1>
     <div class="grid">
       {{ range .Sections }}
-      <div class="card" style="grid-column: span {{ or .ColSpan 1 }}">
-        {{ .HTML }}
-      </div>
+        <div class="card" style="grid-column: span {{ or .ColSpan 1 }}">
+          {{ .HTML }}
+        </div>
       {{ end }}
     </div>
     {{ template "footer" . }}
   </body>
 </html>
 {{ end }}
+
