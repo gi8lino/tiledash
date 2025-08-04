@@ -8,7 +8,9 @@ layout:
   - title: Env Epics
     query: filter=17201
     template: epics.gohtml
-    position: { row: 0, col: 0 }
+    position:
+      row: 0
+      col: 0
   - title: Open Environment Issues
     query: filter=17203
     template: issues.gohtml
