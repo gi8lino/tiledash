@@ -10,29 +10,29 @@
       body {
         margin: 0;
         padding: 2rem;
-        font-family: {{ .Font.Family }};
-        font-size: {{ .Font.Size }};
+        font-family: {{ .Customization.Font.Family }};
+        font-size: {{ .Customization.Font.Size }};
       }
 
       h1 {
-        text-align: {{ .Header.Align }};
-        margin-bottom: {{ .Header.MarginBottom }};
+        text-align: {{ .Customization.Header.Align }};
+        margin-bottom: {{ .Customization.Header.MarginBottom }};
       }
 
       .grid {
         display: grid;
         grid-template-columns: repeat({{ .Grid.Columns }}, 1fr);
-        gap: {{ .Grid.Gap }};
-        padding: {{ .Grid.Padding }}; /* space inside the grid container */
-        margin-top: {{ .Grid.MarginTop }};/* space from header */
+        gap: {{ .Customization.Grid.Gap }};
+        padding: {{ .Customization.Grid.Padding }}; /* space inside the grid container */
+        margin-top: {{ .Customization.Grid.MarginTop }}; /* space from header */
       }
 
       .card {
-        border: 1px solid {{ .Card.BorderColor }};
-        padding: {{ .Card.Padding }};
-        background-color: {{ .Card.BackgroundColor }};
-        box-shadow: {{ .Card.BoxShadow }};
-        border-radius: {{ .Card.BorderRadius }};
+        border: 1px solid {{ .Customization.Card.BorderColor }};
+        padding: {{ .Customization.Card.Padding }};
+        background-color: {{ .Customization.Card.BackgroundColor }};
+        box-shadow: {{ .Customization.Card.BoxShadow }};
+        border-radius: {{ .Customization.Card.BorderRadius }};
       }
     </style>
   </head>
