@@ -26,7 +26,6 @@ type Config struct {
 	LogFormat         logging.LogFormat // Log output format (text or json)
 	Config            string            // Path to config file
 	TemplateDir       string            // Path to template directory
-	RefreshInterval   time.Duration     // Refresh interval for dashboard
 }
 
 // ParseArgs parses CLI arguments into Config, handling version/help flags.

@@ -81,16 +81,15 @@ func TestDashboard(t *testing.T) {
 		assert.Contains(t, body, "My Dashboard v1.0.0")
 	})
 
-	t.Run("handles RenderSections error", func(t *testing.T) {
+	t.Run("renders section error in base template", func(t *testing.T) {
 		t.Parallel()
 
 		webFS := fstest.MapFS{
-			"web/templates/base.gohtml":   &fstest.MapFile{Data: []byte(`{{define "base"}}base{{end}}`)},
+			"web/templates/base.gohtml":   &fstest.MapFile{Data: []byte(`{{define "base"}}<div class="grid">{{range .Sections}}<div class="card">{{if .Error}}<div class="alert alert-danger">{{.Error}}</div>{{end}}</div>{{end}}</div>{{end}}`)},
 			"web/templates/footer.gohtml": &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
 			"web/templates/error.gohtml":  &fstest.MapFile{Data: []byte(`{{define "error"}}Error: {{.Message}}{{end}}`)},
 		}
 
-		// Create minimal template dir to satisfy ParseSectionTemplates
 		tmpDir := t.TempDir()
 		testutils.MustWriteFile(t,
 			filepath.Join(tmpDir, "templates", "dummy.gohtml"),
@@ -103,7 +102,7 @@ func TestDashboard(t *testing.T) {
 				{
 					Title:    "Failing Section",
 					Query:    "FAIL-JQL",
-					Template: "dummy", // doesn't matter, it won't be rendered
+					Template: "dummy",
 				},
 			},
 			RefreshInterval: 10 * time.Second,
@@ -128,8 +127,10 @@ func TestDashboard(t *testing.T) {
 		defer res.Body.Close() // nolint:errcheck
 		body := w.Body.String()
 
-		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
-		assert.Contains(t, body, "Error:")
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Equal(t, "Broken Dashboard", body)
+		assert.Contains(t, body, "Fetch failed: status: 500")
+		assert.Contains(t, body, "alert alert-danger")
 	})
 
 	t.Run("panic when template parsing fails", func(t *testing.T) {

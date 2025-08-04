@@ -3,7 +3,6 @@ package flag_test
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/gi8lino/jirapanel/internal/flag"
 	"github.com/stretchr/testify/require"
@@ -127,22 +126,5 @@ func TestParseArgs(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "config.yaml", cfg.Config)
 		require.Equal(t, "templates", cfg.TemplateDir)
-	})
-
-	t.Run("refresh interval env fallback", func(t *testing.T) {
-		t.Parallel()
-
-		// Not settable via CLI directly in current implementation;
-		// this test would be meaningful when env parsing is covered in integration tests.
-		args := []string{
-			"--jira-api-url=https://jira/rest/api/3",
-			"--jira-email=test@jira.com",
-			"--jira-auth=t",
-		}
-		var out strings.Builder
-
-		cfg, err := flag.ParseArgs("dev", args, &out, mockGetEnv)
-		require.NoError(t, err)
-		require.Equal(t, time.Duration(0), cfg.RefreshInterval)
 	})
 }

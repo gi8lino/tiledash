@@ -132,16 +132,16 @@ You can optionally fine-tune the look and feel of the dashboard using the `custo
 | Key                                  | Type     | Description                       | Default                           |
 | :----------------------------------- | :------- | :-------------------------------- | :-------------------------------- |
 | `customization.grid.gap`             | `string` | Spacing between grid cells        | `"2rem"`                          |
-| `customization.grid.padding`         | `string` | Padding inside the grid container | `"1rem"`                          |
-| `customization.grid.marginTop`       | `string` | Space above the grid              | `"2rem"`                          |
-| `customization.grid.marginBottom`    | `string` | Space below the grid              | `"2rem"`                          |
+| `customization.grid.padding`         | `string` | Padding inside the grid container | `"0rem"`                          |
+| `customization.grid.marginTop`       | `string` | Space above the grid              | `"0rem"`                          |
+| `customization.grid.marginBottom`    | `string` | Space below the grid              | `"0rem"`                          |
 | `customization.card.borderColor`     | `string` | Card border color                 | `"#ccc"`                          |
-| `customization.card.padding`         | `string` | Padding inside cards              | `"1rem"`                          |
+| `customization.card.padding`         | `string` | Padding inside cards              | `"0rem"`                          |
 | `customization.card.backgroundColor` | `string` | Card background color             | `"#fff"`                          |
 | `customization.card.borderRadius`    | `string` | Card border radius                | `"0.5rem"`                        |
 | `customization.card.boxShadow`       | `string` | Card shadow                       | `"0 2px 4px rgba(0, 0, 0, 0.05)"` |
 | `customization.header.align`         | `string` | Alignment of the `<h1>` title     | `"left"`                          |
-| `customization.header.marginBottom`  | `string` | Space below the header            | `"1rem"`                          |
+| `customization.header.marginBottom`  | `string` | Space below the header            | `"0rem"`                          |
 | `customization.footer.marginTop`     | `string` | Space above the footer            | `"1rem"`                          |
 | `customization.font.family`          | `string` | Font family for the dashboard     | `"Segoe UI", sans-serif`          |
 | `customization.font.size`            | `string` | Font size (any valid CSS size)    | `"16px"`                          |

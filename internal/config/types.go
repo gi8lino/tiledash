@@ -38,9 +38,10 @@ type Customization struct {
 }
 
 type GridStyle struct {
-	Gap       string `yaml:"gap"`
-	Padding   string `yaml:"padding"`
-	MarginTop string `yaml:"marginTop"`
+	Gap          string `yaml:"gap"`
+	Padding      string `yaml:"padding"`
+	MarginTop    string `yaml:"marginTop"`
+	MarginBottom string `yaml:"marginBottom"`
 }
 
 type CardStyle struct {

@@ -26,6 +26,7 @@
         gap: {{ .Customization.Grid.Gap }};
         padding: {{ .Customization.Grid.Padding }};
         margin-top: {{ .Customization.Grid.MarginTop }};
+        margin-bottom: {{ .Customization.Grid.MarginBottom }};
       }
 
       .card {
@@ -50,7 +51,8 @@
             {{ .HTML }}
           {{ else if .Error }}
             <div class="alert alert-danger" role="alert">
-              <strong>Error:</strong> {{ .Error }}
+              <strong>{{ .Error.Type }} error:</strong> {{ .Error.Message }}
+              <div><small>{{ .Error.Detail }}</small></div>
             </div>
           {{ else }}
             <div class="text-center p-4">

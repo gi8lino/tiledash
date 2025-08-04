@@ -28,12 +28,7 @@ func Dashboard(
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		sections, status, err := templates.RenderSections(r.Context(), cfg, sectionTmpl, s)
-		if err != nil {
-			logger.Error("render sections error", "error", err)
-			renderErrorPage(w, status, baseTmpl, cfg.Title, "Failed to render dashboard sections.", err)
-			return
-		}
+		sections := templates.RenderSections(r.Context(), cfg, sectionTmpl, s)
 
 		err = baseTmpl.ExecuteTemplate(w, "base", map[string]any{
 			"Version":         version,
@@ -45,7 +40,7 @@ func Dashboard(
 		})
 		if err != nil {
 			logger.Error("render base error", "error", err)
-			renderErrorPage(w, status, baseTmpl, cfg.Title, "Failed to render dashboard layout.", err)
+			renderErrorPage(w, http.StatusInternalServerError, baseTmpl, cfg.Title, "Failed to render dashboard layout.", err)
 			return
 		}
 	}

@@ -47,9 +47,7 @@ func TestRenderSections(t *testing.T) {
 			},
 		}
 
-		sections, status, err := templates.RenderSections(context.Background(), cfg, tmpl, client)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, status)
+		sections := templates.RenderSections(context.Background(), cfg, tmpl, client)
 		require.Len(t, sections, 1)
 		assert.Equal(t, "Test", sections[0]["Title"])
 		assert.Equal(t, 0, sections[0]["Row"])
@@ -72,11 +70,9 @@ func TestRenderSections(t *testing.T) {
 			Layout: []config.Section{{Title: "Err", Query: "fail", Template: "x"}},
 		}
 
-		sections, status, err := templates.RenderSections(context.Background(), cfg, tmpl, client)
-		require.Error(t, err)
-		assert.Nil(t, sections)
-		assert.Equal(t, 418, status)
-		assert.Contains(t, err.Error(), "fetch error")
+		sections := templates.RenderSections(context.Background(), cfg, tmpl, client)
+		assert.NotNil(t, sections)
+		assert.Equal(t, "Fetch failed: status: 418, bad request", sections[0]["Error"])
 	})
 
 	t.Run("handles invalid JSON", func(t *testing.T) {
@@ -93,11 +89,9 @@ func TestRenderSections(t *testing.T) {
 			Layout: []config.Section{{Title: "bad json", Query: "q", Template: "s1"}},
 		}
 
-		sections, status, err := templates.RenderSections(context.Background(), cfg, tmpl, client)
-		require.Error(t, err)
-		assert.Nil(t, sections)
-		assert.Equal(t, http.StatusInternalServerError, status)
-		assert.Contains(t, err.Error(), "json error")
+		sections := templates.RenderSections(context.Background(), cfg, tmpl, client)
+		assert.NotNil(t, sections)
+		assert.Equal(t, "JSON parse error: invalid character 'i' looking for beginning of object key string", sections[0]["Error"])
 	})
 
 	t.Run("handles template error", func(t *testing.T) {
@@ -114,10 +108,8 @@ func TestRenderSections(t *testing.T) {
 			Layout: []config.Section{{Title: "bad tmpl", Query: "q", Template: "s1"}},
 		}
 
-		sections, status, err := templates.RenderSections(context.Background(), cfg, tmpl, client)
-		require.Error(t, err)
-		assert.Nil(t, sections)
-		assert.Equal(t, http.StatusInternalServerError, status)
-		assert.Contains(t, err.Error(), "template error")
+		sections := templates.RenderSections(context.Background(), cfg, tmpl, client)
+		assert.NotNil(t, sections)
+		assert.Equal(t, "Template execution error: template: :1:17: executing \"s1\" at <index nil 0>: error calling index: index of untyped nil", sections[0]["Error"])
 	})
 }

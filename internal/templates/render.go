@@ -6,21 +6,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"net/http"
 
 	"github.com/gi8lino/jirapanel/internal/config"
 	"github.com/gi8lino/jirapanel/internal/jira"
 )
 
 // RenderSections fetches data and renders each dashboard section.
-func RenderSections(ctx context.Context, cfg config.DashboardConfig, tmpl *template.Template, client jira.Searcher) (sections []map[string]any, statusCode int, err error) {
+// It always returns a slice (possibly containing sections with errors).
+func RenderSections(ctx context.Context, cfg config.DashboardConfig, tmpl *template.Template, client jira.Searcher) (sections []map[string]any) {
 	for _, section := range cfg.Layout {
 		respBody, status, fetchErr := client.SearchByJQL(ctx, section.Query, section.Params)
 		if fetchErr != nil {
 			// Render error instead of HTML
 			sections = append(sections, map[string]any{
-				"HTML":    template.HTML(""), // no HTML content
-				"Error":   fmt.Sprintf("Fetch failed: status: %d, %v", status, fetchErr),
+				"HTML": template.HTML(""), // no HTML content
+				"Error": map[string]string{
+					"Type":    "fetch",
+					"Message": fmt.Sprintf("Request failed: status %d", status),
+					"Detail":  fetchErr.Error(),
+				},
 				"Row":     section.Position.Row,
 				"Col":     section.Position.Col,
 				"ColSpan": section.Position.ColSpan,
@@ -32,8 +36,12 @@ func RenderSections(ctx context.Context, cfg config.DashboardConfig, tmpl *templ
 		var jsonData any
 		if err := json.Unmarshal(respBody, &jsonData); err != nil {
 			sections = append(sections, map[string]any{
-				"HTML":    template.HTML(""),
-				"Error":   fmt.Sprintf("JSON parse error: %v", err),
+				"HTML": template.HTML(""),
+				"Error": map[string]string{
+					"Type":    "json",
+					"Message": "Response could not be parsed",
+					"Detail":  err.Error(),
+				},
 				"Row":     section.Position.Row,
 				"Col":     section.Position.Col,
 				"ColSpan": section.Position.ColSpan,
@@ -48,8 +56,12 @@ func RenderSections(ctx context.Context, cfg config.DashboardConfig, tmpl *templ
 			"Data":  jsonData,
 		}); err != nil {
 			sections = append(sections, map[string]any{
-				"HTML":    template.HTML(""),
-				"Error":   fmt.Sprintf("Template execution error: %v", err),
+				"HTML": template.HTML(""),
+				"Error": map[string]string{
+					"Type":    "template",
+					"Message": "Template rendering failed",
+					"Detail":  err.Error(),
+				},
 				"Row":     section.Position.Row,
 				"Col":     section.Position.Col,
 				"ColSpan": section.Position.ColSpan,
@@ -68,5 +80,5 @@ func RenderSections(ctx context.Context, cfg config.DashboardConfig, tmpl *templ
 		})
 	}
 
-	return sections, http.StatusOK, nil
+	return sections
 }

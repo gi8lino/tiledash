@@ -12,16 +12,17 @@ import (
 
 // Default values for customization style
 const (
-	defaultGridGap            string = "1rem"
-	defaultGridPadding        string = "1rem"
-	defaultGridMarginTop      string = "2rem"
+	defaultGridGap            string = "2rem"
+	defaultGridPadding        string = "0rem"
+	defaultGridMarginTop      string = "0rem"
+	defaultGridMarginBottom   string = "0rem"
 	defaultCardBorderColor    string = "#ccc"
-	defaultCardPadding        string = "1rem"
+	defaultCardPadding        string = "0rem"
 	defaultCardBackground     string = "#fff"
 	defaultCardRadius         string = "0.5rem"
 	defaultCardShadow         string = "0 2px 4px rgba(0, 0, 0, 0.05)"
 	defaultHeaderAlign        string = "left"
-	defaultHeaderMarginBottom string = "1rem"
+	defaultHeaderMarginBottom string = "0rem"
 	defaultFooterMarginTop    string = "1rem"
 	defaultFontFamily         string = `Segoe UI, sans-serif`
 	defaultFontSize           string = "16px"
@@ -135,6 +136,7 @@ func setStyleDefaults(c *Customization) {
 	setDefault(&c.Grid.Gap, defaultGridGap)
 	setDefault(&c.Grid.Padding, defaultGridPadding)
 	setDefault(&c.Grid.MarginTop, defaultGridMarginTop)
+	setDefault(&c.Grid.MarginBottom, defaultGridMarginBottom)
 
 	setDefault(&c.Card.BorderColor, defaultCardBorderColor)
 	setDefault(&c.Card.Padding, defaultCardPadding)

@@ -26,8 +26,8 @@ layout:
 customization:
   grid:
     gap: 1rem
-    padding: 1.5rem
-    marginTop: 2rem
+    padding: 0rem
+    marginTop: 0rem
   card:
     borderColor: "#ddd"
     padding: 1rem
@@ -36,7 +36,7 @@ customization:
     boxShadow: 0 2px 4px rgba(0, 0, 0, 0.05)
   header:
     align: center
-    marginBottom: 1rem
+    marginBottom: 0rem
   footer:
     marginTop: 1rem
   font:
