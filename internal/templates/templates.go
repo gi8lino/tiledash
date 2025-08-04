@@ -6,10 +6,13 @@ import (
 	"path/filepath"
 )
 
-// ParseBaseTemplates parses the base and footer templates.
+// ParseBaseTemplates loads the base, footer, and error layout templates from webFS.
 func ParseBaseTemplates(webFS fs.FS, funcMap template.FuncMap) *template.Template {
+	// Use New("jirapanel") to avoid assigning a name to the root template.
+	// This ensures that files like base.gohtml must explicitly declare {{define "base"}}
+	// in order to be invoked via ExecuteTemplate("base", ...), preventing accidental fallback behavior.
 	return template.Must(
-		template.New("base").
+		template.New("jirapanel").
 			Funcs(funcMap).
 			ParseFS(webFS,
 				"web/templates/base.gohtml",
