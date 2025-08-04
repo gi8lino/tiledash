@@ -85,7 +85,21 @@ func TestDashboard(t *testing.T) {
 		t.Parallel()
 
 		webFS := fstest.MapFS{
-			"web/templates/base.gohtml":   &fstest.MapFile{Data: []byte(`{{define "base"}}<div class="grid">{{range .Sections}}<div class="card">{{if .Error}}<div class="alert alert-danger">{{.Error}}</div>{{end}}</div>{{end}}</div>{{end}}`)},
+			"web/templates/base.gohtml": &fstest.MapFile{Data: []byte(`
+{{define "base"}}
+<div class="grid">
+  {{range .Sections}}
+    <div class="card">
+      {{if .Error}}
+        <div class="alert alert-danger">
+          {{.Error.Type}}: {{.Error.Message}} ({{.Error.Detail}})
+        </div>
+      {{end}}
+    </div>
+  {{end}}
+</div>
+{{end}}
+`)},
 			"web/templates/footer.gohtml": &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
 			"web/templates/error.gohtml":  &fstest.MapFile{Data: []byte(`{{define "error"}}Error: {{.Message}}{{end}}`)},
 		}
@@ -128,8 +142,7 @@ func TestDashboard(t *testing.T) {
 		body := w.Body.String()
 
 		assert.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Equal(t, "Broken Dashboard", body)
-		assert.Contains(t, body, "Fetch failed: status: 500")
+		assert.Contains(t, body, "fetch: Request failed: status 500")
 		assert.Contains(t, body, "alert alert-danger")
 	})
 

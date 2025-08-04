@@ -71,8 +71,13 @@ func TestRenderSections(t *testing.T) {
 		}
 
 		sections := templates.RenderSections(context.Background(), cfg, tmpl, client)
-		assert.NotNil(t, sections)
-		assert.Equal(t, "Fetch failed: status: 418, bad request", sections[0]["Error"])
+		require.Len(t, sections, 1)
+
+		errVal, ok := sections[0]["Error"].(*templates.RenderError)
+		require.True(t, ok)
+		assert.Equal(t, "fetch", errVal.Type)
+		assert.Equal(t, "Request failed: status 418", errVal.Message)
+		assert.Equal(t, "bad request", errVal.Detail)
 	})
 
 	t.Run("handles invalid JSON", func(t *testing.T) {
@@ -90,8 +95,13 @@ func TestRenderSections(t *testing.T) {
 		}
 
 		sections := templates.RenderSections(context.Background(), cfg, tmpl, client)
-		assert.NotNil(t, sections)
-		assert.Equal(t, "JSON parse error: invalid character 'i' looking for beginning of object key string", sections[0]["Error"])
+		require.Len(t, sections, 1)
+
+		errVal, ok := sections[0]["Error"].(*templates.RenderError)
+		require.True(t, ok)
+		assert.Equal(t, "json", errVal.Type)
+		assert.Equal(t, "Response could not be parsed", errVal.Message)
+		assert.Contains(t, errVal.Detail, "invalid character 'i'")
 	})
 
 	t.Run("handles template error", func(t *testing.T) {
@@ -109,7 +119,12 @@ func TestRenderSections(t *testing.T) {
 		}
 
 		sections := templates.RenderSections(context.Background(), cfg, tmpl, client)
-		assert.NotNil(t, sections)
-		assert.Equal(t, "Template execution error: template: :1:17: executing \"s1\" at <index nil 0>: error calling index: index of untyped nil", sections[0]["Error"])
+		require.Len(t, sections, 1)
+
+		errVal, ok := sections[0]["Error"].(*templates.RenderError)
+		require.True(t, ok)
+		assert.Equal(t, "template", errVal.Type)
+		assert.Equal(t, "Template rendering failed", errVal.Message)
+		assert.Contains(t, errVal.Detail, "error calling index")
 	})
 }
