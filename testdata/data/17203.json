@@ -1,0 +1,34 @@
+{
+  "issues": [
+    {
+      "fields": {
+        "summary": "Optimize backend caching",
+        "status": { "name": "In Progress" },
+        "assignee": { "displayName": "Alice" },
+        "components": [{ "name": "API" }],
+        "customfield_10100": { "key": "EPIC-1" },
+        "created": "2024-10-04T12:00:00.000+0000"
+      }
+    },
+    {
+      "fields": {
+        "summary": "Update UI layout",
+        "status": { "name": "To Do" },
+        "assignee": { "displayName": "Bob" },
+        "components": [{ "name": "UI" }],
+        "customfield_10100": { "key": "EPIC-2" },
+        "created": "2024-11-10T09:32:00.000+0000"
+      }
+    },
+    {
+      "fields": {
+        "summary": "Integrate OAuth2",
+        "status": { "name": "In Progress" },
+        "assignee": null,
+        "components": [],
+        "customfield_10100": null,
+        "created": "2025-01-15T08:45:00.000+0000"
+      }
+    }
+  ]
+}

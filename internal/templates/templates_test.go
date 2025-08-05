@@ -60,14 +60,10 @@ func TestParseBaseTemplates(t *testing.T) {
 			"web/templates/error.gohtml":  &fstest.MapFile{Data: []byte(`{{define "error"}}error{{end}}`)},
 		}
 
-		defer func() {
-			if r := recover(); r == nil {
-				t.Fatal("expected panic due to invalid template, but got none")
-			}
-		}()
-
-		tmpl := templates.ParseBaseTemplates(webFS, template.FuncMap{})
-		assert.NotNil(t, tmpl)
+		assert.PanicsWithError(t,
+			"template: base.gohtml:1: unexpected EOF",
+			func() { templates.ParseBaseTemplates(webFS, template.FuncMap{}) },
+		)
 	})
 }
 
@@ -83,7 +79,7 @@ func TestParseSectionTemplates(t *testing.T) {
 		testutils.MustWriteFile(t, filepath.Join(dir, "foo.gohtml"), `{{define "foo"}}foo content{{end}}`)
 		testutils.MustWriteFile(t, filepath.Join(dir, "bar.gohtml"), `{{define "bar"}}bar content{{end}}`)
 
-		tmpl, err := templates.ParseSectionTemplates(dir, template.FuncMap{})
+		tmpl, err := templates.ParseCellTemplates(dir, template.FuncMap{})
 		assert.NoError(t, err)
 		assert.NotNil(t, tmpl)
 		assert.NotNil(t, tmpl.Lookup("foo"))
@@ -95,7 +91,7 @@ func TestParseSectionTemplates(t *testing.T) {
 
 		emptyDir := t.TempDir()
 
-		tmpl, err := templates.ParseSectionTemplates(emptyDir, template.FuncMap{})
+		tmpl, err := templates.ParseCellTemplates(emptyDir, template.FuncMap{})
 		assert.NoError(t, err)
 		assert.NotNil(t, tmpl)
 		assert.Nil(t, tmpl.Lookup("any"))
@@ -109,7 +105,7 @@ func TestParseSectionTemplates(t *testing.T) {
 		// Write malformed template
 		testutils.MustWriteFile(t, filepath.Join(dir, "bad.gohtml"), `{{define "bad"}}{{end}`) // unclosed
 
-		_, err := templates.ParseSectionTemplates(dir, template.FuncMap{})
+		_, err := templates.ParseCellTemplates(dir, template.FuncMap{})
 		assert.Error(t, err)
 		assert.EqualError(t, err, "template: bad.gohtml:1: bad character U+007D '}'")
 	})

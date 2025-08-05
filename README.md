@@ -4,12 +4,44 @@
 
 ## Features
 
-- Render multiple dashboard sections with custom templates
+- Render multiple dashboard grid cells with custom templates
 - Query Jira issues using JQL or filters
 - Fully configurable grid layout
 - Auto-refresh support (configurable)
 - Clean bootstrap-based layout
 - Simple CLI configuration via flags or environment variables
+
+## 🧠 How It Works
+
+JiraPanel renders a dynamic dashboard by combining a **base layout template** with **per-cell content**, which is loaded asynchronously in the browser.
+
+### Step-by-Step Flow:
+
+1. **Base Template Load**
+   The main dashboard view (`/`) renders `base.gohtml`, which defines the grid layout and includes placeholders for each cell.
+
+2. **Asynchronous Cell Rendering**
+   After the base page is loaded:
+
+   - JavaScript fetches each individual cell via `/cells/{id}`
+   - The server renders the cell using its configured template and Jira response data
+   - The HTML is injected into the correct grid cell
+
+3. **Server-Side Cell Rendering**
+   For each `/cells/{id}` request:
+
+   - A JQL query is executed against Jira
+   - The JSON response is passed to a Go HTML template (e.g. `issues.gohtml`)
+   - The rendered HTML is returned to the browser
+
+4. **Error Handling**
+   If any cell fails to render (e.g. bad query, timeout), the server renders a fallback using `cell_error.gohtml`. This ensures the rest of the dashboard remains usable.
+
+### Benefits
+
+- Only the base page is loaded initially
+- Each cell loads independently, improving performance and fault tolerance
+- Full HTML is rendered server-side — no client-side templating required
 
 ## Example Usage
 
@@ -64,31 +96,31 @@ jirapanel
 
 ### 🧾 **Dashboard Config Reference**
 
-| **Key**           | **Type**    | **Description**                                                               |
-| :---------------- | :---------- | :---------------------------------------------------------------------------- |
-| `title`           | `string`    | The title of the dashboard (displayed as page heading and `<title>`).         |
-| `grid.columns`    | `int`       | Number of columns in the dashboard grid layout. Must be > 0.                  |
-| `grid.rows`       | `int`       | Number of rows in the dashboard grid layout. Must be > 0.                     |
-| `refreshInterval` | `duration`  | Interval for automatic dashboard refresh (e.g., `60s`, `2m`).                 |
-| `layout`          | `[]section` | List of dashboard sections/cards to display. Each one defines its own layout. |
+| **Key**           | **Type**   | **Description**                                                            |
+| :---------------- | :--------- | :------------------------------------------------------------------------- |
+| `title`           | `string`   | The title of the dashboard (displayed as page heading and `<title>`).      |
+| `grid.columns`    | `int`      | Number of columns in the dashboard grid layout. Must be > 0.               |
+| `grid.rows`       | `int`      | Number of rows in the dashboard grid layout. Must be > 0.                  |
+| `refreshInterval` | `duration` | Interval for automatic dashboard refresh (e.g., `60s`, `2m`).              |
+| `cells`           | `[]cell`   | List of dashboard cells/cards to display. Each one defines its own layout. |
 
-### 🧱 **Section Fields (`layout[]`)**
+### 🧱 **Cells Fields (`Cell[]`)**
 
-| **Field**          | **Type**         | **Description**                                                                  |
-| :----------------- | :--------------- | :------------------------------------------------------------------------------- |
-| `title`            | `string`         | Title for this section/card (used in template rendering).                        |
-| `query`            | `string`         | JQL query (e.g., `filter=12345`) to fetch Jira issues for this section.          |
-| `template`         | `string`         | Name of the Go HTML template used to render the section (e.g., `issues.gohtml`). |
-| `position.row`     | `int`            | Zero-based row index of the section's starting position.                         |
-| `position.col`     | `int`            | Zero-based column index of the section's starting position.                      |
-| `position.colSpan` | `int` (optional) | Number of columns this section spans. Defaults to 1 if omitted or 0.             |
+| **Field**          | **Type**         | **Description**                                                               |
+| :----------------- | :--------------- | :---------------------------------------------------------------------------- |
+| `title`            | `string`         | Title for this cell/card (used in template rendering).                        |
+| `query`            | `string`         | JQL query (e.g., `filter=12345`) to fetch Jira issues for this cell.          |
+| `template`         | `string`         | Name of the Go HTML template used to render the cell (e.g., `issues.gohtml`). |
+| `position.row`     | `int`            | Zero-based row index of the cells starting position.                          |
+| `position.col`     | `int`            | Zero-based column index of the cells starting position.                       |
+| `position.colSpan` | `int` (optional) | Number of columns this cell spans. Defaults to 1 if omitted or 0.             |
 
 ### 💡 Notes
 
 - **`position.colSpan`** must not exceed `grid.columns` when added to `col`. For example:
   If `col: 1` and `colSpan: 2`, this overflows a 2-column grid.
 - **Templates** must exist in the specified `templateDir` and be named exactly as listed.
-- **Section order** in `layout[]` affects rendering order — no automatic sorting is done.
+- **Section order** in `cell[]` affects rendering order — no automatic sorting is done.
 
 ### 📁 Example Config
 
@@ -98,7 +130,7 @@ title: My Jira Dashboard
 grid:
   columns: 2
   rows: 4
-layout:
+cells:
   - title: Env Epics
     query: filter=17201
     template: epics.gohtml
@@ -177,7 +209,7 @@ customization:
 
 ## 🧩 Creating a New Section Template
 
-To visualize custom data from Jira, you can create **your own `.gohtml` section templates** using standard Go templates with helpers.
+To visualize custom data from Jira, you can create **your own `.gohtml` cell templates** using standard Go templates with helpers.
 
 ### 1. 🔍 Fetch Real Data to Explore
 
@@ -224,12 +256,12 @@ Your template will access this via `.Data.issues`, so for each issue, you can us
 
 ### 2. 🧱 Write a template based on that Structure
 
-Each dashboard **section** corresponds to a `.gohtml` file in your `--template-dir`.
+Each dashboard **cell** corresponds to a `.gohtml` file in your `--template-dir`.
 
 Here’s a simple example that **groups issues by assignee and counts them**:
 
 ```gohtml
-<h2>{{ .Title }}</h2> <!-- Render the section title -->
+<h2>{{ .Title }}</h2> <!-- Render the cell title -->
 
 {{- $data := .Data.issues }} <!-- Assign issues list to a local variable -->
 {{- $assignees := dict }}    <!-- Create an empty map to count issues per assignee -->
@@ -266,7 +298,7 @@ Here’s a simple example that **groups issues by assignee and counts them**:
     {{- end }}
     <tr class="table-secondary fw-bold">
       <td>Total Issues</td>
-      <td>{{ $total }}</td> <!-- Total issues in the section -->
+      <td>{{ $total }}</td> <!-- Total issues in the cell -->
     </tr>
   </tbody>
 </table>
@@ -311,7 +343,7 @@ JiraPanel uses Go’s `html/template` engine with custom helpers and supports [B
 
 > **Important:** Section templates **must end with `.gohtml`**. For example: `epics.gohtml`, `issues.gohtml`.
 
-They must exist inside the directory specified via `--template-dir`. If a section template listed in your `config.yaml` is missing or malformed, the dashboard will fail to render and display an error.
+They must exist inside the directory specified via `--template-dir`. If a cell template listed in your `config.yaml` is missing or malformed, the dashboard will fail to render and display an error.
 
 ### 🔧 Built-in Template Functions
 

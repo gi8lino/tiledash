@@ -1,51 +1,42 @@
-<h2 class="mb-4">{{ .Title }}</h2> <!-- Render the section title with bottom margin -->
+<h2 class="mb-4">{{ .Title }}</h2>
 
-<div class="table-responsive"> <!-- Make the table scrollable on small screens -->
+<div class="table-responsive">
   <table class="table table-bordered table-striped align-left table-hover tablesort">
-    <!-- Bootstrap-styled table with borders, striped rows, left-aligned content,
-         hover highlighting, and client-side sorting (tablesort) -->
-
-    <thead class="table-dark"> <!-- Dark-themed header row -->
+    <thead class="table-dark">
       <tr>
-        <th scope="col">Summary</th>        <!-- Issue summary -->
-        <th scope="col">Components</th>     <!-- Jira components -->
-        <th scope="col">Epic</th>           <!-- Linked Epic (custom field) -->
-        <th scope="col">Assignee</th>       <!-- User assigned to the issue -->
-        <th scope="col">Status</th>         <!-- Current workflow status -->
+        <th scope="col">Summary</th>
+        <th scope="col">Components</th>
+        <th scope="col">Epic</th>
+        <th scope="col">Assignee</th>
+        <th scope="col">Status</th>
         <th data-sort-default data-sort-reverse scope="col">Created</th>
-        <!-- Creation date, sortable by default in reverse order -->
       </tr>
     </thead>
-
     <tbody>
-      {{ range .Data.issues }} <!-- Iterate over the list of issues returned from Jira -->
+      {{ range .Data.issues }}
       <tr>
-        <!-- Summary field -->
         <td>{{ .fields.summary }}</td>
-
-        <!-- Components: display comma-separated component names, or dash if none -->
         <td>
           {{- range $i, $c := .fields.components }}
             {{ if $i }}, {{ end }}{{ $c.name }}
           {{- else }}
-            <span class="text-muted">–</span> <!-- Fallback if no components -->
+            <span class="text-muted">–</span>      {{/* Show dash if no components */}}
           {{- end }}
         </td>
-
-        <!-- Epic: render using custom helper template "epicName" -->
-        <td>{{ template "epicName" .fields.customfield_10100 }}</td>
-
-        <!-- Assignee display name (fallbacks not handled here) -->
-        <td>{{ .fields.assignee.displayName }}</td>
-
-        <!-- Status: use colored badge based on status name via helper template -->
+        <!-- Extract the epic key before passing to the helper -->
+        <td>{{ template "epicName" (dig .fields.customfield_10100 "key") }}</td>
+        <td>
+          {{- if .fields.assignee }}
+            {{ .fields.assignee.displayName }}
+          {{- else }}
+            <span class="text-muted">–</span>      {{/* Unassigned display */}}
+          {{- end }}
+        </td>
         <td>
           <span class="badge {{ template "statusBadgeColor" .fields.status.name }}">
             {{ .fields.status.name }}
           </span>
         </td>
-
-        <!-- Created date: rendered using formatJiraDate, sortable via data-sort -->
         <td data-sort="{{ .fields.created }}">
           {{ formatJiraDate .fields.created "02.01.2006" }}
         </td>

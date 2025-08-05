@@ -21,7 +21,7 @@ func TestLoadConfig(t *testing.T) {
 grid:
   rows: 2
   columns: 2
-layout:
+cells:
   - title: Sample
     query: SELECT *
     template: box
@@ -42,8 +42,8 @@ refreshInterval: 30s
 
 		assert.Equal(t, 2, cfg.Grid.Rows)
 		assert.Equal(t, 2, cfg.Grid.Columns)
-		assert.Equal(t, 1, len(cfg.Layout))
-		assert.Equal(t, "Sample", cfg.Layout[0].Title)
+		assert.Equal(t, 1, len(cfg.Cells))
+		assert.Equal(t, "Sample", cfg.Cells[0].Title)
 	})
 
 	t.Run("fails if file missing", func(t *testing.T) {
@@ -66,7 +66,7 @@ func TestValidateConfig(t *testing.T) {
 				Columns: 1,
 			},
 			RefreshInterval: 60,
-			Layout: []Section{
+			Cells: []Cell{
 				{
 					Title:    "A",
 					Query:    "SELECT",
@@ -88,7 +88,7 @@ func TestValidateConfig(t *testing.T) {
 		cfg := DashboardConfig{
 			Grid:            Grid{Rows: 1, Columns: 2},
 			RefreshInterval: 0,
-			Layout: []Section{
+			Cells: []Cell{
 				{
 					Title:    "",
 					Query:    "",
@@ -131,7 +131,7 @@ func TestValidateConfig(t *testing.T) {
 		cfg := DashboardConfig{
 			Grid:            Grid{Rows: 1, Columns: 2},
 			RefreshInterval: 2 * time.Second,
-			Layout: []Section{
+			Cells: []Cell{
 				{
 					Title:    "almost valid",
 					Query:    "some query",
@@ -159,7 +159,7 @@ func TestValidateConfig(t *testing.T) {
 		cfg := DashboardConfig{
 			Grid:            Grid{Rows: 1, Columns: 1},
 			RefreshInterval: 10 * time.Second,
-			Layout: []Section{
+			Cells: []Cell{
 				{
 					Title:    "basic",
 					Query:    "JQL",
@@ -186,7 +186,7 @@ func TestValidateConfig(t *testing.T) {
 		cfg := DashboardConfig{
 			Grid:            Grid{Rows: 1, Columns: 1},
 			RefreshInterval: 30 * time.Second,
-			Layout: []Section{
+			Cells: []Cell{
 				{
 					Title:    "styled",
 					Query:    "Q",

@@ -1,65 +1,58 @@
-<h2 class="mb-4">{{ .Title }}</h2> <!-- Render the section title with bottom margin -->
+<h2 class="mb-4">{{ .Title }}</h2>
 
-{{- $epicSet := dict }} <!-- Create a set to collect unique epic keys -->
+{{- $epicSet := dict }}                          {{/* Collect all epic keys */}}
 
-<!-- Extract epic keys from all issues -->
 {{- range .Data.issues }}
-  {{- $epicKey := dig .fields.customfield_10100 "key" }} <!-- Safely extract epic key -->
+  {{- $epicKey := dig .fields.customfield_10100 "key" }}
   {{- if $epicKey }}
-    {{- $_ := set $epicSet $epicKey true }} <!-- Add to set if not nil -->
+    {{- $_ := set $epicSet $epicKey true }}      {{/* Use map as a set: epicKey → true */}}
   {{- end }}
 {{- end }}
 
-{{- $epicKeys := keys $epicSet }} <!-- Collect unique epic keys into a list -->
+{{- $epicKeys := keys $epicSet }}               {{/* Sorted list of unique epic keys */}}
+{{- $components := dict }}                      {{/* Map: component name → list of issues */}}
+
+{{ range $issue := .Data.issues }}
+  {{- $fields := $issue.fields }}
+  {{- $comp := "No Component" }}                {{/* Default component if none found */}}
+  {{- if (gt (len $fields.components) 0) }}
+    {{- $comp = dig (index $fields.components 0) "name" }} {{/* Use first component name */}}
+  {{- end }}
+
+  {{- $list := index $components $comp }}
+  {{- if not $list }}
+    {{- $_ := setany $components $comp (list $issue) }} {{/* New component → create list */}}
+  {{- else }}
+    {{- $_ := set $components $comp (append $list $issue) }} {{/* Append issue to existing list */}}
+  {{- end }}
+{{ end }}
 
 <table class="table table-bordered table-hover align-middle text-left">
   <thead class="table-dark">
     <tr>
-      <th>Component</th> <!-- First column shows component name -->
+      <th>Component</th>
       {{- range $epic := $epicKeys }}
-        <th>{{ template "epicName" $epic }}</th> <!-- One column per epic -->
+        <th>{{ template "epicName" $epic }}</th>   {{/* Render epic name */}}
       {{- end }}
-      <th>Total</th> <!-- Final column shows total issue count -->
+      <th>Total</th>
     </tr>
   </thead>
   <tbody>
-    {{- $components := dict }} <!-- Map: component name → list of issues -->
-
-    <!-- Group issues by their first component -->
-    {{ range $issue := .Data.issues }}
-      {{- $fields := $issue.fields }}
-      {{- $comp := "No Component" }} <!-- Default if no components -->
-
-      {{- if (gt (len $fields.components) 0) }}
-        {{- $comp = dig (index $fields.components 0) "name" }} <!-- Use first component name -->
-      {{- end }}
-
-      {{- $list := index $components $comp }} <!-- Get current list for this component -->
-      {{- if not $list }}
-        {{- $_ := setany $components $comp (list $issue) }} <!-- First issue for this component -->
-      {{- else }}
-        {{- $_ := set $components $comp (append $list $issue) }} <!-- Append to existing list -->
-      {{- end }}
-    {{ end }}
-
-    <!-- Render one row per component -->
     {{ range $compName, $issues := $components }}
       <tr>
-        <td>{{ $compName }}</td> <!-- Component name -->
-        {{- $total := 0 }} <!-- Counter for total issues in this row -->
-
-        <!-- Count issues per epic for this component -->
+        <td>{{ $compName }}</td>
+        {{- $total := 0 }}
         {{ range $epicKey := $epicKeys }}
           {{- $count := 0 }}
           {{- range $issues }}
             {{- if eq (dig .fields.customfield_10100 "key") $epicKey }}
-              {{- $count = add $count 1 }} <!-- Match: increment count -->
+              {{- $count = add $count 1 }}       {{/* Count issues per epic */}}
             {{- end }}
           {{- end }}
-          <td>{{ $count }}</td> <!-- Display count for this epic -->
-          {{- $total = add $total $count }} <!-- Add to row total -->
+          <td>{{ $count }}</td>
+          {{- $total = add $total $count }}
         {{ end }}
-        <td>{{ $total }}</td> <!-- Display total for this component -->
+        <td>{{ $total }}</td>                     {{/* Total issues per component */}}
       </tr>
     {{ end }}
   </tbody>

@@ -4,7 +4,7 @@ refreshInterval: 60s
 grid:
   columns: 2
   rows: 4
-layout:
+cells:
   - title: Env Epics
     query: filter=17201
     template: epics.gohtml

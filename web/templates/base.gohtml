@@ -4,7 +4,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="refresh-interval" content="{{ .RefreshInterval }}" />
-    <link rel="stylesheet" href="/static/css/bootstrap.min.css" />
+    <link rel="preload" href="/static/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/static/css/bootstrap.min.css"></noscript>
     <title>{{ .Title }}</title>
     <style>
       body {
@@ -41,26 +42,25 @@
         margin-top: {{ .Customization.Footer.MarginTop }};
       }
     </style>
+    <script>
+      const configHash = "{{ .ConfigHash }}";
+      const cellHashes = {
+        {{- range $i, $cell := .Cells }}
+        "{{ $i }}": "{{ $cell.Hash }}",
+        {{- end }}
+      };
+    </script>
   </head>
   <body>
     <h1>{{ .Title }}</h1>
     <div class="grid">
-      {{ range .Sections }}
-        <div class="card" style="grid-column: span {{ or .ColSpan 1 }}">
-          {{ if .HTML }}
-            {{ .HTML }}
-          {{ else if .Error }}
-            <div class="alert alert-danger" role="alert">
-              <strong>{{ .Error.Type }} error:</strong> {{ .Error.Message }}
-              <div><small>{{ .Error.Detail }}</small></div>
+      {{ range $i, $cell := .Cells }}
+        <div class="card" style="grid-column: span {{ or $cell.Position.ColSpan 1 }}" data-cell-id="{{ $i }}">
+          <div class="text-center p-4">
+            <div class="spinner-border" role="status">
+              <span class="visually-hidden">Loading...</span>
             </div>
-          {{ else }}
-            <div class="text-center p-4">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          {{ end }}
+          </div>
         </div>
       {{ end }}
     </div>

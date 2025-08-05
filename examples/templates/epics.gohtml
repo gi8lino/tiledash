@@ -1,42 +1,33 @@
-<h2 class="mb-4">{{ .Title }}</h2> <!-- Render the section title with bottom margin -->
+<h2 class="mb-4">{{ .Title }}</h2>
 
-<div class="table-responsive"> <!-- Make table horizontally scrollable on small screens -->
-  <table
-    class="table table-bordered table-striped align-middle table-hover tablesort"> <!-- Bootstrap-styled table with sortable headers -->
-
-    <thead class="table-dark"> <!-- Dark-themed table header -->
+<div class="table-responsive">
+  <table class="table table-bordered table-striped align-middle table-hover tablesort">
+    <thead class="table-dark">
       <tr>
-        <th data-sort-default scope="col">Summary</th> <!-- Default sort column -->
-        <th scope="col">Status</th> <!-- Issue status column -->
-        <th scope="col">Assignee</th> <!-- Assignee column -->
+        <th data-sort-default scope="col">Summary</th>
+        <th scope="col">Status</th>
+        <th scope="col">Assignee</th>
       </tr>
     </thead>
-
     <tbody>
-      {{ range .Data.issues }} <!-- Iterate over all issues -->
+      {{ range .Data.issues }}
       <tr>
-        <!-- Summary column: show summary text and enable sorting via data-sort -->
         <td data-sort="{{ .fields.summary }}">{{ .fields.summary }}</td>
-
-        <!-- Status column: show badge with dynamic color based on status -->
         <td>
           <span class="badge {{ template "statusBadgeColor" .fields.status.name }}">
             {{ .fields.status.name }}
           </span>
         </td>
-
-        <!-- Assignee column: show assignee name or muted dash if unassigned -->
         <td>
           {{- if .fields.assignee }}
             {{ .fields.assignee.displayName }}
           {{- else }}
-            <span class="text-muted">–</span> <!-- Placeholder for unassigned -->
+            <span class="text-muted">–</span>
           {{- end }}
         </td>
       </tr>
       {{ end }}
     </tbody>
-
   </table>
 </div>
 

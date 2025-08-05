@@ -20,9 +20,10 @@ func TestRun(t *testing.T) {
 	dummyEnv := func(key string) string { return "" }
 
 	webFS := fstest.MapFS{
-		"web/templates/base.gohtml":   &fstest.MapFile{Data: []byte(`{{define "base"}}{{end}}`)},
-		"web/templates/footer.gohtml": &fstest.MapFile{Data: []byte(`{{define "footer"}}{{end}}`)},
-		"web/templates/error.gohtml":  &fstest.MapFile{Data: []byte(`{{define "error"}}err{{end}}`)},
+		"web/templates/base.gohtml":       &fstest.MapFile{Data: []byte(`{{define "base"}}{{end}}`)},
+		"web/templates/footer.gohtml":     &fstest.MapFile{Data: []byte(`{{define "footer"}}{{end}}`)},
+		"web/templates/error.gohtml":      &fstest.MapFile{Data: []byte(`{{define "error"}}err{{end}}`)},
+		"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}<!-- cell error -->{{end}}`)},
 	}
 
 	t.Run("Success", func(t *testing.T) {
@@ -40,7 +41,7 @@ title: My Dashboard
 grid:
   columns: 1
   rows: 1
-layout:
+cells:
   - title: Section 1
     query: filter=12345
     template: test.gohtml
@@ -138,7 +139,7 @@ refreshInterval: 60s
 grid:
   columns: 2
   rows: 4
-layout:
+cells:
   - title: Env Epics
     query: filter=17201
     template: epics.gohtml
@@ -177,7 +178,7 @@ refreshInterval: 60s
 grid:
   columns: 2
   rows: 4
-layout:
+cells:
   - title: Env Epics
     query: filter=17201
     template: epics.gohtml
