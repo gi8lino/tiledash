@@ -8,6 +8,11 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((res) => res.text())
       .then((html) => {
         card.innerHTML = html;
+
+        // Re-initialize Tablesort on newly inserted tables
+        card.querySelectorAll("table.tablesort").forEach((table) => {
+          new Tablesort(table);
+        });
       })
       .catch((err) => {
         card.innerHTML = `<div class="alert alert-danger">Error loading cell: ${err}</div>`;
@@ -60,9 +65,4 @@ document.addEventListener("DOMContentLoaded", function () {
   const meta = document.querySelector('meta[name="refresh-interval"]');
   const interval = meta ? parseInt(meta.content) : 60;
   setInterval(refresh, interval * 1000);
-
-  // Initialize Tablesort on all tables with the "tablesort" class
-  document.querySelectorAll("table.tablesort").forEach((table) => {
-    new Tablesort(table);
-  });
 });

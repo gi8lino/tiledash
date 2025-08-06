@@ -2,16 +2,6 @@
   "issues": [
     {
       "fields": {
-        "summary": "Audit logs missing entries",
-        "status": { "name": "In Progress" },
-        "assignee": { "displayName": "Frank" },
-        "components": [{ "name": "Security" }],
-        "customfield_10100": { "key": "EPIC-3" },
-        "created": "2025-01-01T10:15:00.000+0000"
-      }
-    },
-    {
-      "fields": {
         "summary": "UI alignment issues on mobile",
         "status": { "name": "To Do" },
         "assignee": null,
@@ -28,6 +18,16 @@
         "components": [],
         "customfield_10100": { "key": "EPIC-3" },
         "created": "2024-12-11T09:05:00.000+0000"
+      }
+    },
+    {
+      "fields": {
+        "summary": "Audit logs missing entries",
+        "status": { "name": "In Progress" },
+        "assignee": { "displayName": "Frank" },
+        "components": [{ "name": "Security" }],
+        "customfield_10100": { "key": "EPIC-3" },
+        "created": "2025-01-01T10:15:00.000+0000"
       }
     }
   ]

@@ -1,32 +1,34 @@
-<h2 class="mb-4">{{ .Title }}</h2>
+<h2 class="mb-4">{{ .Title }}</h2> {{/* Dashboard title */}}
 
 <div class="table-responsive">
   <table class="table table-bordered table-striped align-middle table-hover tablesort">
     <thead class="table-dark">
       <tr>
-        <th data-sort-default scope="col">Summary</th>
+        <th data-sort-default scope="col">Summary</th>  {{/* Default sort column (client-side) */}}
         <th scope="col">Status</th>
         <th scope="col">Assignee</th>
       </tr>
     </thead>
     <tbody>
-      {{ range .Data.issues }}
+      {{- range .Data.issues }} {{/* Loop over all issues in the data */}}
       <tr>
-        <td data-sort="{{ .fields.summary }}">{{ .fields.summary }}</td>
+        <td data-sort="{{ .fields.summary }}">{{ .fields.summary }}</td> {{/* Summary column with sortable value */}}
+
         <td>
           <span class="badge {{ template "statusBadgeColor" .fields.status.name }}">
-            {{ .fields.status.name }}
+            {{ .fields.status.name }} {{/* Status badge using template-defined color */}}
           </span>
         </td>
+
         <td>
-          {{- if .fields.assignee }}
-            {{ .fields.assignee.displayName }}
+          {{- with .fields.assignee }} {{/* Check if issue has an assignee */}}
+            {{ .displayName }}       {{/* Show assignee name if present */}}
           {{- else }}
-            <span class="text-muted">–</span>
+            <span class="text-muted">–</span> {{/* Fallback for unassigned issues */}}
           {{- end }}
         </td>
       </tr>
-      {{ end }}
+      {{- end }}
     </tbody>
   </table>
 </div>
