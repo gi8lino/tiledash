@@ -1,23 +1,23 @@
 <h2 class="mb-4 bg-warning text-dark p-2 rounded">{{ .Title }}</h2>
 
-{{- $data := .Data.issues }}         {{/* Extract all issues */}}
-{{- $assignees := dict }}            {{/* Map: assignee name → count */}}
-{{- $total := 0 }}                   {{/* Total number of issues */}}
+{{- $data := .Data.issues }}
+{{- $assignees := dict }}
+{{- $total := 0 }}
 
 {{- range $issue := $data }}
-  {{- $assignee := "Unassigned" }}   {{/* Default if no assignee is set */}}
+  {{- $assignee := "Unassigned" }}
   {{- with $issue.fields.assignee }}
     {{- with .displayName }}
-      {{- $assignee = . }}           {{/* Overwrite if display name is available */}}
+      {{- $assignee = . }}
     {{- end }}
   {{- end }}
   {{- $count := index $assignees $assignee }}
   {{- if not $count }}
-    {{- $_ := set $assignees $assignee 1 }}             {{/* First occurrence: initialize count */}}
+    {{- $_ := set $assignees $assignee 1 }}
   {{- else }}
-    {{- $_ := set $assignees $assignee (add $count 1) }}{{/* Increment count */}}
+    {{- $_ := set $assignees $assignee (add $count 1) }}
   {{- end }}
-  {{- $total = add $total 1 }}      {{/* Track total issue count */}}
+  {{- $total = add $total 1 }}
 {{- end }}
 
 <table class="table table-bordered table-hover align-middle text-left">
@@ -25,18 +25,32 @@
     <tr>
       <th>Assignee</th>
       <th>Count</th>
+      <th style="width: 50%">Percentage of Total Issues</th>
     </tr>
   </thead>
   <tbody>
     {{- range $name, $count := $assignees }}
+      {{- $fraction := divf (float64 $count) (float64 $total) }}
+      {{- $percentage := mulf $fraction 100.0 }}
       <tr>
         <td>{{ $name }}</td>
         <td>{{ $count }}</td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="progress w-100" style="height: 1rem;">
+              <div class="progress-bar bg-info"
+                   style="width: {{ printf "%.1f%%" $percentage }};">
+              </div>
+            </div>
+            <span class="text-nowrap small">{{ printf "%.1f%%" $percentage }}</span>
+          </div>
+        </td>
       </tr>
     {{- end }}
     <tr class="table-secondary fw-bold">
       <td>Total Issues</td>
       <td>{{ $total }}</td>
+      <td></td>
     </tr>
   </tbody>
 </table>

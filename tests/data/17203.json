@@ -6,7 +6,7 @@
         "status": { "name": "In Progress" },
         "assignee": { "displayName": "Alice" },
         "components": [{ "name": "API" }],
-        "customfield_10100": { "key": "EPIC-1" },
+        "customfield_10100": { "key": "ENV-19" },
         "created": "2024-10-04T12:00:00.000+0000"
       }
     },
@@ -16,7 +16,7 @@
         "status": { "name": "To Do" },
         "assignee": { "displayName": "Bob" },
         "components": [{ "name": "UI" }],
-        "customfield_10100": { "key": "EPIC-2" },
+        "customfield_10100": { "key": "ENV-15" },
         "created": "2024-11-10T09:32:00.000+0000"
       }
     },
@@ -28,6 +28,16 @@
         "components": [],
         "customfield_10100": null,
         "created": "2025-01-15T08:45:00.000+0000"
+      }
+    },
+    {
+      "fields": {
+        "summary": "Typo in Summary",
+        "status": { "name": "In Progress" },
+        "assignee": { "displayName": "Alice" },
+        "components": [{ "name": "Frontend" }],
+        "customfield_10100": { "key": "ENV-15" },
+        "created": "2024-10-14T12:00:00.000+0000"
       }
     }
   ]
