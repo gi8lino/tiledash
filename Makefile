@@ -13,7 +13,7 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 # renovate: datasource=github-releases depName=golangci/golangci-lint
 GOLANGCI_LINT_VERSION ?= v2.3.1
 # renovate: datasource=npm depName=bootstrap
-BOOTSTRAP_VERSION ?= 5.3.3
+BOOTSTRAP_VERSION ?= 5.3.7
 # renovate: datasource=github-releases depName=tristen/tablesort
 TABLESORT_VERSION ?= 5.3.0
 
