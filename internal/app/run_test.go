@@ -72,7 +72,7 @@ refreshInterval: 30s
 		defer cancel()
 
 		args := []string{
-			"--config=testdata/config.yaml",
+			"--config=./examples/config.yaml",
 			"--template-dir=testdata/templates",
 			"--jira-api-url=https://example.com/rest/api/2",
 			"--jira-email=foo@example.com",

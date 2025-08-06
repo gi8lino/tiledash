@@ -12,20 +12,20 @@ import (
 
 // Default values for customization style
 const (
-	defaultGridGap            string = "2rem"
-	defaultGridPadding        string = "0rem"
-	defaultGridMarginTop      string = "0rem"
-	defaultGridMarginBottom   string = "0rem"
-	defaultCardBorderColor    string = "#ccc"
-	defaultCardPadding        string = "0rem"
-	defaultCardBackground     string = "#fff"
-	defaultCardRadius         string = "0.5rem"
-	defaultCardShadow         string = "0 2px 4px rgba(0, 0, 0, 0.05)"
-	defaultHeaderAlign        string = "left"
-	defaultHeaderMarginBottom string = "0rem"
-	defaultFooterMarginTop    string = "1rem"
-	defaultFontFamily         string = `Segoe UI, sans-serif`
-	defaultFontSize           string = "16px"
+	defaultGridGap            template.CSS = "2rem"
+	defaultGridPadding        template.CSS = "0rem"
+	defaultGridMarginTop      template.CSS = "0rem"
+	defaultGridMarginBottom   template.CSS = "0rem"
+	defaultCardBorderColor    template.CSS = "#ccc"
+	defaultCardPadding        template.CSS = "0rem"
+	defaultCardBackground     template.CSS = "#fff"
+	defaultCardRadius         template.CSS = "0.5rem"
+	defaultCardShadow         template.CSS = "0 2px 4px rgba(0, 0, 0, 0.05)"
+	defaultHeaderAlign        template.CSS = "left"
+	defaultHeaderMarginBottom template.CSS = "0rem"
+	defaultFooterMarginTop    template.CSS = "1rem"
+	defaultFontFamily         template.CSS = `Segoe UI, sans-serif`
+	defaultFontSize           template.CSS = "16px"
 )
 
 // LoadConfig loads the dashboard configuration from the given path.
@@ -125,7 +125,7 @@ func ValidateConfig(cfg *DashboardConfig, tmpl *template.Template) error {
 }
 
 // setDefault assigns dst to val only if *dst is empty.
-func setDefault(dst *string, val string) {
+func setDefault(dst *template.CSS, val template.CSS) {
 	if *dst == "" {
 		*dst = val
 	}

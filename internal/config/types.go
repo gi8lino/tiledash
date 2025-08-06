@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"html/template"
 	"time"
 )
 
@@ -58,34 +59,34 @@ type Customization struct {
 
 // GridStyle controls spacing and margins within the dashboard grid.
 type GridStyle struct {
-	Gap          string `yaml:"gap"`          // Gap defines spacing between grid items (e.g. "1rem").
-	Padding      string `yaml:"padding"`      // Padding is the internal padding of the grid container.
-	MarginTop    string `yaml:"marginTop"`    // MarginTop sets the top margin of the grid section.
-	MarginBottom string `yaml:"marginBottom"` // MarginBottom sets the bottom margin of the grid section.
+	Gap          template.CSS `yaml:"gap"`          // Gap defines spacing between grid items (e.g. "1rem").
+	Padding      template.CSS `yaml:"padding"`      // Padding is the internal padding of the grid container.
+	MarginTop    template.CSS `yaml:"marginTop"`    // MarginTop sets the top margin of the grid section.
+	MarginBottom template.CSS `yaml:"marginBottom"` // MarginBottom sets the bottom margin of the grid section.
 }
 
 // CardStyle controls the appearance of each dashboard cell/card.
 type CardStyle struct {
-	BorderColor     string `yaml:"borderColor"`     // BorderColor is the CSS border color of the card.
-	Padding         string `yaml:"padding"`         // Padding is the internal padding inside the card.
-	BackgroundColor string `yaml:"backgroundColor"` // BackgroundColor is the fill/background color of the card.
-	BorderRadius    string `yaml:"borderRadius"`    // BorderRadius defines how rounded the card edges are.
-	BoxShadow       string `yaml:"boxShadow"`       // BoxShadow sets the shadow used behind the card.
+	BorderColor     template.CSS `yaml:"borderColor"`     // BorderColor is the CSS border color of the card.
+	Padding         template.CSS `yaml:"padding"`         // Padding is the internal padding inside the card.
+	BackgroundColor template.CSS `yaml:"backgroundColor"` // BackgroundColor is the fill/background color of the card.
+	BorderRadius    template.CSS `yaml:"borderRadius"`    // BorderRadius defines how rounded the card edges are.
+	BoxShadow       template.CSS `yaml:"boxShadow"`       // BoxShadow sets the shadow used behind the card.
 }
 
 // HeaderStyle customizes the appearance of the main dashboard title.
 type HeaderStyle struct {
-	Align        string `yaml:"align"`        // Align is the text alignment of the title (e.g. "center").
-	MarginBottom string `yaml:"marginBottom"` // MarginBottom adds spacing below the title.
+	Align        template.CSS `yaml:"align"`        // Align is the text alignment of the title (e.g. "center").
+	MarginBottom template.CSS `yaml:"marginBottom"` // MarginBottom adds spacing below the title.
 }
 
 // FooterStyle defines the spacing below the dashboard.
 type FooterStyle struct {
-	MarginTop string `yaml:"marginTop"` // MarginTop adds spacing between the grid and the footer.
+	MarginTop template.CSS `yaml:"marginTop"` // MarginTop adds spacing between the grid and the footer.
 }
 
 // FontStyle configures the global font used across the dashboard.
 type FontStyle struct {
-	Family string `yaml:"family"` // Family is the CSS font-family string (e.g. "monospace").
-	Size   string `yaml:"size"`   // Size is the base font size (e.g. "14px", "1rem").
+	Family template.CSS `yaml:"family"` // Family is the CSS font-family string (e.g. "monospace").
+	Size   template.CSS `yaml:"size"`   // Size is the base font size (e.g. "14px", "1rem").
 }

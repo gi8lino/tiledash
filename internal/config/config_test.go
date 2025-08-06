@@ -209,8 +209,8 @@ func TestValidateConfig(t *testing.T) {
 		require.NoError(t, err)
 
 		// Set fields remain
-		assert.Equal(t, "4rem", cfg.Customization.Grid.Gap)
-		assert.Equal(t, "Fira Code", cfg.Customization.Font.Family)
+		assertCSS(t, "4rem", cfg.Customization.Grid.Gap)
+		assertCSS(t, "Fira Code", cfg.Customization.Font.Family)
 
 		// Unset fields are defaulted
 		assert.Equal(t, defaultGridPadding, cfg.Customization.Grid.Padding)
@@ -280,17 +280,52 @@ func TestSetStyleDefaults(t *testing.T) {
 
 		setStyleDefaults(c)
 
-		assert.Equal(t, "2rem", c.Grid.Gap)
-		assert.Equal(t, "3rem", c.Grid.Padding)
-		assert.Equal(t, "4rem", c.Grid.MarginTop)
-		assert.Equal(t, "blue", c.Card.BorderColor)
-		assert.Equal(t, "2px", c.Card.Padding)
-		assert.Equal(t, "#000", c.Card.BackgroundColor)
-		assert.Equal(t, "8px", c.Card.BorderRadius)
-		assert.Equal(t, "none", c.Card.BoxShadow)
-		assert.Equal(t, "center", c.Header.Align)
-		assert.Equal(t, "5rem", c.Header.MarginBottom)
-		assert.Equal(t, "monospace", c.Font.Family)
-		assert.Equal(t, "18px", c.Font.Size)
+		assertCSS(t, "2rem", c.Grid.Gap)
+		assertCSS(t, "3rem", c.Grid.Padding)
+		assertCSS(t, "4rem", c.Grid.MarginTop)
+		assertCSS(t, "blue", c.Card.BorderColor)
+		assertCSS(t, "2px", c.Card.Padding)
+		assertCSS(t, "#000", c.Card.BackgroundColor)
+		assertCSS(t, "8px", c.Card.BorderRadius)
+		assertCSS(t, "none", c.Card.BoxShadow)
+		assertCSS(t, "center", c.Header.Align)
+		assertCSS(t, "5rem", c.Header.MarginBottom)
+		assertCSS(t, "monospace", c.Font.Family)
+		assertCSS(t, "18px", c.Font.Size)
 	})
+
+	t.Run("renders CSS fields without ZgotmplZ or escaping", func(t *testing.T) {
+		t.Parallel()
+
+		c := &Customization{
+			Font: FontStyle{
+				Family: "Segoe UI, sans-serif",
+				Size:   "16px",
+			},
+		}
+		setStyleDefaults(c)
+
+		tmpl := template.Must(template.New("test").Parse(`
+			<style>
+				body {
+					font-family: {{ .Font.Family }};
+					font-size: {{ .Font.Size }};
+				}
+			</style>
+		`))
+
+		var buf strings.Builder
+		err := tmpl.Execute(&buf, c)
+		require.NoError(t, err)
+
+		output := buf.String()
+		require.NotContains(t, output, "ZgotmplZ", "template rendered unsafe CSS content")
+		require.Contains(t, output, "font-family: Segoe UI, sans-serif")
+		require.Contains(t, output, "font-size: 16px")
+	})
+}
+
+func assertCSS(t *testing.T, expected string, actual template.CSS) {
+	t.Helper()
+	assert.Equal(t, expected, string(actual))
 }

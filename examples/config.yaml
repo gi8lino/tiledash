@@ -36,7 +36,7 @@ customization:
     boxShadow: 0 2px 4px rgba(0, 0, 0, 0.05)
   header:
     align: center
-    marginBottom: 0rem
+    marginBottom: 0.5rem
   footer:
     marginTop: 1rem
   font:
