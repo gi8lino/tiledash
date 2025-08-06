@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/gi8lino/jirapanel/internal/flag"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -126,5 +127,36 @@ func TestParseArgs(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "config.yaml", cfg.Config)
 		require.Equal(t, "templates", cfg.TemplateDir)
+	})
+
+	t.Run("invalid jira timeout", func(t *testing.T) {
+		t.Parallel()
+
+		args := []string{
+			"--jira-api-url=https://jira/rest/api/3",
+			"--jira-email=test@jira.com",
+			"--jira-auth=t",
+			"--jira-timeout=0s",
+		}
+		var out strings.Builder
+
+		_, err := flag.ParseArgs("dev", args, &out, mockGetEnv)
+		require.Error(t, err)
+		assert.EqualError(t, err, "invalid value for flag --jira-timeout: timeout must be > 0.")
+	})
+
+	t.Run("valid jira timeout", func(t *testing.T) {
+		t.Parallel()
+
+		args := []string{
+			"--jira-api-url=https://jira/rest/api/3",
+			"--jira-email=test@jira.com",
+			"--jira-auth=t",
+			"--jira-timeout=1s",
+		}
+		var out strings.Builder
+
+		_, err := flag.ParseArgs("dev", args, &out, mockGetEnv)
+		require.NoError(t, err)
 	})
 }

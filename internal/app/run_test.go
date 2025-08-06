@@ -206,4 +206,44 @@ cells:
 		require.Error(t, err)
 		assert.EqualError(t, err, "validating config error: config validation failed:\n  - section[0] (Env Epics): template \"epics.gohtml\" not found")
 	})
+
+	t.Run("ParseCellTemplates Error", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(t.Context(), 4*time.Second)
+		defer cancel()
+
+		cfg := `
+---
+title: My Jira Dashboard
+refreshInterval: 60s
+grid:
+  columns: 2
+  rows: 4
+cells:
+  - title: Env Epics
+    query: filter=17201
+    template: epics.gohtml
+    position: { row: 0, col: 0 }
+`
+
+		cfgdDir := t.TempDir()
+		cfgPath := filepath.Join(cfgdDir, "config.yaml")
+		testutils.MustWriteFile(t, cfgPath, cfg)
+
+		tmplDir := t.TempDir()
+		testutils.MustWriteFile(t, filepath.Join(tmplDir, "bad.gohtml"), `{{define "bad"}bad{{end}}`)
+
+		args := []string{
+			"--config=" + cfgPath,
+			"--template-dir=" + tmplDir,
+			"--jira-api-url=https://example.com/rest/api/2",
+			"--jira-email=foo@example.com",
+			"--jira-auth=xxx",
+		}
+
+		var buf bytes.Buffer
+		err := app.Run(ctx, webFS, "v1", "c0ffee", args, &buf, dummyEnv)
+
+		require.Error(t, err)
+		assert.EqualError(t, err, "template parse error: template: bad.gohtml:1: unexpected \"}\" in define clause")
+	})
 }

@@ -17,6 +17,17 @@ import (
 func TestRenderCell(t *testing.T) {
 	t.Parallel()
 
+	t.Run("Error message", func(t *testing.T) {
+		t.Parallel()
+
+		err := RenderError{
+			Type:    "test-type",
+			Message: "test-message",
+			Detail:  "test-detail",
+		}
+		assert.Equal(t, err.Error(), "test-type: test-message (test-detail)")
+	})
+
 	t.Run("renders valid cell", func(t *testing.T) {
 		t.Parallel()
 

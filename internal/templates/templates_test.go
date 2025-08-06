@@ -110,3 +110,45 @@ func TestParseSectionTemplates(t *testing.T) {
 		assert.EqualError(t, err, "template: bad.gohtml:1: bad character U+007D '}'")
 	})
 }
+
+func TestParseSectionErrorTemplate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("parses real base templates successfully", func(t *testing.T) {
+		t.Parallel()
+
+		webFS := os.DirFS("../../") // show root directory
+
+		funcMap := templates.TemplateFuncMap()
+		errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
+		require.NotNil(t, errTmpl)
+
+		result := errTmpl.Lookup("cell_error")
+		require.NotNil(t, result)
+	})
+
+	t.Run("parses all base templates successfully", func(t *testing.T) {
+		t.Parallel()
+
+		// Provide dummy base, footer, and error templates
+		webFS := fstest.MapFS{
+			"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}cell error{{end}}`)},
+		}
+
+		tmpl := templates.ParseCellErrorTemplate(webFS, template.FuncMap{})
+		require.NotNil(t, tmpl)
+		assert.NotNil(t, tmpl.Lookup("cell_error"))
+	})
+
+	t.Run("fails if template is broken", func(t *testing.T) {
+		// Provide dummy base, footer, and error templates
+		webFS := fstest.MapFS{
+			"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}{{end`)}, // unclosed
+		}
+
+		assert.PanicsWithError(t,
+			"template: cell_error.gohtml:1: unclosed action",
+			func() { templates.ParseCellErrorTemplate(webFS, template.FuncMap{}) },
+		)
+	})
+}

@@ -118,8 +118,64 @@ func TestValidateConfig(t *testing.T) {
 			"  - section[0]: colSpan 1 overflows grid width 2",
 			"  - section[1] (invalid): query is required",
 			"  - section[1] (invalid): template is required",
-			"  - section[1] (invalid): row -1 out of bounds (max 0)", // ← this was missing
+			"  - section[1] (invalid): row -1 out of bounds (max 0)",
 			"  - section[1] (invalid): col -1 out of bounds (max 1)",
+		}
+
+		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
+	})
+
+	t.Run("invalid grid config", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            Grid{Rows: 0, Columns: 0},
+			RefreshInterval: 0,
+		}
+
+		tmpl := tmplWith(t, "only-existing")
+
+		err := ValidateConfig(&cfg, tmpl)
+		require.Error(t, err)
+
+		expected := []string{
+			"  - grid.columns must be > 0",
+			"  - grid.rows must be > 0",
+			"  - refreshInterval must be > 0",
+		}
+
+		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
+	})
+
+	t.Run("overlapping cell config", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            Grid{Rows: 1, Columns: 2},
+			RefreshInterval: 2 * time.Second,
+			Cells: []Cell{
+				{
+					Title:    "valid",
+					Query:    "valid",
+					Template: "missing",
+					Position: Position{Row: 0, Col: 1},
+				},
+				{
+					Title:    "overlapping",
+					Query:    "query",
+					Template: "missing",
+					Position: Position{Row: 0, Col: 1},
+				},
+			},
+		}
+
+		tmpl := tmplWith(t, "valid", "missing")
+
+		err := ValidateConfig(&cfg, tmpl)
+		require.Error(t, err)
+
+		expected := []string{
+			"  - section[1] (overlapping): overlaps cell (0,1) used by section \"valid\"",
 		}
 
 		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
