@@ -27,6 +27,10 @@ help: ## Display this help.
 
 ##@ Development
 
+.PHONY: run
+run: ## Run the server for local testing
+	go  run main.go --template-dir examples/templates --config examples/config.yaml
+
 .PHONY: download
 download: ## Download go packages
 	go mod download
