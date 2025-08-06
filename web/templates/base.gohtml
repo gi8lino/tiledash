@@ -55,7 +55,14 @@
     <h1>{{ .Title }}</h1>
     <div class="grid">
       {{ range $i, $cell := .Cells }}
-        <div class="card" style="grid-column: span {{ or $cell.Position.ColSpan 1 }}" data-cell-id="{{ $i }}">
+        <div
+          class="card"
+          style="
+            grid-column: {{ add $cell.Position.Col 1 }} / span {{ or $cell.Position.ColSpan 1 }};
+            grid-row: {{ add $cell.Position.Row 1 }};
+          "
+          data-cell-id="{{ $i }}"
+        >
           <div class="text-center p-4">
             <div class="spinner-border" role="status">
               <span class="visually-hidden">Loading...</span>

@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"sort"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -151,4 +152,16 @@ func setStyleDefaults(c *Customization) {
 
 	setDefault(&c.Font.Family, defaultFontFamily)
 	setDefault(&c.Font.Size, defaultFontSize)
+}
+
+// SortCellsByPosition sorts all cells top-to-bottom, left-to-right.
+func (c *DashboardConfig) SortCellsByPosition() {
+	sort.SliceStable(c.Cells, func(i, j int) bool {
+		pi := c.Cells[i].Position
+		pj := c.Cells[j].Position
+		if pi.Row != pj.Row {
+			return pi.Row < pj.Row
+		}
+		return pi.Col < pj.Col
+	})
 }

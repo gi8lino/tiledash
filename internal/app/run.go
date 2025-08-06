@@ -62,6 +62,8 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		return fmt.Errorf("validating config error: %w", err)
 	}
 
+	cfg.SortCellsByPosition()
+
 	// Setup jira client
 	auth, method, err := jira.ResolveAuth(flags.JiraBearerToken, flags.JiraEmail, flags.JiraAuth)
 	if err != nil {
