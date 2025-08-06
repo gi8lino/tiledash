@@ -13,6 +13,7 @@ import (
 	"github.com/containeroo/tinyflags"
 )
 
+// Conifg is the mock server configuration.
 type Config struct {
 	RandomDelay bool
 	Port        int
@@ -22,7 +23,7 @@ type Config struct {
 func main() {
 	cfg := Config{}
 	tf := tinyflags.NewFlagSet("mock-server", tinyflags.ExitOnError)
-	tf.BoolVar(&cfg.RandomDelay, "random-delay", false, "Add random delay (0–2s) to section responses")
+	tf.BoolVar(&cfg.RandomDelay, "random-delay", false, "Add random delay (0-2s) to section responses")
 	tf.IntVar(&cfg.Port, "port", 8081, "Port to run mock server on")
 	tf.StringVar(&cfg.DataDir, "data-dir", "./data", "Directory to serve JSON section data from")
 	if err := tf.Parse(os.Args[1:]); err != nil {
@@ -52,6 +53,7 @@ func handleSection(cfg *Config) http.HandlerFunc {
 		}
 
 		if cfg.RandomDelay {
+			// Add a delay of 200-1000ms so the Spinner can be seen
 			time.Sleep(time.Duration(rand.Intn(800)+200) * time.Millisecond)
 		}
 

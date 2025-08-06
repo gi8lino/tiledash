@@ -60,6 +60,11 @@ lint: golangci-lint ## Run golangci-lint linter.
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes.
 	$(GOLANGCI_LINT) run --fix
 
+.PHONY: run-mock
+run-mock: ## Run the mock server for local testing
+	go run ./testdata/main.go --data-dir=./data --port=8081 --random-delay
+
+
 ##@ Tagging
 
 # Find the latest tag (with prefix filter if defined, default to 0.0.0 if none found)
