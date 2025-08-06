@@ -70,7 +70,7 @@ func TestSearchByJQL(t *testing.T) {
 			assert.Equal(t, "names", r.URL.Query().Get("expand"))
 			assert.Empty(t, r.URL.Query().Get("empty"))
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{}`))
+			w.Write([]byte(`{}`)) // nolint:errcheck
 		}))
 		defer srv.Close()
 

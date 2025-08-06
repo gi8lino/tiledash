@@ -1,22 +1,23 @@
-<h2 class="mb-4">{{ .Title }}</h2> <!-- Render the section title with bottom margin -->
+<h2 class="mb-4">{{ .Title }}</h2>
 
-{{- $data := .Data.issues }} <!-- Assign issues list to a local variable -->
-{{- $assignees := dict }}    <!-- Create an empty map to count issues per assignee -->
-{{- $total := 0 }}           <!-- Counter for total number of issues -->
+{{- $data := .Data.issues }}         {{/* Extract all issues */}}
+{{- $assignees := dict }}            {{/* Map: assignee name → count */}}
+{{- $total := 0 }}                   {{/* Total number of issues */}}
 
-{{/* Group and count issues per assignee */}}
 {{- range $issue := $data }}
-  {{- $assignee := "Unassigned" }} <!-- Default label if no assignee -->
-  {{- with $issue.fields.assignee.displayName }}
-    {{- $assignee = . }} <!-- Use display name if present -->
+  {{- $assignee := "Unassigned" }}   {{/* Default if no assignee is set */}}
+  {{- with $issue.fields.assignee }}
+    {{- with .displayName }}
+      {{- $assignee = . }}           {{/* Overwrite if display name is available */}}
+    {{- end }}
   {{- end }}
-  {{- $count := index $assignees $assignee }} <!-- Get current count for this assignee -->
+  {{- $count := index $assignees $assignee }}
   {{- if not $count }}
-    {{- $_ := set $assignees $assignee 1 }} <!-- First occurrence -->
+    {{- $_ := set $assignees $assignee 1 }}             {{/* First occurrence: initialize count */}}
   {{- else }}
-    {{- $_ := set $assignees $assignee (add $count 1) }} <!-- Increment count -->
+    {{- $_ := set $assignees $assignee (add $count 1) }}{{/* Increment count */}}
   {{- end }}
-  {{- $total = add $total 1 }} <!-- Increment total count -->
+  {{- $total = add $total 1 }}      {{/* Track total issue count */}}
 {{- end }}
 
 <table class="table table-bordered table-hover align-middle text-left">
@@ -29,13 +30,13 @@
   <tbody>
     {{- range $name, $count := $assignees }}
       <tr>
-        <td>{{ $name }}</td> <!-- Assignee name -->
-        <td>{{ $count }}</td> <!-- Number of issues assigned -->
+        <td>{{ $name }}</td>
+        <td>{{ $count }}</td>
       </tr>
     {{- end }}
     <tr class="table-secondary fw-bold">
       <td>Total Issues</td>
-      <td>{{ $total }}</td> <!-- Total issues in the section -->
+      <td>{{ $total }}</td>
     </tr>
   </tbody>
 </table>

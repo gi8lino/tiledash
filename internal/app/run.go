@@ -52,7 +52,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	}
 
 	// Try to parse user templates
-	tmpl, err := templates.ParseSectionTemplates(flags.TemplateDir, templates.TemplateFuncMap())
+	tmpl, err := templates.ParseCellTemplates(flags.TemplateDir, templates.TemplateFuncMap())
 	if err != nil {
 		return fmt.Errorf("template parse error: %w", err)
 	}

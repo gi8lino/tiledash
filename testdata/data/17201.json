@@ -1,0 +1,34 @@
+{
+  "issues": [
+    {
+      "fields": {
+        "summary": "Audit logs missing entries",
+        "status": { "name": "In Progress" },
+        "assignee": { "displayName": "Frank" },
+        "components": [{ "name": "Security" }],
+        "customfield_10100": { "key": "EPIC-3" },
+        "created": "2025-01-01T10:15:00.000+0000"
+      }
+    },
+    {
+      "fields": {
+        "summary": "UI alignment issues on mobile",
+        "status": { "name": "To Do" },
+        "assignee": null,
+        "components": [{ "name": "UI" }],
+        "customfield_10100": null,
+        "created": "2024-11-18T13:22:00.000+0000"
+      }
+    },
+    {
+      "fields": {
+        "summary": "Fix race condition in scheduler",
+        "status": { "name": "Done" },
+        "assignee": { "displayName": "Grace" },
+        "components": [],
+        "customfield_10100": { "key": "EPIC-3" },
+        "created": "2024-12-11T09:05:00.000+0000"
+      }
+    }
+  ]
+}

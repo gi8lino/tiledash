@@ -15,7 +15,7 @@ import (
 func NewRouter(
 	webFS fs.FS,
 	templateDir string,
-	client *jira.Client,
+	client jira.Searcher,
 	cfg config.DashboardConfig,
 	logger *slog.Logger,
 	debug bool,
@@ -33,12 +33,19 @@ func NewRouter(
 	root.Handle("POST /healthz", handlers.Healthz())
 
 	// Main dashboard handler (with optional logging)
-	var dashboardHandler http.Handler = handlers.Dashboard(webFS, templateDir, version, client, cfg, logger)
+	var dashboardHandler http.Handler = handlers.BaseHandler(webFS, templateDir, version, client, cfg, logger)
 	if debug {
 		dashboardHandler = middleware.Chain(dashboardHandler, middleware.LoggingMiddleware(logger))
 	}
+	root.Handle("/", dashboardHandler) // no Method allowed, otherwise it crashes
 
-	root.Handle("GET /", dashboardHandler)
+	// API endpoint for loading sections asynchronously
+	api := http.NewServeMux()
+	api.Handle("GET /cell/{id}", handlers.CellHandler(webFS, templateDir, version, client, cfg, logger))
+	api.Handle("GET /hash/{id}", handlers.HashHandler(cfg, logger))
+
+	// mount under /api/v1/
+	root.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 
 	return root
 }

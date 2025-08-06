@@ -59,7 +59,7 @@ func ValidateConfig(cfg *DashboardConfig, tmpl *template.Template) error {
 
 	occupied := make(map[[2]int]string)
 
-	for i, section := range cfg.Layout {
+	for i, section := range cfg.Cells {
 		label := fmt.Sprintf("section[%d]", i)
 		if section.Title != "" {
 			label += fmt.Sprintf(" (%s)", section.Title)

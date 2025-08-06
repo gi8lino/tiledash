@@ -12,6 +12,10 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 ## Tool Versions
 # renovate: datasource=github-releases depName=golangci/golangci-lint
 GOLANGCI_LINT_VERSION ?= v2.3.1
+# renovate: datasource=npm depName=bootstrap
+BOOTSTRAP_VERSION ?= 5.3.3
+# renovate: datasource=github-releases depName=tristen/tablesort
+TABLESORT_VERSION ?= 5.3.0
 
 .PHONY: test cover clean update patch minor major tag
 
@@ -60,6 +64,15 @@ lint: golangci-lint ## Run golangci-lint linter.
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes.
 	$(GOLANGCI_LINT) run --fix
 
+##@ Mock Server
+
+MOCK_PORT ?= 8081
+MOCK_DATA_DIR ?= ./data
+
+.PHONY: run-mock
+run-mock: ## Run the mock server for local testing
+	go run ./testdata/main.go --data-dir=$(MOCK_DATA_DIR) --port=$(MOCK_PORT) --random-delay
+
 ##@ Tagging
 
 # Find the latest tag (with prefix filter if defined, default to 0.0.0 if none found)
@@ -89,13 +102,39 @@ tag: ## Show latest tag
 push: ## Push tags to remote
 	git push --tags
 
-
 ##@ Dependencies
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+.PHONY: update-bootstrap update-tablesort update-assets
+
+update-bootstrap: ## Download Bootstrap CSS and JS locally
+	@set -euo pipefail; \
+	curl -sSL -o web/static/css/bootstrap.min.css \
+	  "https://cdn.jsdelivr.net/npm/bootstrap@$(BOOTSTRAP_VERSION)/dist/css/bootstrap.min.css"
+	@set -euo pipefail; \
+	curl -sSL -o web/static/css/bootstrap.min.css.map \
+	  "https://cdn.jsdelivr.net/npm/bootstrap@$(BOOTSTRAP_VERSION)/dist/css/bootstrap.min.css.map"
+	@set -euo pipefail; \
+	curl -sSL -o web/static/js/bootstrap.bundle.min.js \
+	  "https://cdn.jsdelivr.net/npm/bootstrap@$(BOOTSTRAP_VERSION)/dist/js/bootstrap.bundle.min.js"
+
+update-tablesort: ## Download tablesort.min.js locally
+	@set -euo pipefail; \
+	curl -sSL -o web/static/js/tablesort.min.js \
+	  "https://cdn.jsdelivr.net/npm/tablesort@$(TABLESORT_VERSION)/dist/tablesort.min.js"
+
+update-assets: update-bootstrap update-tablesort ## Download all frontend assets
+
+.PHONY: verify-assets
+verify-assets: ## Check that all frontend assets exist
+	@test -f web/static/css/bootstrap.min.css
+	@test -f web/static/css/bootstrap.min.css.map
+	@test -f web/static/js/bootstrap.bundle.min.js
+	@test -f web/static/js/tablesort.min.js
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary

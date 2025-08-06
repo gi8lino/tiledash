@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -14,15 +15,8 @@ import (
 	"github.com/gi8lino/jirapanel/internal/config"
 	"github.com/gi8lino/jirapanel/internal/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-type mockClient struct {
-	searchFn func(ctx context.Context, jql string, params map[string]string) ([]byte, int, error)
-}
-
-func (m *mockClient) SearchByJQL(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
-	return m.searchFn(ctx, jql, params)
-}
 
 func TestDashboard(t *testing.T) {
 	t.Parallel()
@@ -36,9 +30,9 @@ func TestDashboard(t *testing.T) {
 			"web/templates/error.gohtml":  &fstest.MapFile{Data: []byte(`{{define "error"}}Error: {{.Message}}{{end}}`)},
 		}
 
-		// Create section template with expected name
+		// Create cell template with expected name
 		tmpDir := t.TempDir()
-		testutils.MustWriteFile(t, filepath.Join(tmpDir, "templates/section_example.gohtml"), `{{define "section_example.html"}}<div>{{.Title}}</div>{{end}}`)
+		testutils.MustWriteFile(t, filepath.Join(tmpDir, "templates/cell_example.gohtml"), `{{define "cell_example.html"}}<div>{{.Title}}</div>{{end}}`)
 
 		cfg := config.DashboardConfig{
 			Title: "My Dashboard",
@@ -46,19 +40,19 @@ func TestDashboard(t *testing.T) {
 				Columns: 3,
 				Rows:    2,
 			},
-			Layout: []config.Section{
+			Cells: []config.Cell{
 				{
 					Title:    "Example Section",
 					Query:    "project = TEST",
-					Template: "section_example.html",
+					Template: "cell_example.html",
 					Position: config.Position{Row: 0, Col: 0},
 				},
 			},
 			RefreshInterval: 30 * time.Second,
 		}
 
-		mockClient := &mockClient{
-			searchFn: func(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
+		mockClient := &testutils.MockClient{
+			SearchFn: func(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
 				return []byte(`{"issues": []}`), http.StatusOK, nil
 			},
 		}
@@ -69,8 +63,8 @@ func TestDashboard(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
-		// Use tmpDir/templates as the section template directory
-		handler := Dashboard(webFS, filepath.Join(tmpDir, "templates"), "1.0.0", mockClient, cfg, logger)
+		// Use tmpDir/templates as the cell template directory
+		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "1.0.0", mockClient, cfg, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -81,14 +75,14 @@ func TestDashboard(t *testing.T) {
 		assert.Contains(t, body, "My Dashboard v1.0.0")
 	})
 
-	t.Run("renders section error in base template", func(t *testing.T) {
+	t.Run("renders cell error in base template", func(t *testing.T) {
 		t.Parallel()
 
 		webFS := fstest.MapFS{
 			"web/templates/base.gohtml": &fstest.MapFile{Data: []byte(`
 {{define "base"}}
 <div class="grid">
-  {{range .Sections}}
+  {{range .Cells}}
     <div class="card">
       {{if .Error}}
         <div class="alert alert-danger">
@@ -112,7 +106,7 @@ func TestDashboard(t *testing.T) {
 
 		cfg := config.DashboardConfig{
 			Title: "Broken Dashboard",
-			Layout: []config.Section{
+			Cells: []config.Cell{
 				{
 					Title:    "Failing Section",
 					Query:    "FAIL-JQL",
@@ -122,8 +116,8 @@ func TestDashboard(t *testing.T) {
 			RefreshInterval: 10 * time.Second,
 		}
 
-		mockClient := &mockClient{
-			searchFn: func(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
+		mockClient := &testutils.MockClient{
+			SearchFn: func(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
 				return nil, http.StatusInternalServerError, assert.AnError
 			},
 		}
@@ -134,38 +128,16 @@ func TestDashboard(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
-		handler := Dashboard(webFS, filepath.Join(tmpDir, "templates"), "dev", mockClient, cfg, logger)
+		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "dev", mockClient, cfg, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
 		defer res.Body.Close() // nolint:errcheck
-		body := w.Body.String()
+
+		body, err := io.ReadAll(res.Body)
+		require.NoError(t, err)
 
 		assert.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Contains(t, body, "fetch: Request failed: status 500")
-		assert.Contains(t, body, "alert alert-danger")
-	})
-
-	t.Run("panic when template parsing fails", func(t *testing.T) {
-		t.Parallel()
-
-		webFS := fstest.MapFS{
-			"web/templates/base.gohtml":   &fstest.MapFile{Data: []byte(`{{define "base"}}base{{end}}`)},
-			"web/templates/footer.gohtml": &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
-			"web/templates/error.gohtml":  &fstest.MapFile{Data: []byte(`{{define "error"}}Error: {{.Message}}{{end}}`)},
-		}
-		cfg := config.DashboardConfig{}
-
-		defer func() {
-			if r := recover(); r == nil {
-				t.Fatal("expected panic but none occurred")
-			}
-		}()
-
-		tmpDir := t.TempDir()
-		// Write malformed template
-		testutils.MustWriteFile(t, filepath.Join(tmpDir, "bad.gohtml"), `{{define "bad"}}{{end}`) // unclosed
-
-		_ = Dashboard(webFS, tmpDir, "dev", nil, cfg, nil)
+		assert.Contains(t, string(body), "Failed to render dashboard cells")
 	})
 }

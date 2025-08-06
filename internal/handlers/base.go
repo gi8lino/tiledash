@@ -10,8 +10,8 @@ import (
 	"github.com/gi8lino/jirapanel/internal/templates"
 )
 
-// Dashboard returns a handler function that renders a dashboard.
-func Dashboard(
+// BaseHandler returns a handler function that renders a dashboard.
+func BaseHandler(
 	webFS fs.FS,
 	templateDir string,
 	version string,
@@ -20,28 +20,37 @@ func Dashboard(
 	logger *slog.Logger,
 ) http.HandlerFunc {
 	funcMap := templates.TemplateFuncMap()
-
 	baseTmpl := templates.ParseBaseTemplates(webFS, funcMap)
-	sectionTmpl, err := templates.ParseSectionTemplates(templateDir, funcMap)
-	if err != nil {
-		panic(err) // keep Must-like behavior
-	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		sections := templates.RenderSections(r.Context(), cfg, sectionTmpl, s)
-
-		err = baseTmpl.ExecuteTemplate(w, "base", map[string]any{
+		// Compute hashes for all cells
+		computeHashes(&cfg, logger)
+		cfgHash, _ := hashAny(cfg)
+		err := baseTmpl.ExecuteTemplate(w, "base", map[string]any{
 			"Version":         version,
 			"Grid":            cfg.Grid,
 			"Title":           cfg.Title,
-			"Sections":        sections,
 			"RefreshInterval": int(cfg.RefreshInterval.Seconds()),
 			"Customization":   &cfg.Customization,
+			"Cells":           cfg.Cells, // pass cells directly for async placeholder generation
+			"ConfigHash":      cfgHash,
 		})
 		if err != nil {
 			logger.Error("render base error", "error", err)
-			renderErrorPage(w, http.StatusInternalServerError, baseTmpl, cfg.Title, "Failed to render dashboard layout.", err)
+			renderErrorPage(w, http.StatusInternalServerError, baseTmpl, cfg.Title, "Failed to render dashboard cells.", err)
 			return
 		}
+	}
+}
+
+func computeHashes(cfg *config.DashboardConfig, logger *slog.Logger) {
+	for i := range cfg.Cells {
+		cell := &cfg.Cells[i]
+		h, err := hashAny(cell)
+		if err != nil {
+			logger.Error("hash computation failed", "id", i, "error", err)
+			continue
+		}
+		cell.Hash = h // Add this field to config.Cell
 	}
 }

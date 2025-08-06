@@ -22,10 +22,9 @@ func ParseBaseTemplates(webFS fs.FS, funcMap template.FuncMap) *template.Templat
 	)
 }
 
-// ParseSectionTemplates parses user-defined section templates, ignoring missing files.
-func ParseSectionTemplates(templateDir string, funcMap template.FuncMap) (*template.Template, error) {
+// ParseCellTemplates parses user-defined section templates, ignoring missing files.
+func ParseCellTemplates(templateDir string, funcMap template.FuncMap) (*template.Template, error) {
 	tmpl := template.New("").Funcs(funcMap)
-
 	matches, err := filepath.Glob(filepath.Join(templateDir, "*.gohtml"))
 	if err != nil {
 		return nil, err // actual glob error
@@ -40,4 +39,13 @@ func ParseSectionTemplates(templateDir string, funcMap template.FuncMap) (*templ
 		return nil, err
 	}
 	return parsed, nil
+}
+
+// ParseCellErrorTemplate returns a template that includes only the section error layout.
+func ParseCellErrorTemplate(webFS fs.FS, funcMap template.FuncMap) *template.Template {
+	return template.Must(
+		template.New("cell_error").
+			Funcs(funcMap).
+			ParseFS(webFS, "web/templates/cell_error.gohtml"),
+	)
 }
