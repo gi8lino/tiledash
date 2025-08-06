@@ -8,6 +8,7 @@
     <noscript><link rel="stylesheet" href="/static/css/bootstrap.min.css"></noscript>
     <title>{{ .Title }}</title>
     <style>
+      /* ======= Theming using Customization Variables ======= */
       body {
         margin: 0;
         padding: 2rem;
@@ -36,10 +37,34 @@
         background-color: {{ .Customization.Card.BackgroundColor }};
         box-shadow: {{ .Customization.Card.BoxShadow }};
         border-radius: {{ .Customization.Card.BorderRadius }};
+        position: relative;
       }
 
       footer {
         margin-top: {{ .Customization.Footer.MarginTop }};
+      }
+
+      /* ======= Debug Mode Styles ======= */
+      body.debug-mode .card {
+        outline: 2px dashed red;
+      }
+
+      body.debug-mode .card > *:not(.debug-label) {
+        filter: blur(2px); /* Blur content behind debug label */
+      }
+
+      body.debug-mode .debug-label {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 2rem;
+        font-weight: bold;
+        color: red;
+        opacity: 0.85;
+        pointer-events: none;
+        white-space: pre-line;
+        z-index: 10;
       }
     </style>
     <script>
@@ -62,6 +87,10 @@
             grid-row: {{ add $cell.Position.Row 1 }};
           "
           data-cell-id="{{ $i }}"
+          data-row="{{ $cell.Position.Row }}"
+          data-col="{{ $cell.Position.Col }}"
+          data-col-span="{{ or $cell.Position.ColSpan 1 }}"
+          data-template="{{ $cell.Template }}"
         >
           <div class="text-center p-4">
             <div class="spinner-border" role="status">

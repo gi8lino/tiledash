@@ -426,7 +426,47 @@ Example:
 - JS reads and updates the reload interval dynamically
 - Displayed in footer via `{{ .RefreshInterval }}`
 
-### 🧩 Kubernetes Deployment via Kustomize
+## 🐞 Debug Mode
+
+JiraPanel includes a built-in **debug mode** to help visualize the layout and structure of your dashboard during development.
+
+### 🔍 What It Does
+
+When enabled, debug mode:
+
+- Outlines every dashboard cell with a red dashed border
+- Overlays each cell with a floating label showing:
+
+  - `row` and `col` position
+  - `colSpan` (if any)
+  - template name used to render the cell
+
+- Applies a **blur effect** to the cell content to highlight structure over data
+
+This helps debug grid alignment, overlapping spans, template mapping, and visual spacing.
+
+### 🚀 How to Use It
+
+Press the **`D` key** (uppercase or lowercase) anywhere on the dashboard to toggle debug mode.
+
+Debug mode is **persisted** across page reloads using `localStorage`.
+
+To disable debug mode, simply press `D` again or clear browser storage.
+
+### 🧱 Example Debug Overlay
+
+When debug mode is active, each card will look something like this:
+
+```text
+row: 2
+col: 1
+span: 2
+template: issues.gohtml
+```
+
+The actual card content will be blurred out, so you can focus on layout and sizing.
+
+## 🧩 Kubernetes Deployment via Kustomize
 
 This directory provides a ready-to-deploy Kubernetes setup using [`kustomize`](https://kubectl.docs.kubernetes.io/).
 
@@ -436,7 +476,7 @@ It generates a `Deployment` that bundles:
 - All `.gohtml` templates
 - The core app manifests (`Deployment`, `Service`, `Ingress`, etc.)
 
-#### 📁 Structure
+### 📁 Structure
 
 ```bash
 examples/
@@ -451,7 +491,7 @@ examples/
 │   ├── kustomization.yaml         # Kustomize entry point
 ```
 
-#### ⚙️ How it works
+### ⚙️ How it works
 
 - `kustomization.yaml` uses `configMapGenerator` to package:
 
@@ -463,7 +503,7 @@ examples/
 Kustomize automatically appends a **hash suffix** to the ConfigMap names (e.g. `jirapanel-config-fd8d7f97b9`) when their content changes. The `Deployment` references them by logical name (`jirapanel-config`, `jirapanel-templates`), and Kustomize resolves the hashed names at build time.
 This has the advantage that **when you update the config or templates, the hash changes, triggering a rollout restart of the container** — ensuring your app always runs with the latest configuration.
 
-#### 🚀 Deploy locally
+### 🚀 Deploy locally
 
 You can preview the full manifest with:
 
@@ -477,7 +517,7 @@ Or apply directly:
 kubectl apply -k examples/kubernetes
 ```
 
-#### 🔧 Disabling Hashing (for local testing)
+### 🔧 Disabling Hashing (for local testing)
 
 To disable content-based hashes on ConfigMaps (e.g., for stable volume mounts during development), set:
 
