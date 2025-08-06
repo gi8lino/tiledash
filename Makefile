@@ -67,11 +67,11 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes.
 ##@ Mock Server
 
 MOCK_PORT ?= 8081
-MOCK_DATA_DIR ?= ./data
+MOCK_DATA_DIR ?= ./tests/data
 
 .PHONY: run-mock
 run-mock: ## Run the mock server for local testing
-	go run ./testdata/main.go --data-dir=$(MOCK_DATA_DIR) --port=$(MOCK_PORT) --random-delay
+	go run ./tests/main.go --data-dir=$(MOCK_DATA_DIR) --port=$(MOCK_PORT) --random-delay
 
 ##@ Tagging
 
