@@ -316,13 +316,22 @@ This template is minimal but still demonstrates:
 
 All templates have access to:
 
-- **[Sprig functions](https://masterminds.github.io/sprig/)** like `dict`, `list`, `add`, `len`, `slice`, `date`, etc.
-- **Custom helpers** like:
+- ✅ **[Sprig functions](https://masterminds.github.io/sprig/)** — like `dict`, `list`, `add`, `len`, `slice`, `date`, `ago`, etc.
+- 🛠 **Custom helpers** provided by JiraPanel:
 
-  - `set`, `setany`, `dig`
-  - `formatJiraDate`
+| Helper           | Signature                     | Description                                                                          | Example Usage                                        |
+| :--------------- | :---------------------------- | :----------------------------------------------------------------------------------- | :--------------------------------------------------- |
+| `setany`         | `setany map key value`        | Sets `map[key] = value` and returns the same map                                     | `{{ setany $m "key" "val" }}`                        |
+| `dig`            | `dig map key`                 | Retrieves a string from a `map[string]any` by key; returns input if already a string | `{{ dig .fields "summary" }}`                        |
+| `formatJiraDate` | `formatJiraDate input layout` | Parses Jira timestamp and formats it using Go layout                                 | `{{ formatJiraDate .fields.created "2006-01-02" }}`  |
+| `appendSlice`    | `appendSlice slice item`      | Appends `item` to a `[]any` slice                                                    | `{{ $list := appendSlice $list $item }}`             |
+| `sortBy`         | `sortBy field desc slice`     | Sorts a slice of `map[string]any` by field, descending if `desc` is true             | `{{ sortBy "count" true $entries }}`                 |
+| `uniq`           | `uniq list`                   | Removes duplicate string values                                                      | `{{ uniq (list "a" "b" "a") }}` → `["a" "b"]`        |
+| `defaultStr`     | `defaultStr value fallback`   | Returns `fallback` if `value` is empty or only whitespace                            | `{{ defaultStr .name "Unknown" }}`                   |
+| `typeOf`         | `typeOf value`                | Returns the Go type of the given value                                               | `{{ typeOf .fields }}` → `"map[string]interface {}"` |
+| `sumBy`          | `sumBy field slice`           | Sums the numeric values of the given field in a slice of `map[string]any`            | `{{ sumBy "count" $entries }}`                       |
 
-You can also define reusable logic in a separate `.gohtml` and use `{{ template "name" . }}` to include it.
+You can also reuse logic from other templates using `{{ template "name" . }}` — great for status badges, labels, or error handling partials.
 
 ### 4. 📁 Browse Examples
 

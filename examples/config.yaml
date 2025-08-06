@@ -3,7 +3,7 @@ title: My Jira Dashboard
 refreshInterval: 60s
 grid:
   columns: 2
-  rows: 4
+  rows: 5
 cells:
   - title: Env Epics
     query: filter=17201
@@ -18,6 +18,10 @@ cells:
   - title: Two Dimensional Open Environment Issues
     query: filter=17203
     template: env_issues.gohtml
+    position: { row: 1, col: 0 }
+  - title: Top 3 most Issues
+    query: filter=17203
+    template: podium.gohtml
     position: { row: 1, col: 1 }
   - title: "Issue Statistics: Open Environment Issues (Assignee)"
     query: filter=17203

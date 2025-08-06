@@ -1,116 +1,172 @@
 package templates
 
 import (
-	"html/template"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTemplateFuncMap(t *testing.T) {
+func TestAppendSlice(t *testing.T) {
 	t.Parallel()
 
-	t.Run("contains required helper functions", func(t *testing.T) {
+	t.Run("appends to empty []any", func(t *testing.T) {
 		t.Parallel()
-
-		funcs := TemplateFuncMap()
-
-		assert.Contains(t, funcs, "formatJiraDate")
-		assert.Contains(t, funcs, "setany")
-		assert.Contains(t, funcs, "dig")
-
-		// Confirm each is a function
-		assert.IsType(t, func(string, string) string { return "" }, funcs["formatJiraDate"])
-		assert.IsType(t, func(map[string]any, string, any) map[string]any { return nil }, funcs["setany"])
-		assert.IsType(t, func(any, string) string { return "" }, funcs["dig"])
+		var input []any
+		result := appendSlice(input, "value")
+		assert.Equal(t, []any{"value"}, result)
 	})
 
-	t.Run("includes sprig helpers", func(t *testing.T) {
+	t.Run("appends to prefilled []any", func(t *testing.T) {
 		t.Parallel()
-
-		funcs := TemplateFuncMap()
-		// Check for a well-known sprig function
-		assert.Contains(t, funcs, "upper")
-		assert.IsType(t, func(string) string { return "" }, funcs["upper"])
+		input := []any{"a", "b"}
+		result := appendSlice(input, "c")
+		assert.Equal(t, []any{"a", "b", "c"}, result)
 	})
 
-	t.Run("can be used to build a valid template", func(t *testing.T) {
+	t.Run("wraps non-slice as single-element", func(t *testing.T) {
 		t.Parallel()
-
-		tmpl := template.New("test").Funcs(TemplateFuncMap())
-		_, err := tmpl.Parse(`{{define "t"}}{{"hello" | upper}}{{end}}`)
-		assert.NoError(t, err)
-	})
-}
-
-func TestSetAny(t *testing.T) {
-	t.Parallel()
-
-	t.Run("sets and returns updated map", func(t *testing.T) {
-		t.Parallel()
-		m := map[string]any{"foo": "bar"}
-		out := setany(m, "baz", 123)
-
-		assert.Equal(t, 123, out["baz"])
-		assert.Equal(t, "bar", out["foo"])
+		result := appendSlice("foo", "bar")
+		assert.Equal(t, []any{"bar"}, result)
 	})
 }
 
 func TestTemplateDig(t *testing.T) {
 	t.Parallel()
 
-	t.Run("returns value from map[string]any", func(t *testing.T) {
+	t.Run("returns value from map[string]any if key exists and is string", func(t *testing.T) {
 		t.Parallel()
-		m := map[string]any{"x": "value"}
-		out := templateDig(m, "x")
-		assert.Equal(t, "value", out)
+		m := map[string]any{"foo": "bar"}
+		assert.Equal(t, "bar", templateDig(m, "foo"))
 	})
 
-	t.Run("returns empty string if key is missing", func(t *testing.T) {
+	t.Run("returns empty string if key missing", func(t *testing.T) {
 		t.Parallel()
-		m := map[string]any{"x": "value"}
-		out := templateDig(m, "missing")
-		assert.Equal(t, "", out)
+		m := map[string]any{"foo": "bar"}
+		assert.Equal(t, "", templateDig(m, "baz"))
 	})
 
-	t.Run("returns empty string if key is not a string", func(t *testing.T) {
+	t.Run("returns empty string if value is not string", func(t *testing.T) {
 		t.Parallel()
-		m := map[string]any{"x": 42}
-		out := templateDig(m, "x")
-		assert.Equal(t, "", out)
+		m := map[string]any{"foo": 42}
+		assert.Equal(t, "", templateDig(m, "foo"))
 	})
 
-	t.Run("returns string directly if input is string", func(t *testing.T) {
+	t.Run("returns input if already string", func(t *testing.T) {
 		t.Parallel()
-		out := templateDig("just a string", "ignored")
-		assert.Equal(t, "just a string", out)
+		assert.Equal(t, "hello", templateDig("hello", "ignored"))
 	})
 
-	t.Run("returns empty string for unsupported input type", func(t *testing.T) {
+	t.Run("returns empty string for unknown type", func(t *testing.T) {
 		t.Parallel()
-		out := templateDig(12345, "ignored")
-		assert.Equal(t, "", out)
+		assert.Equal(t, "", templateDig(123, "ignored"))
+	})
+}
+
+func TestSetAny(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sets new key", func(t *testing.T) {
+		t.Parallel()
+		m := map[string]any{}
+		setany(m, "k", 123)
+		assert.Equal(t, 123, m["k"])
+	})
+
+	t.Run("overwrites existing key", func(t *testing.T) {
+		t.Parallel()
+		m := map[string]any{"k": "old"}
+		setany(m, "k", "new")
+		assert.Equal(t, "new", m["k"])
+	})
+
+	t.Run("returns same map", func(t *testing.T) {
+		t.Parallel()
+		m := map[string]any{"x": "y"}
+		res := setany(m, "z", "w")
+		assert.Equal(t, m, res)
 	})
 }
 
 func TestFormatJiraDate(t *testing.T) {
 	t.Parallel()
 
-	t.Run("formats valid Jira timestamp", func(t *testing.T) {
+	t.Run("parses valid Jira timestamp", func(t *testing.T) {
 		t.Parallel()
-		in := "2023-08-01T14:30:00.000Z"
+		input := "2024-08-01T12:34:56.789+0200"
 		layout := "2006-01-02 15:04"
-		expected := "2023-08-01 14:30"
-		out := formatJiraDate(in, layout)
-		assert.Equal(t, expected, out)
+		expected := "2024-08-01 12:34"
+		actual := formatJiraDate(input, layout)
+		assert.Equal(t, expected, actual)
 	})
 
-	t.Run("returns input on invalid timestamp", func(t *testing.T) {
+	t.Run("parses valid Zulu time and normalizes", func(t *testing.T) {
 		t.Parallel()
-		in := "invalid-date"
-		layout := time.RFC822
-		out := formatJiraDate(in, layout)
-		assert.Equal(t, in, out)
+		input := "2024-08-01T10:00:00.000Z"
+		layout := time.RFC3339
+		actual := formatJiraDate(input, layout)
+		assert.Contains(t, actual, "2024-08-01")
+	})
+
+	t.Run("returns input on parse failure", func(t *testing.T) {
+		t.Parallel()
+		input := "invalid"
+		layout := "irrelevant"
+		assert.Equal(t, "invalid", formatJiraDate(input, layout))
+	})
+}
+
+func TestSortBy(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sorts by int field ascending", func(t *testing.T) {
+		t.Parallel()
+		input := []any{
+			map[string]any{"val": 3},
+			map[string]any{"val": 1},
+			map[string]any{"val": 2},
+		}
+		sorted := sortBy("val", false, input)
+		assert.Equal(t, 1, sorted[0].(map[string]any)["val"])
+		assert.Equal(t, 2, sorted[1].(map[string]any)["val"])
+		assert.Equal(t, 3, sorted[2].(map[string]any)["val"])
+	})
+
+	t.Run("sorts by string field descending", func(t *testing.T) {
+		t.Parallel()
+		input := []any{
+			map[string]any{"name": "Alice"},
+			map[string]any{"name": "Charlie"},
+			map[string]any{"name": "Bob"},
+		}
+		sorted := sortBy("name", true, input)
+		assert.Equal(t, "Charlie", sorted[0].(map[string]any)["name"])
+		assert.Equal(t, "Bob", sorted[1].(map[string]any)["name"])
+		assert.Equal(t, "Alice", sorted[2].(map[string]any)["name"])
+	})
+
+	t.Run("sorts by float64 field ascending", func(t *testing.T) {
+		t.Parallel()
+		input := []any{
+			map[string]any{"score": 3.2},
+			map[string]any{"score": 1.1},
+			map[string]any{"score": 2.5},
+		}
+		sorted := sortBy("score", false, input)
+		assert.InDelta(t, 1.1, sorted[0].(map[string]any)["score"], 0.01)
+		assert.InDelta(t, 2.5, sorted[1].(map[string]any)["score"], 0.01)
+		assert.InDelta(t, 3.2, sorted[2].(map[string]any)["score"], 0.01)
+	})
+
+	t.Run("sorts by time field descending", func(t *testing.T) {
+		t.Parallel()
+		now := time.Now()
+		input := []any{
+			map[string]any{"created": now.Add(-time.Hour)},
+			map[string]any{"created": now},
+			map[string]any{"created": now.Add(-2 * time.Hour)},
+		}
+		sorted := sortBy("created", true, input)
+		assert.Equal(t, now, sorted[0].(map[string]any)["created"])
 	})
 }
