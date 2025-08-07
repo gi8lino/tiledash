@@ -84,6 +84,7 @@
       {{ range $i, $cell := .Cells }}
         <div
           class="card"
+          id="cell-{{ $i }}"
           style="
             grid-column: {{ $cell.Position.Col }} / span {{ or $cell.Position.ColSpan 1 }};
             grid-row: {{ $cell.Position.Row }};

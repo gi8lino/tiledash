@@ -40,7 +40,7 @@ This is your main dashboard layout and data source file.
 #### 🧱 Top-Level Keys
 
 | Key               | Type     | Description                                  |
-| ----------------- | -------- | -------------------------------------------- |
+| :---------------- | :------- | :------------------------------------------- |
 | `title`           | string   | Dashboard title (HTML page title and header) |
 | `grid.columns`    | int      | Number of columns in the layout              |
 | `grid.rows`       | int      | Number of rows in the layout                 |
@@ -51,7 +51,7 @@ This is your main dashboard layout and data source file.
 #### 🧱 `cells[]` Fields
 
 | Field              | Type   | Description                                           |
-| ------------------ | ------ | ----------------------------------------------------- |
+| :----------------- | :----- | :---------------------------------------------------- |
 | `title`            | string | Cell title (used in templates)                        |
 | `query`            | string | JQL query or filter (e.g., `filter=12345`)            |
 | `template`         | string | Template file name (must end with `.gohtml`)          |
@@ -100,7 +100,7 @@ cells:
 The `customization` block lets you tweak styling via CSS-like settings. If omitted, defaults are used.
 
 | Key                    | Default                           | Description            |
-| ---------------------- | --------------------------------- | ---------------------- |
+| :--------------------- | :-------------------------------- | :--------------------- |
 | `grid.gap`             | `"2rem"`                          | Gap between cells      |
 | `grid.padding`         | `"0rem"`                          | Padding inside grid    |
 | `grid.marginTop`       | `"0rem"`                          | Space above grid       |
@@ -150,7 +150,24 @@ Example structure:
 
 ### 2. Write a Template
 
-Place it in your `--template-dir` with the `.gohtml` extension.
+Place your `.gohtml` file in the directory passed via `--template-dir`.
+
+Each template has access to the following:
+
+- `.Title` - the cell title from your config
+- `.Data` - the parsed Jira API response
+- `.ID` - the 0-based index of the cell in your dashboard layout (e.g. `cell-0`, `cell-1`, `cell-2`, ...)
+
+> ⚠️ **You can now use `.ID` to target the card container** via:
+>
+> - `id="cell-{{ .ID }}"` (already applied in `base.gohtml`)
+> - JS: `document.getElementById("cell-{{ .ID }}")`
+> - CSS: `#cell-{{ .ID }} { display: none; }`
+>   see [examples/templates/env_alert.gohtml](examples/templates/env_alert.gohtml)
+
+### 🛠 Example Template
+
+This template shows a list of issues with their summary.
 
 ```gohtml
 <h2>{{ .Title }}</h2>
@@ -163,50 +180,46 @@ Place it in your `--template-dir` with the `.gohtml` extension.
 </ul>
 ```
 
-> ⚠️ Why use `dig`?
->
-> Jira's API responses often include deeply nested and dynamic fields, especially under `fields`. These values are usually returned as `map[string]interface{}` in Go — meaning you can’t access them directly like `.fields.summary` because Go templates don’t support type assertions.
->
-> The `dig` function helps safely extract values from these maps as strings, like:
->
-> ```gohtml
-> {{ dig $i.fields "summary" }}
-> ```
->
-> This avoids crashes or empty output when accessing untyped or missing fields. If the field doesn’t exist or isn’t a string, `dig` returns an empty string instead of panicking.
->
-> Use `dig` for anything under `.fields`, `.fields.customfield_*`, or other unpredictable structures returned by Jira.
+### 🛠 Why Use `dig`?
 
-All templates have access to:
+Jira's API returns deeply nested and dynamic fields, especially under `.fields`. These values are usually `map[string]interface{}` in Go - meaning you can't access them directly like `.fields.summary`.
 
-- Standard Go `html/template`
-- [Sprig functions](https://masterminds.github.io/sprig/)
-- JiraPanel-specific helpers:
+The `dig` function safely extracts values from maps as strings:
 
-| Helper           | Signature                     | Description                                                                          | Example Usage                                        |
-| :--------------- | :---------------------------- | :----------------------------------------------------------------------------------- | :--------------------------------------------------- |
-| `setany`         | `setany map key value`        | Sets `map[key] = value` and returns the same map                                     | `{{ setany $m "key" "val" }}`                        |
-| `dig`            | `dig map key`                 | Retrieves a string from a `map[string]any` by key; returns input if already a string | `{{ dig .fields "summary" }}`                        |
-| `formatJiraDate` | `formatJiraDate input layout` | Parses Jira timestamp and formats it using Go layout                                 | `{{ formatJiraDate .fields.created "2006-01-02" }}`  |
-| `appendSlice`    | `appendSlice slice item`      | Appends `item` to a `[]any` slice                                                    | `{{ $list := appendSlice $list $item }}`             |
-| `sortBy`         | `sortBy field desc slice`     | Sorts a slice of `map[string]any` by field, descending if `desc` is true             | `{{ sortBy "count" true $entries }}`                 |
-| `uniq`           | `uniq list`                   | Removes duplicate string values                                                      | `{{ uniq (list "a" "b" "a") }}` → `["a" "b"]`        |
-| `defaultStr`     | `defaultStr value fallback`   | Returns `fallback` if `value` is empty or only whitespace                            | `{{ defaultStr .name "Unknown" }}`                   |
-| `typeOf`         | `typeOf value`                | Returns the Go type of the given value                                               | `{{ typeOf .fields }}` → `"map[string]interface {}"` |
-| `sumBy`          | `sumBy field slice`           | Sums the numeric values of the given field in a slice of `map[string]any`            | `{{ sumBy "count" $entries }}`                       |
+```gohtml
+{{ dig $issue.fields "summary" }}
+```
 
-You can also reuse logic from other templates using `{{ template "name" . }}` — great for status badges, labels, or error handling partials.
+If the field doesn't exist or isn't a string, it returns an empty string instead of crashing.
+
+Use `dig` for anything under `.fields`, `.fields.customfield_*`, or other unpredictable Jira fields.
+
+### 🧰 Built-in Helpers
+
+| Helper           | Signature                     | Description                                                            | Example Usage                                       |
+| :--------------- | :---------------------------- | :--------------------------------------------------------------------- | :-------------------------------------------------- |
+| `setany`         | `setany map key value`        | Sets `map[key] = value` and returns the map                            | `{{ setany $m "key" "val" }}`                       |
+| `dig`            | `dig map key`                 | Extracts a string from a `map[string]any`; safe for nested Jira fields | `{{ dig .fields "summary" }}`                       |
+| `formatJiraDate` | `formatJiraDate input layout` | Formats Jira timestamps using Go layouts                               | `{{ formatJiraDate .fields.created "2006-01-02" }}` |
+| `appendSlice`    | `appendSlice slice item`      | Appends `item` to a slice                                              | `{{ $list := appendSlice $list $item }}`            |
+| `sortBy`         | `sortBy field desc slice`     | Sorts a slice of maps by field name                                    | `{{ sortBy "count" true $entries }}`                |
+| `uniq`           | `uniq list`                   | Removes duplicate strings                                              | `{{ uniq (list "a" "b" "a") }}` → `["a", "b"]`      |
+| `defaultStr`     | `defaultStr value fallback`   | Fallback if `value` is empty or whitespace                             | `{{ defaultStr .name "Unknown" }}`                  |
+| `typeOf`         | `typeOf value`                | Returns the Go type of the input value                                 | `{{ typeOf .fields }}`                              |
+| `sumBy`          | `sumBy field slice`           | Sums numeric fields across a slice of maps                             | `{{ sumBy "count" $entries }}`                      |
+
+You can also reuse logic from other templates using `{{ template "name" . }}` - great for status badges, labels, or error handling partials.
 
 ### 3. 📁 Browse Examples
 
 See the [`examples/templates/`](examples/templates/) folder for more real-world templates, including:
 
-- `assignees.gohtml` — count issues per assignee
-- `env_issues.gohtml` — issue table with columns
-- `epics.gohtml` — group by epic
-- `functions.gohtml` — reusable helpers
-- `issues.gohtml` — issue table with columns
-- `podium.gohtml` — podium chart
+- `assignees.gohtml` - count issues per assignee
+- `env_issues.gohtml` - issue table with columns
+- `epics.gohtml` - group by epic
+- `functions.gohtml` - reusable helpers
+- `issues.gohtml` - issue table with columns
+- `podium.gohtml` - podium chart
 
 With just YAML and `.gohtml` templates, you can build flexible, data-rich Jira dashboards tailored to your needs.
 
@@ -222,7 +235,7 @@ Useful for spotting overlaps and grid misalignment.
 ## 📦 CLI Flags
 
 | Flag                     | Description                               |
-| ------------------------ | ----------------------------------------- |
+| :----------------------- | :---------------------------------------- |
 | `--config`               | Path to `config.yaml` (**required**)      |
 | `--template-dir`         | Path to template files (**required**)     |
 | `--jira-api-url`         | Jira REST API base URL (**required**)     |
@@ -244,7 +257,7 @@ Use one of:
 ## 🌐 Endpoints
 
 | Path                 | Method | Description            |
-| -------------------- | ------ | ---------------------- |
+| :------------------- | :----- | :--------------------- |
 | `/`                  | GET    | Dashboard view         |
 | `/api/v1/cells/{id}` | GET    | Render cell by ID      |
 | `/healthz`           | GET    | Health check           |

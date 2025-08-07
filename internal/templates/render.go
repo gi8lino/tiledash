@@ -65,6 +65,7 @@ func RenderCell(
 
 	var buf bytes.Buffer
 	if err := sectionTmpl.ExecuteTemplate(&buf, cell.Template, map[string]any{
+		"ID":    id,
 		"Title": cell.Title,
 		"Data":  jsonData,
 	}); err != nil {
