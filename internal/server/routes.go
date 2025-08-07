@@ -28,24 +28,23 @@ func NewRouter(
 	fileServer := http.FileServer(http.FS(staticContent))
 	root.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
-	// Health checks (no logging)
+	// Health checks
 	root.Handle("GET /healthz", handlers.Healthz())
 	root.Handle("POST /healthz", handlers.Healthz())
 
-	// Main dashboard handler (with optional logging)
-	var dashboardHandler http.Handler = handlers.BaseHandler(webFS, templateDir, version, client, cfg, logger)
-	if debug {
-		dashboardHandler = middleware.Chain(dashboardHandler, middleware.LoggingMiddleware(logger))
-	}
-	root.Handle("/", dashboardHandler) // no Method allowed, otherwise it crashes
+	// Main dashboard handler
+	root.Handle("/", handlers.BaseHandler(webFS, templateDir, version, client, cfg, logger))
 
 	// API endpoint for loading sections asynchronously
 	api := http.NewServeMux()
 	api.Handle("GET /cell/{id}", handlers.CellHandler(webFS, templateDir, version, client, cfg, logger))
 	api.Handle("GET /hash/{id}", handlers.HashHandler(cfg, logger))
 
-	// mount under /api/v1/
+	// mount api under /api/v1/
 	root.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 
+	if debug {
+		return middleware.Chain(root, middleware.LoggingMiddleware(logger))
+	}
 	return root
 }
