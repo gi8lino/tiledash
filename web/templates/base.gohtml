@@ -4,6 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="refresh-interval" content="{{ .RefreshInterval }}" />
+    <meta name="config-hash" content="{{ .ConfigHash }}" />
     <link rel="preload" href="/static/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="/static/css/bootstrap.min.css"></noscript>
     <title>{{ .Title }}</title>
@@ -68,7 +69,8 @@
       }
     </style>
     <script>
-      const configHash = "{{ .ConfigHash }}";
+      // Create a map of cell IDs to their latest hash
+      // Will later be updated by the JS refresh loop
       const cellHashes = {
         {{- range $i, $cell := .Cells }}
         "{{ $i }}": "{{ $cell.Hash }}",

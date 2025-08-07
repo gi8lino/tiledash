@@ -1,11 +1,22 @@
 document.addEventListener("DOMContentLoaded", function () {
   const DEBUG_KEY = "jirapanel-debug";
+  const configHash =
+    document.querySelector('meta[name="config-hash"]')?.content || "";
+
+  // Track all card elements
+  const cards = document.querySelectorAll("[data-cell-id]");
+
+  // Track in-flight reloads to prevent double-fetching
+  const inFlight = new Set();
 
   /**
    * Replaces the content of a card by fetching the latest HTML.
    */
   function reloadCard(id, card) {
-    if (!card) return;
+    if (!card || inFlight.has(id)) return;
+
+    inFlight.add(id);
+
     fetch(`/api/v1/cell/${id}`)
       .then((res) => res.text())
       .then((html) => {
@@ -23,6 +34,10 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .catch((err) => {
         card.innerHTML = `<div class="alert alert-danger">Error loading cell: ${err}</div>`;
+        console.warn(`Error reloading card ${id}:`, err);
+      })
+      .finally(() => {
+        inFlight.delete(id);
       });
   }
 
@@ -75,18 +90,32 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((res) => res.text())
       .then((newConfigHash) => {
         if (newConfigHash !== configHash) {
+          if (document.body.classList.contains("debug-mode")) {
+            console.log("Config hash changed. Reloading page...");
+          }
           location.reload();
           return;
         }
 
         cards.forEach((card) => {
           const id = card.getAttribute("data-cell-id");
+
           fetch(`/api/v1/hash/${id}`)
             .then((res) => res.text())
             .then((newHash) => {
               if (!cellHashes[id] || cellHashes[id] !== newHash) {
+                if (document.body.classList.contains("debug-mode")) {
+                  console.log(
+                    `Reloading cell ${id} (old=${cellHashes[id]}, new=${newHash})`,
+                  );
+                }
+
                 cellHashes[id] = newHash;
                 reloadCard(id, card);
+              } else {
+                if (document.body.classList.contains("debug-mode")) {
+                  console.log(`Cell ${id} unchanged (hash=${newHash})`);
+                }
               }
             })
             .catch((err) => {
@@ -105,7 +134,6 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // Initial card load
-  const cards = document.querySelectorAll("[data-cell-id]");
   cards.forEach((card) => {
     const id = card.getAttribute("data-cell-id");
     reloadCard(id, card);
