@@ -1,0 +1,40 @@
+{{- $issues := .Data.issues }}
+{{- $showAlert := false }}
+
+{{- range $i := $issues }}
+  {{- $summary := dig $i.fields "summary" }}
+  {{- $envKey := dig $i.fields.customfield_10100 "key" }}
+  {{- if or (eq $summary "Production Environment") (eq $envKey "ENV-99") }}
+    {{- $showAlert = true }}
+  {{- end }}
+{{- end }}
+
+{{ if $showAlert }}
+  <div class="beacon-container">
+    <div class="beacon-flash"></div>
+    <p class="mt-2 fw-bold text-danger">Production issue detected</p>
+  </div>
+{{ else }}
+  <p class="text-muted">No critical production issues found.</p>
+{{ end }}
+
+<style>
+.beacon-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.beacon-flash {
+  width: 20px;
+  height: 20px;
+  background-color: red;
+  border-radius: 50%;
+  animation: flash 1s infinite;
+  box-shadow: 0 0 5px red;
+}
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+</style>
+

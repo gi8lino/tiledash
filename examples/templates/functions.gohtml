@@ -12,12 +12,13 @@
       "ENV-14" "Integration Environment"
       "ENV-17" "Maintenance Environment"
       "ENV-18" "Staging Environment"
+      "ENV-99" "Producation Environment"
   -}} <!-- Define mapping of epic keys to display names -->
 
   {{ with index $epics . }}
     {{ . }} <!-- Render the mapped display name if present -->
   {{ else }}
-    <span class="text-muted">–</span> <!-- Fallback: dash for unknown epics -->
+    <span class="text-muted">-</span> <!-- Fallback: dash for unknown epics -->
   {{ end }}
 {{ end }}
 
