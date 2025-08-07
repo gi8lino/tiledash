@@ -101,7 +101,7 @@ func ValidateConfig(cfg *DashboardConfig, tmpl *template.Template) error {
 			errs = append(errs, fmt.Sprintf("%s: row %d out of bounds (max %d)", label, section.Position.Row, cfg.Grid.Rows))
 		}
 		if section.Position.Col < 1 {
-			errs = append(errs, fmt.Sprintf("%s: col %d out of bounds (min 1)", label, section.Position.Row))
+			errs = append(errs, fmt.Sprintf("%s: col %d out of bounds (min 1)", label, section.Position.Col))
 		} else if col > maxCol {
 			errs = append(errs, fmt.Sprintf("%s: col %d out of bounds (max %d)", label, section.Position.Col, cfg.Grid.Columns))
 		}
