@@ -83,8 +83,8 @@
         <div
           class="card"
           style="
-            grid-column: {{ add $cell.Position.Col 1 }} / span {{ or $cell.Position.ColSpan 1 }};
-            grid-row: {{ add $cell.Position.Row 1 }};
+            grid-column: {{ $cell.Position.Col }} / span {{ or $cell.Position.ColSpan 1 }};
+            grid-row: {{ $cell.Position.Row }};
           "
           data-cell-id="{{ $i }}"
           data-row="{{ $cell.Position.Row }}"

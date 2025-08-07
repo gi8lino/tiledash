@@ -9,6 +9,7 @@ import (
 
 	"github.com/gi8lino/jirapanel/internal/templates"
 	"github.com/gi8lino/jirapanel/internal/testutils"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

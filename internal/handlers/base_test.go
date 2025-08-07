@@ -14,6 +14,7 @@ import (
 
 	"github.com/gi8lino/jirapanel/internal/config"
 	"github.com/gi8lino/jirapanel/internal/testutils"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

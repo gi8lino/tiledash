@@ -72,39 +72,51 @@ func ValidateConfig(cfg *DashboardConfig, tmpl *template.Template) error {
 		if section.Query == "" {
 			errs = append(errs, fmt.Sprintf("%s: query is required", label))
 		}
-		if section.Template == "" {
+
+		switch name := section.Template; {
+		case name == "":
 			errs = append(errs, fmt.Sprintf("%s: template is required", label))
-		} else if tmpl.Lookup(section.Template) == nil {
-			errs = append(errs, fmt.Sprintf(`%s: template %q not found`, label, section.Template))
+		case !strings.HasSuffix(name, ".gohtml"):
+			errs = append(errs, fmt.Sprintf(`%s: template %q must end with ".gohtml"`, label, name))
+		case tmpl.Lookup(name) == nil:
+			errs = append(errs, fmt.Sprintf(`%s: template %q not found`, label, name))
 		}
 
-		// colSpan default
-		pos := section.Position
-		colSpan := pos.ColSpan
+		// Convert from 1-based to 0-based indexing
+		row := section.Position.Row - 1
+		col := section.Position.Col - 1
+		colSpan := section.Position.ColSpan
 		if colSpan <= 0 {
 			colSpan = 1
 		}
 
-		// Safe bounds
-		maxRow := max(cfg.Grid.Rows-1, 0)
-		maxCol := max(cfg.Grid.Columns-1, 0)
+		// Bounds for validation
+		maxRow := cfg.Grid.Rows - 1
+		maxCol := cfg.Grid.Columns - 1
 
-		if pos.Row < 0 || pos.Row > maxRow {
-			errs = append(errs, fmt.Sprintf("%s: row %d out of bounds (max %d)", label, pos.Row, maxRow))
+		// Validate positions in user-friendly 1-based terms
+		if section.Position.Row < 1 {
+			errs = append(errs, fmt.Sprintf("%s: row %d out of bounds (min 1)", label, section.Position.Row))
+		} else if row > maxRow {
+			errs = append(errs, fmt.Sprintf("%s: row %d out of bounds (max %d)", label, section.Position.Row, cfg.Grid.Rows))
 		}
-		if pos.Col < 0 || pos.Col > maxCol {
-			errs = append(errs, fmt.Sprintf("%s: col %d out of bounds (max %d)", label, pos.Col, maxCol))
+		if section.Position.Col < 1 {
+			errs = append(errs, fmt.Sprintf("%s: col %d out of bounds (min 1)", label, section.Position.Row))
+		} else if col > maxCol {
+			errs = append(errs, fmt.Sprintf("%s: col %d out of bounds (max %d)", label, section.Position.Col, cfg.Grid.Columns))
 		}
-		if pos.Col+colSpan > cfg.Grid.Columns {
+		if col < 0 {
+			errs = append(errs, fmt.Sprintf("%s: colSpan %d out of bounds (min 1)", label, colSpan))
+		} else if col+colSpan > cfg.Grid.Columns {
 			errs = append(errs, fmt.Sprintf("%s: colSpan %d overflows grid width %d", label, colSpan, cfg.Grid.Columns))
 		}
 
-		// Only track occupied cells if position is in bounds
-		if pos.Row >= 0 && pos.Col >= 0 && pos.Col+colSpan <= cfg.Grid.Columns {
-			for c := pos.Col; c < pos.Col+colSpan; c++ {
-				key := [2]int{pos.Row, c}
+		// Only track occupied if valid
+		if row >= 0 && col >= 0 && col+colSpan <= cfg.Grid.Columns {
+			for c := col; c < col+colSpan; c++ {
+				key := [2]int{row, c}
 				if other, ok := occupied[key]; ok {
-					errs = append(errs, fmt.Sprintf("%s: overlaps cell (%d,%d) used by section %q", label, pos.Row, c, other))
+					errs = append(errs, fmt.Sprintf("%s: overlaps cell (%d,%d) used by section %q", label, section.Position.Row, section.Position.Col, other))
 				}
 				occupied[key] = section.Title
 			}

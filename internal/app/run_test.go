@@ -10,6 +10,7 @@ import (
 
 	"github.com/gi8lino/jirapanel/internal/app"
 	"github.com/gi8lino/jirapanel/internal/testutils"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,7 +46,7 @@ cells:
   - title: Section 1
     query: filter=12345
     template: test.gohtml
-    position: { row: 0, col: 0 }
+    position: { row: 1, col: 1 }
 refreshInterval: 30s
 `)
 
@@ -143,7 +144,7 @@ cells:
   - title: Env Epics
     query: filter=17201
     template: epics.gohtml
-    position: { row: 0, col: 0 }
+    position: { row: 1, col: 1 }
 `
 
 		tmpdDir := t.TempDir()
@@ -182,7 +183,7 @@ cells:
   - title: Env Epics
     query: filter=17201
     template: epics.gohtml
-    position: { row: 0, col: 0 }
+    position: { row: 1, col: 1 }
 `
 
 		cfgdDir := t.TempDir()

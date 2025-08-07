@@ -4,320 +4,184 @@
 
 ## Features
 
-- Render multiple dashboard grid cells with custom templates
-- Query Jira issues using JQL or filters
-- Fully configurable grid layout
-- Auto-refresh support (configurable)
-- Clean bootstrap-based layout
-- Simple CLI configuration via flags or environment variables
+- 📊 Multiple dashboard grid cells rendered from Go HTML templates
+- 🧾 Query Jira issues using JQL or saved filters
+- 🎯 1-based grid layout configuration
+- 🔁 Auto-refresh support (configurable interval)
+- 🧰 Simple CLI or environment variable setup
+- 🧠 Debug mode for visualizing layout structure
+- 🎨 Full visual customization via YAML
 
-## 🧠 How It Works
+## 🚀 How It Works
 
-JiraPanel renders a dynamic dashboard by combining a **base layout template** with **per-cell content**, which is loaded asynchronously in the browser.
+JiraPanel renders a dynamic HTML dashboard by combining a **base layout template** (`base.gohtml`) with **per-cell content** fetched and rendered individually.
 
-### Step-by-Step Flow:
+### Rendering Flow
 
-1. **Base Template Load**
-   The main dashboard view (`/`) renders `base.gohtml`, which defines the grid layout and includes placeholders for each cell.
+1. **Dashboard page (`/`)** renders the grid and placeholders.
+2. **JavaScript fetches each cell** from `/api/v1/cells/{id}`.
+3. Server executes the cell's **JQL query** and renders the **associated template**.
+4. If errors occur, a fallback template (`cell_error.gohtml`) is used.
 
-2. **Asynchronous Cell Rendering**
-   After the base page is loaded:
+Each cell is rendered independently, allowing fast and fault-tolerant dashboards.
 
-   - JavaScript fetches each individual cell via `/cells/{id}`
-   - The server renders the cell using its configured template and Jira response data
-   - The HTML is injected into the correct grid cell
+## 📁 Configuration Overview
 
-3. **Server-Side Cell Rendering**
-   For each `/cells/{id}` request:
+You configure the dashboard using:
 
-   - A JQL query is executed against Jira
-   - The JSON response is passed to a Go HTML template (e.g. `issues.gohtml`)
-   - The rendered HTML is returned to the browser
+- A `config.yaml` file
+- `.gohtml` templates for each cell
+- A CLI or environment flags for server setup
 
-4. **Error Handling**
-   If any cell fails to render (e.g. bad query, timeout), the server renders a fallback using `cell_error.gohtml`. This ensures the rest of the dashboard remains usable.
+### 🧾 `config.yaml`
 
-### Benefits
+This is your main dashboard layout and data source file.
 
-- Only the base page is loaded initially
-- Each cell loads independently, improving performance and fault tolerance
-- Full HTML is rendered server-side — no client-side templating required
+#### 🧱 Top-Level Keys
 
-## Example Usage
+| Key               | Type     | Description                                  |
+| ----------------- | -------- | -------------------------------------------- |
+| `title`           | string   | Dashboard title (HTML page title and header) |
+| `grid.columns`    | int      | Number of columns in the layout              |
+| `grid.rows`       | int      | Number of rows in the layout                 |
+| `refreshInterval` | duration | Auto-refresh interval (e.g., `60s`, `2m`)    |
+| `cells`           | []cell   | List of grid cells (data cards)              |
+| `customization`   | object   | Optional visual styles and layout settings   |
 
-```sh
-jirapanel \
-  --config config.yaml \
-  --template-dir templates \
-  --jira-api-url https://yourcompany.atlassian.net/rest/api/3 \
-  --jira-email alice@yourcompany.com \
-  --jira-auth xxxx
-```
+#### 🧱 `cells[]` Fields
 
-Or using environment variables:
+| Field              | Type   | Description                                           |
+| ------------------ | ------ | ----------------------------------------------------- |
+| `title`            | string | Cell title (used in templates)                        |
+| `query`            | string | JQL query or filter (e.g., `filter=12345`)            |
+| `template`         | string | Template file name (must end with `.gohtml`)          |
+| `position.row`     | int    | **1-based** row index of the cell (top to bottom)     |
+| `position.col`     | int    | **1-based** column index of the cell (left to right)  |
+| `position.colSpan` | int    | Number of columns to span (optional, defaults to `1`) |
 
-```sh
-JIRAPANEL_CONFIG=config.yaml \
-JIRAPANEL_TEMPLATE_DIR=templates \
-JIRAPANEL_JIRA_API_URL=https://yourcompany.atlassian.net/rest/api/3 \
-JIRAPANEL_JIRA_EMAIL=alice@yourcompany.com \
-JIRAPANEL_JIRA_TOKEN=xxxx \
-jirapanel
-```
+#### 💡 Notes
 
-## CLI Flags
+- Grid positions (`row`, `col`) are **1-based** in YAML, but internally converted to 0-based.
+- Templates must exist in `--template-dir` and be valid `.gohtml` files.
+- Cells are rendered **in the order listed**.
 
-| Flag                     | Description                                                |
-| :----------------------- | :--------------------------------------------------------- |
-| `--config`               | Path to dashboard config file (YAML). **Required**         |
-| `--template-dir`         | Directory with template files. **Required**                |
-| `--listen-address`       | HTTP listen address (default `:8080`)                      |
-| `--api-token`            | Optional token for external APIs                           |
-| `--jira-api-url`         | Jira REST base URL (`/rest/api/2` or `/3`). **Required**   |
-| `--jira-email`           | Email for basic/cloud auth                                 |
-| `--jira-auth`            | API token or password (used with `--jira-email`)           |
-| `--jira-bearer-token`    | Bearer token (self-hosted Jira alternative to email/token) |
-| `--jira-skip-tls-verify` | Disable TLS verification (not recommended)                 |
-| `--debug`                | Enable debug logging                                       |
-| `--log-format`           | `text` or `json` (default: `text`)                         |
-
-### Proxy Environment Variables
-
-- `HTTP_PROXY`: URL of the proxy server to use for HTTP requests
-- `HTTPS_PROXY`: URL of the proxy server to use for HTTPS requests
-
-**Groups:**
-
-- `--jira-email` + `--jira-auth`
-  or
-- `--jira-bearer-token`
-
-## Dashboard Config (`config.yaml`)
-
-### 🧾 **Dashboard Config Reference**
-
-| **Key**           | **Type**   | **Description**                                                            |
-| :---------------- | :--------- | :------------------------------------------------------------------------- |
-| `title`           | `string`   | The title of the dashboard (displayed as page heading and `<title>`).      |
-| `grid.columns`    | `int`      | Number of columns in the dashboard grid layout. Must be > 0.               |
-| `grid.rows`       | `int`      | Number of rows in the dashboard grid layout. Must be > 0.                  |
-| `refreshInterval` | `duration` | Interval for automatic dashboard refresh (e.g., `60s`, `2m`).              |
-| `cells`           | `[]cell`   | List of dashboard cells/cards to display. Each one defines its own layout. |
-
-### 🧱 **Cells Fields (`Cell[]`)**
-
-| **Field**          | **Type**         | **Description**                                                               |
-| :----------------- | :--------------- | :---------------------------------------------------------------------------- |
-| `title`            | `string`         | Title for this cell/card (used in template rendering).                        |
-| `query`            | `string`         | JQL query (e.g., `filter=12345`) to fetch Jira issues for this cell.          |
-| `template`         | `string`         | Name of the Go HTML template used to render the cell (e.g., `issues.gohtml`). |
-| `position.row`     | `int`            | Zero-based row index of the cells starting position.                          |
-| `position.col`     | `int`            | Zero-based column index of the cells starting position.                       |
-| `position.colSpan` | `int` (optional) | Number of columns this cell spans. Defaults to 1 if omitted or 0.             |
-
-### 💡 Notes
-
-- **`position.colSpan`** must not exceed `grid.columns` when added to `col`. For example:
-  If `col: 1` and `colSpan: 2`, this overflows a 2-column grid.
-- **Templates** must exist in the specified `templateDir` and be named exactly as listed.
-- **Section order** in `cell[]` affects rendering order — no automatic sorting is done.
-
-### 📁 Example Config
+#### 📄 Example
 
 ```yaml
----
 title: My Jira Dashboard
 grid:
   columns: 2
-  rows: 4
+  rows: 3
+refreshInterval: 60s
 cells:
-  - title: Env Epics
-    query: filter=17201
+  - title: Epics
+    query: filter=12345
     template: epics.gohtml
-    position:
-      row: 0 # row 0 is the first row
-      col: 0 # col 0 is the first column
-  - title: Open Environment Issues
-    query: filter=17203
+    position: { row: 1, col: 1 }
+
+  - title: Open Issues
+    query: filter=54321
     template: issues.gohtml
-    position: { row: 0, col: 1 }
-  - title: Two Dimensional Open Environment Issues
-    query: filter=17203
-    template: env_issues.gohtml
     position:
       row: 1
-      col: 1
-  - title: "Issue Statistics: Open Environment Issues (Assignee)"
-    query: filter=17203
+      col: 2
+
+  - title: Grouped View
+    query: filter=54321
     template: assignees.gohtml
     position:
-      row: 3
-      col: 0
+      row: 2
+      col: 1
       colSpan: 2
-refreshInterval: 60s
 ```
 
-### 🎨 Customization (`customization` block)
+## 🎨 Customization
 
-You can optionally fine-tune the look and feel of the dashboard using the `customization` section in your `config.yaml`. If omitted, sensible defaults are used.
+The `customization` block lets you tweak styling via CSS-like settings. If omitted, defaults are used.
 
-| Key                                  | Type     | Description                       | Default                           |
-| :----------------------------------- | :------- | :-------------------------------- | :-------------------------------- |
-| `customization.grid.gap`             | `string` | Spacing between grid cells        | `"2rem"`                          |
-| `customization.grid.padding`         | `string` | Padding inside the grid container | `"0rem"`                          |
-| `customization.grid.marginTop`       | `string` | Space above the grid              | `"0rem"`                          |
-| `customization.grid.marginBottom`    | `string` | Space below the grid              | `"0rem"`                          |
-| `customization.card.borderColor`     | `string` | Card border color                 | `"#ccc"`                          |
-| `customization.card.padding`         | `string` | Padding inside cards              | `"0rem"`                          |
-| `customization.card.backgroundColor` | `string` | Card background color             | `"#fff"`                          |
-| `customization.card.borderRadius`    | `string` | Card border radius                | `"0.5rem"`                        |
-| `customization.card.boxShadow`       | `string` | Card shadow                       | `"0 2px 4px rgba(0, 0, 0, 0.05)"` |
-| `customization.header.align`         | `string` | Alignment of the `<h1>` title     | `"left"`                          |
-| `customization.header.marginBottom`  | `string` | Space below the header            | `"0rem"`                          |
-| `customization.footer.marginTop`     | `string` | Space above the footer            | `"1rem"`                          |
-| `customization.font.family`          | `string` | Font family for the dashboard     | `"Segoe UI", sans-serif`          |
-| `customization.font.size`            | `string` | Font size (any valid CSS size)    | `"16px"`                          |
+| Key                    | Default                           | Description            |
+| ---------------------- | --------------------------------- | ---------------------- |
+| `grid.gap`             | `"2rem"`                          | Gap between cells      |
+| `grid.padding`         | `"0rem"`                          | Padding inside grid    |
+| `grid.marginTop`       | `"0rem"`                          | Space above grid       |
+| `grid.marginBottom`    | `"0rem"`                          | Space below grid       |
+| `card.borderColor`     | `"#ccc"`                          | Cell/card border color |
+| `card.padding`         | `"0rem"`                          | Padding inside cells   |
+| `card.backgroundColor` | `"#fff"`                          | Background color       |
+| `card.borderRadius`    | `"0.5rem"`                        | Border radius          |
+| `card.boxShadow`       | `"0 2px 4px rgba(0, 0, 0, 0.05)"` | Box shadow             |
+| `header.align`         | `"left"`                          | `<h1>` alignment       |
+| `header.marginBottom`  | `"0rem"`                          | Margin below header    |
+| `footer.marginTop`     | `"1rem"`                          | Margin above footer    |
+| `font.family`          | `"Segoe UI, sans-serif"`          | Font family            |
+| `font.size`            | `"16px"`                          | Font size              |
 
-All values are directly injected into the rendered HTML/CSS. You can use any valid CSS value (e.g. `px`, `rem`, `%`, color codes).
+## 🧩 Creating Custom Templates
 
-#### Example
+Each cell renders a `.gohtml` file using the data returned by your Jira query.
 
-```yaml
-customization:
-  grid:
-    gap: 1rem
-    padding: 1.5rem
-    marginTop: 2rem
-    marginBottom: 2rem
-  card:
-    borderColor: "#ddd"
-    padding: 1rem
-    backgroundColor: "#fff"
-    borderRadius: 0.5rem
-    boxShadow: 0 2px 4px rgba(0, 0, 0, 0.05)
-  header:
-    align: center
-    marginBottom: 1rem
-  footer:
-    marginTop: 1rem
-  font:
-    family: "Segoe UI, sans-serif"
-    size: 16px
-```
+### 1. Explore the Data
 
-> ⚙️ If `customization` is omitted or incomplete, defaults are automatically filled in.
-
-## 🧩 Creating a New Section Template
-
-To visualize custom data from Jira, you can create **your own `.gohtml` cell templates** using standard Go templates with helpers.
-
-### 1. 🔍 Fetch Real Data to Explore
-
-Use `curl` to preview the **raw Jira issue data** your template will receive:
+To see what fields you have access to:
 
 ```sh
-curl -s \
-  -H "Authorization: Bearer YOUR_API_TOKEN" \
-  -H "Accept: application/json" \
-  "https://jira.example.com/rest/api/2/search?jql=filter=17203" \
-  > issues.json
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+     -H "Accept: application/json" \
+     "https://jira.example.com/rest/api/2/search?jql=filter=12345"
 ```
 
-The response will be a JSON object with this structure:
+JiraPanel will expose the `.issues` array under `.Data`.
+
+Example structure:
 
 ```json
 {
   "issues": [
     {
       "fields": {
-        "summary": "Issue summary here",
-        "assignee": {
-          "displayName": "Alice Example"
-        },
-        "status": {
-          "name": "In Progress"
-        },
-        "components": [
-          { "name": "API" }
-        ]
+        "summary": "Some issue",
+        "assignee": { "displayName": "Alice" },
+        "status": { "name": "In Progress" }
       }
-    },
-    ...
+    }
   ]
 }
 ```
 
-Your template will access this via `.Data.issues`, so for each issue, you can use:
+### 2. Write a Template
 
-- `.fields.summary`
-- `.fields.assignee.displayName`
-- `.fields.status.name`
-- `.fields.components`, etc.
-
-### 2. 🧱 Write a template based on that Structure
-
-Each dashboard **cell** corresponds to a `.gohtml` file in your `--template-dir`.
-
-Here’s a simple example that **groups issues by assignee and counts them**:
+Place it in your `--template-dir` with the `.gohtml` extension.
 
 ```gohtml
-<h2>{{ .Title }}</h2> <!-- Render the cell title -->
+<h2>{{ .Title }}</h2>
 
-{{- $data := .Data.issues }} <!-- Assign issues list to a local variable -->
-{{- $assignees := dict }}    <!-- Create an empty map to count issues per assignee -->
-{{- $total := 0 }}           <!-- Counter for total number of issues -->
-
-{{/* Group and count issues per assignee */}}
-{{- range $issue := $data }}
-  {{- $assignee := "Unassigned" }} <!-- Default label if no assignee -->
-  {{- with $issue.fields.assignee.displayName }}
-    {{- $assignee = . }} <!-- Use display name if present -->
-  {{- end }}
-  {{- $count := index $assignees $assignee }} <!-- Get current count for this assignee -->
-  {{- if not $count }}
-    {{- $_ := set $assignees $assignee 1 }} <!-- First occurrence -->
-  {{- else }}
-    {{- $_ := set $assignees $assignee (add $count 1) }} <!-- Increment count -->
-  {{- end }}
-  {{- $total = add $total 1 }} <!-- Increment total count -->
+{{ $issues := .Data.issues }}
+<ul>
+{{- range $i := $issues }}
+  <li>{{ dig $i.fields "summary" }}</li>
 {{- end }}
-
-<table class="table table-bordered table-hover align-middle text-left">
-  <thead class="table-dark">
-    <tr>
-      <th>Assignee</th>
-      <th>Count</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{- range $name, $count := $assignees }}
-      <tr>
-        <td>{{ $name }}</td> <!-- Assignee name -->
-        <td>{{ $count }}</td> <!-- Number of issues assigned -->
-      </tr>
-    {{- end }}
-    <tr class="table-secondary fw-bold">
-      <td>Total Issues</td>
-      <td>{{ $total }}</td> <!-- Total issues in the cell -->
-    </tr>
-  </tbody>
-</table>
+</ul>
 ```
 
-This template is minimal but still demonstrates:
-
-- Data extraction (`.Data.issues`)
-- Safe access to fields
-- Aggregation by key (`assignee`)
-- Total summing
-- Clean HTML table output
-
-### 3. 🧠 Template Helpers
+> ⚠️ Why use `dig`?
+>
+> Jira's API responses often include deeply nested and dynamic fields, especially under `fields`. These values are usually returned as `map[string]interface{}` in Go — meaning you can’t access them directly like `.fields.summary` because Go templates don’t support type assertions.
+>
+> The `dig` function helps safely extract values from these maps as strings, like:
+>
+> ```gohtml
+> {{ dig $i.fields "summary" }}
+> ```
+>
+> This avoids crashes or empty output when accessing untyped or missing fields. If the field doesn’t exist or isn’t a string, `dig` returns an empty string instead of panicking.
+>
+> Use `dig` for anything under `.fields`, `.fields.customfield_*`, or other unpredictable structures returned by Jira.
 
 All templates have access to:
 
-- ✅ **[Sprig functions](https://masterminds.github.io/sprig/)** — like `dict`, `list`, `add`, `len`, `slice`, `date`, `ago`, etc.
-- 🛠 **Custom helpers** provided by JiraPanel:
+- Standard Go `html/template`
+- [Sprig functions](https://masterminds.github.io/sprig/)
+- JiraPanel-specific helpers:
 
 | Helper           | Signature                     | Description                                                                          | Example Usage                                        |
 | :--------------- | :---------------------------- | :----------------------------------------------------------------------------------- | :--------------------------------------------------- |
@@ -333,203 +197,69 @@ All templates have access to:
 
 You can also reuse logic from other templates using `{{ template "name" . }}` — great for status badges, labels, or error handling partials.
 
-### 4. 📁 Browse Examples
+### 3. 📁 Browse Examples
 
 See the [`examples/templates/`](examples/templates/) folder for more real-world templates, including:
 
 - `assignees.gohtml` — count issues per assignee
-- `epics.gohtml` — group by epic
 - `env_issues.gohtml` — issue table with columns
+- `epics.gohtml` — group by epic
 - `functions.gohtml` — reusable helpers
+- `issues.gohtml` — issue table with columns
+- `podium.gohtml` — podium chart
 
 With just YAML and `.gohtml` templates, you can build flexible, data-rich Jira dashboards tailored to your needs.
 
-## Templates
-
-JiraPanel uses Go’s `html/template` engine with custom helpers and supports [Bootstrap](https://getbootstrap.com/) (v5.3.0) styling and [Tablesort.js](https://github.com/tristen/tablesort) (v5.6.0) for client-side sorting.
-
-### 📁 Section Templates
-
-> **Important:** Section templates **must end with `.gohtml`**. For example: `epics.gohtml`, `issues.gohtml`.
-
-They must exist inside the directory specified via `--template-dir`. If a cell template listed in your `config.yaml` is missing or malformed, the dashboard will fail to render and display an error.
-
-### 🔧 Built-in Template Functions
-
-These helpers are available inside your `.gohtml` templates:
-
-#### 🧮 Data Manipulation
-
-- `add`, `list`, `append`, `slice`, `dict`, `keys`
-  Standard utilities from [Sprig](https://masterminds.github.io/sprig/).
-
-#### 🗺 Dictionary Helpers
-
-- `setany m key val` — set a key-value pair in a `map[string]any`, modifying it in place.
-
-  ```gohtml
-  {{ $_ := setany $myMap "key" "value" }}
-  ```
-
-- `dig m key` — safely extract a string value from a `map[string]any` or return a string directly.
-
-  ```gohtml
-  {{ dig .fields "summary" }}
-  ```
-
-#### 🕒 Jira-Specific
-
-- `formatJiraDate input layout` — parse and format Jira timestamps.
-
-  ```gohtml
-  {{ formatJiraDate .fields.created "02.01.2006" }}
-  ```
-
-> Note: `formatJiraDate` handles Jira's timezone format (`Z` → `+0000`), falling back to raw input if parsing fails.
-
-### 🎨 Styling and Behavior
-
-- Use **Bootstrap 5** classes directly (via `bootstrap.min.css`)
-- Tables with class `tablesort` are automatically sortable via **Tablesort.js**
-
-Example:
-
-```gohtml
-<table class="table table-bordered table-hover tablesort">
-  <thead>
-    <tr><th>Name</th><th>Count</th></tr>
-  </thead>
-  <tbody>
-    {{ range .Data }}
-      <tr>
-        <td>{{ .name }}</td>
-        <td>{{ .count }}</td>
-      </tr>
-    {{ end }}
-  </tbody>
-</table>
-```
-
-## Endpoints
-
-| Method | Path        | Description     |
-| :----- | :---------- | :-------------- |
-| GET    | `/`         | Dashboard view  |
-| GET    | `/healthz`  | Health check    |
-| POST   | `/healthz`  | Health check    |
-| GET    | `/static/*` | JS, CSS, assets |
-
-## Auto-Refresh
-
-- Interval defined via `refreshInterval` in `config.yaml`
-- Exposed as `<meta name="refresh-interval" content="60">`
-- JS reads and updates the reload interval dynamically
-- Displayed in footer via `{{ .RefreshInterval }}`
-
 ## 🐞 Debug Mode
 
-JiraPanel includes a built-in **debug mode** to help visualize the layout and structure of your dashboard during development.
+Press `D` on the dashboard to:
 
-### 🔍 What It Does
+- Show a red overlay with `row`, `col`, `colSpan`, and `template`
+- Blur actual content for layout focus
 
-When enabled, debug mode:
+Useful for spotting overlaps and grid misalignment.
 
-- Outlines every dashboard cell with a red dashed border
-- Overlays each cell with a floating label showing:
+## 📦 CLI Flags
 
-  - `row` and `col` position
-  - `colSpan` (if any)
-  - template name used to render the cell
+| Flag                     | Description                               |
+| ------------------------ | ----------------------------------------- |
+| `--config`               | Path to `config.yaml` (**required**)      |
+| `--template-dir`         | Path to template files (**required**)     |
+| `--jira-api-url`         | Jira REST API base URL (**required**)     |
+| `--jira-email`           | Email for basic/cloud auth                |
+| `--jira-auth`            | API token or password (paired with email) |
+| `--jira-bearer-token`    | Bearer token (alternative to email/token) |
+| `--jira-skip-tls-verify` | Skip TLS verification (not recommended)   |
+| `--listen-address`       | HTTP listen address (default `:8080`)     |
+| `--debug`                | Enable debug logging                      |
+| `--log-format`           | `text` or `json` (default: `text`)        |
 
-- Applies a **blur effect** to the cell content to highlight structure over data
+### 🔐 Auth Methods
 
-This helps debug grid alignment, overlapping spans, template mapping, and visual spacing.
+Use one of:
 
-### 🚀 How to Use It
+- `--jira-email` + `--jira-auth`
+- `--jira-bearer-token`
 
-Press the **`D` key** (uppercase or lowercase) anywhere on the dashboard to toggle debug mode.
+## 🌐 Endpoints
 
-Debug mode is **persisted** across page reloads using `localStorage`.
+| Path                 | Method | Description            |
+| -------------------- | ------ | ---------------------- |
+| `/`                  | GET    | Dashboard view         |
+| `/api/v1/cells/{id}` | GET    | Render cell by ID      |
+| `/healthz`           | GET    | Health check           |
+| `/static/*`          | GET    | Static assets (JS/CSS) |
 
-To disable debug mode, simply press `D` again or clear browser storage.
+## 🧪 Local Dev + Deployment
 
-### 🧱 Example Debug Overlay
+Kubernetes manifests are available in `examples/kubernetes/`. Use `kustomize` to build ConfigMaps and deploy.
 
-When debug mode is active, each card will look something like this:
+To render final YAML:
 
-```text
-row: 2
-col: 1
-span: 2
-template: issues.gohtml
-```
-
-The actual card content will be blurred out, so you can focus on layout and sizing.
-
-## 🧩 Kubernetes Deployment via Kustomize
-
-This directory provides a ready-to-deploy Kubernetes setup using [`kustomize`](https://kubectl.docs.kubernetes.io/).
-
-It generates a `Deployment` that bundles:
-
-- Your `config.yaml` application configuration
-- All `.gohtml` templates
-- The core app manifests (`Deployment`, `Service`, `Ingress`, etc.)
-
-### 📁 Structure
-
-```bash
-examples/
-├── config.yaml                    # Application configuration
-├── templates/                     # Go HTML templates for the dashboard
-├── kubernetes/
-│   ├── deployment.yaml            # App deployment spec
-│   ├── service.yaml               # Exposes the app
-│   ├── ingress.yaml               # Optional ingress (if enabled)
-│   ├── secret.yaml                # Add your secrets here
-│   ├── namespace.yaml             # Defines the app namespace
-│   ├── kustomization.yaml         # Kustomize entry point
-```
-
-### ⚙️ How it works
-
-- `kustomization.yaml` uses `configMapGenerator` to package:
-
-  - `../config.yaml` → as `ConfigMap/jirapanel-config`
-  - all templates → as `ConfigMap/jirapanel-templates`
-
-- These ConfigMaps are mounted into the container at runtime.
-
-Kustomize automatically appends a **hash suffix** to the ConfigMap names (e.g. `jirapanel-config-fd8d7f97b9`) when their content changes. The `Deployment` references them by logical name (`jirapanel-config`, `jirapanel-templates`), and Kustomize resolves the hashed names at build time.
-This has the advantage that **when you update the config or templates, the hash changes, triggering a rollout restart of the container** — ensuring your app always runs with the latest configuration.
-
-### 🚀 Deploy locally
-
-You can preview the full manifest with:
-
-```bash
+```sh
 kustomize build examples/kubernetes
 ```
 
-Or apply directly:
+## 🪪 License
 
-```bash
-kubectl apply -k examples/kubernetes
-```
-
-### 🔧 Disabling Hashing (for local testing)
-
-To disable content-based hashes on ConfigMaps (e.g., for stable volume mounts during development), set:
-
-```yaml
-generatorOptions:
-  disableNameSuffixHash: true
-```
-
-in `examples/kubernetes/kustomization.yaml`.
-
-> ⚠️ It's recommended to **keep the hash enabled** in production for safe config rollouts.
-
-## License
-
-This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
+Apache 2.0. See `LICENSE`.

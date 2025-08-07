@@ -11,6 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func assertCSS(t *testing.T, expected string, actual template.CSS) {
+	t.Helper()
+	assert.Equal(t, expected, string(actual))
+}
+
 func TestLoadConfig(t *testing.T) {
 	t.Parallel()
 
@@ -70,13 +75,13 @@ func TestValidateConfig(t *testing.T) {
 				{
 					Title:    "A",
 					Query:    "SELECT",
-					Template: "card",
-					Position: Position{Row: 0, Col: 0},
+					Template: "card.gohtml",
+					Position: Position{Row: 1, Col: 1},
 				},
 			},
 		}
 
-		tmpl := tmplWith(t, "card")
+		tmpl := tmplWith(t, "card.gohtml")
 
 		err := ValidateConfig(&cfg, tmpl)
 		assert.NoError(t, err)
@@ -100,10 +105,16 @@ func TestValidateConfig(t *testing.T) {
 					Query:    "",
 					Position: Position{Row: -1, Col: -1},
 				},
+				{
+					Title:    "not-found",
+					Query:    "not-found",
+					Position: Position{Row: 1, Col: 1},
+					Template: "not-fond.gohtml",
+				},
 			},
 		}
 
-		tmpl := tmplWith(t, "only-existing")
+		tmpl := tmplWith(t, "almost.gohtml")
 
 		err := ValidateConfig(&cfg, tmpl)
 		require.Error(t, err)
@@ -112,14 +123,16 @@ func TestValidateConfig(t *testing.T) {
 			"  - refreshInterval must be > 0",
 			"  - section[0]: title is required",
 			"  - section[0]: query is required",
-			`  - section[0]: template "missing" not found`,
-			"  - section[0]: row 99 out of bounds (max 0)",
-			"  - section[0]: col 99 out of bounds (max 1)",
+			"  - section[0]: template \"missing\" must end with \".gohtml\"",
+			"  - section[0]: row 99 out of bounds (max 1)",
+			"  - section[0]: col 99 out of bounds (max 2)",
 			"  - section[0]: colSpan 1 overflows grid width 2",
 			"  - section[1] (invalid): query is required",
 			"  - section[1] (invalid): template is required",
-			"  - section[1] (invalid): row -1 out of bounds (max 0)",
-			"  - section[1] (invalid): col -1 out of bounds (max 1)",
+			"  - section[1] (invalid): row -1 out of bounds (min 1)",
+			"  - section[1] (invalid): col -1 out of bounds (min 1)",
+			"  - section[1] (invalid): colSpan 1 out of bounds (min 1)",
+			"  - section[2] (not-found): template \"not-fond.gohtml\" not found",
 		}
 
 		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
@@ -157,25 +170,25 @@ func TestValidateConfig(t *testing.T) {
 				{
 					Title:    "valid",
 					Query:    "valid",
-					Template: "missing",
-					Position: Position{Row: 0, Col: 1},
+					Template: "valid.gohtml",
+					Position: Position{Row: 1, Col: 1},
 				},
 				{
 					Title:    "overlapping",
 					Query:    "query",
-					Template: "missing",
-					Position: Position{Row: 0, Col: 1},
+					Template: "overlapping.gohtml",
+					Position: Position{Row: 1, Col: 1},
 				},
 			},
 		}
 
-		tmpl := tmplWith(t, "valid", "missing")
+		tmpl := tmplWith(t, "valid.gohtml", "overlapping.gohtml")
 
 		err := ValidateConfig(&cfg, tmpl)
 		require.Error(t, err)
 
 		expected := []string{
-			"  - section[1] (overlapping): overlaps cell (0,1) used by section \"valid\"",
+			"  - section[1] (overlapping): overlaps cell (1,1) used by section \"valid\"",
 		}
 
 		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
@@ -191,13 +204,13 @@ func TestValidateConfig(t *testing.T) {
 				{
 					Title:    "almost valid",
 					Query:    "some query",
-					Template: "almost",
-					Position: Position{Row: 0, Col: 1, ColSpan: 4},
+					Template: "almost.gohtml",
+					Position: Position{Row: 1, Col: 1, ColSpan: 4},
 				},
 			},
 		}
 
-		tmpl := tmplWith(t, "almost")
+		tmpl := tmplWith(t, "almost.gohtml")
 
 		err := ValidateConfig(&cfg, tmpl)
 		require.Error(t, err)
@@ -219,14 +232,14 @@ func TestValidateConfig(t *testing.T) {
 				{
 					Title:    "basic",
 					Query:    "JQL",
-					Template: "default",
-					Position: Position{Row: 0, Col: 0},
+					Template: "default.gohtml",
+					Position: Position{Row: 1, Col: 1},
 				},
 			},
 			Customization: nil, // explicitly not set
 		}
 
-		tmpl := tmplWith(t, "default")
+		tmpl := tmplWith(t, "default.gohtml")
 		err := ValidateConfig(&cfg, tmpl)
 		require.NoError(t, err)
 
@@ -246,8 +259,8 @@ func TestValidateConfig(t *testing.T) {
 				{
 					Title:    "styled",
 					Query:    "Q",
-					Template: "t",
-					Position: Position{Row: 0, Col: 0},
+					Template: "t.gohtml",
+					Position: Position{Row: 1, Col: 1},
 				},
 			},
 			Customization: &Customization{
@@ -260,7 +273,7 @@ func TestValidateConfig(t *testing.T) {
 			},
 		}
 
-		tmpl := tmplWith(t, "t")
+		tmpl := tmplWith(t, "t.gohtml")
 		err := ValidateConfig(&cfg, tmpl)
 		require.NoError(t, err)
 
@@ -273,6 +286,102 @@ func TestValidateConfig(t *testing.T) {
 		assert.Equal(t, defaultGridMarginTop, cfg.Customization.Grid.MarginTop)
 		assert.Equal(t, defaultFontSize, cfg.Customization.Font.Size)
 		assert.Equal(t, defaultCardBackground, cfg.Customization.Card.BackgroundColor)
+	})
+
+	t.Run("rejects template without .gohtml extension", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            Grid{Rows: 1, Columns: 1},
+			RefreshInterval: 10,
+			Cells: []Cell{
+				{
+					Title:    "missing extension",
+					Query:    "SELECT",
+					Template: "template-without-extension", // no .gohtml
+					Position: Position{Row: 1, Col: 1},
+				},
+			},
+		}
+
+		tmpl := tmplWith(t, "template-without-extension.gohtml") // valid template is registered with extension
+
+		err := ValidateConfig(&cfg, tmpl)
+		require.Error(t, err)
+
+		expected := []string{
+			"  - section[0] (missing extension): template \"template-without-extension\" must end with \".gohtml\"",
+		}
+
+		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
+	})
+
+	t.Run("defaults colSpan to 1 when unset or <= 0", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            Grid{Rows: 1, Columns: 2},
+			RefreshInterval: 10,
+			Cells: []Cell{
+				{
+					Title:    "default span",
+					Query:    "q",
+					Template: "default.gohtml",
+					Position: Position{Row: 1, Col: 1, ColSpan: 0}, // should default to 1
+				},
+			},
+		}
+
+		tmpl := tmplWith(t, "default.gohtml")
+		err := ValidateConfig(&cfg, tmpl)
+		require.NoError(t, err)
+	})
+
+	t.Run("rejects colSpan that exceeds grid width", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            Grid{Rows: 1, Columns: 2},
+			RefreshInterval: 10,
+			Cells: []Cell{
+				{
+					Title:    "wide",
+					Query:    "q",
+					Template: "wide.gohtml",
+					Position: Position{Row: 1, Col: 2, ColSpan: 2},
+				},
+			},
+		}
+
+		tmpl := tmplWith(t, "wide.gohtml")
+		err := ValidateConfig(&cfg, tmpl)
+		require.Error(t, err)
+
+		assert.Contains(t, err.Error(), "colSpan 2 overflows grid width 2")
+	})
+
+	t.Run("rejects row and col less than 1", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            Grid{Rows: 2, Columns: 2},
+			RefreshInterval: 10,
+			Cells: []Cell{
+				{
+					Title:    "zero-based",
+					Query:    "q",
+					Template: "cell.gohtml",
+					Position: Position{Row: 0, Col: 0},
+				},
+			},
+		}
+
+		tmpl := tmplWith(t, "cell.gohtml")
+		err := ValidateConfig(&cfg, tmpl)
+		require.Error(t, err)
+
+		assert.Contains(t, err.Error(), ": row 0 out of bounds")
+		assert.Contains(t, err.Error(), ": col 0 out of bounds")
 	})
 }
 
@@ -381,7 +490,53 @@ func TestSetStyleDefaults(t *testing.T) {
 	})
 }
 
-func assertCSS(t *testing.T, expected string, actual template.CSS) {
-	t.Helper()
-	assert.Equal(t, expected, string(actual))
+func TestSortCellsByPosition(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sorts by row then col", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Cells: []Cell{
+				{Title: "C", Position: Position{Row: 2, Col: 1}},
+				{Title: "A", Position: Position{Row: 1, Col: 2}},
+				{Title: "B", Position: Position{Row: 1, Col: 1}},
+				{Title: "D", Position: Position{Row: 3, Col: 1}},
+			},
+		}
+
+		cfg.SortCellsByPosition()
+
+		titles := []string{}
+		for _, cell := range cfg.Cells {
+			titles = append(titles, cell.Title)
+		}
+
+		assert.Equal(t, []string{"B", "A", "C", "D"}, titles)
+	})
+
+	t.Run("keeps stable order for equal positions", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Cells: []Cell{
+				{Title: "First", Position: Position{Row: 1, Col: 1}},
+				{Title: "Second", Position: Position{Row: 1, Col: 1}},
+			},
+		}
+
+		cfg.SortCellsByPosition()
+
+		assert.Equal(t, "First", cfg.Cells[0].Title)
+		assert.Equal(t, "Second", cfg.Cells[1].Title)
+	})
+
+	t.Run("sorts empty slice safely", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{}
+		cfg.SortCellsByPosition()
+
+		assert.Empty(t, cfg.Cells)
+	})
 }
