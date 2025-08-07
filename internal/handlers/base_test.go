@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"testing/fstest"
@@ -140,5 +141,43 @@ func TestDashboard(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 		assert.Contains(t, string(body), "Failed to render dashboard cells")
+	})
+}
+
+func TestComputeCellHashes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("computes hashes for all cells", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.DashboardConfig{
+			Cells: []config.Cell{
+				{
+					Title:    "First",
+					Query:    "project = TEST",
+					Template: "simple.gohtml",
+					Position: config.Position{Row: 1, Col: 1},
+				},
+				{
+					Title:    "Second",
+					Query:    "assignee = currentUser()",
+					Template: "detailed.gohtml",
+					Position: config.Position{Row: 2, Col: 1},
+				},
+			},
+		}
+
+		logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+		computeCellHashes(&cfg, logger)
+
+		if cfg.Cells[0].Hash == "" {
+			t.Errorf("expected hash for first cell, got empty")
+		}
+		if cfg.Cells[1].Hash == "" {
+			t.Errorf("expected hash for second cell, got empty")
+		}
+		if cfg.Cells[0].Hash == cfg.Cells[1].Hash {
+			t.Errorf("expected different hashes for different cells")
+		}
 	})
 }

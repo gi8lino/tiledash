@@ -33,12 +33,12 @@ type Grid struct {
 
 // Cell represents a single unit inside the dashboard grid.
 type Cell struct {
-	Hash     string            `yaml:"-"`        // Hash is the hash of the cell content.
-	Title    string            `yaml:"title"`    // Title is the visible title shown above the cell content.
-	Query    string            `yaml:"query"`    // Query is the JQL query used to fetch issues for this cell.
-	Params   map[string]string `yaml:"params"`   // Params is an optional map of extra query parameters (e.g. maxResults).
-	Template string            `yaml:"template"` // Template is the name of the template used to render the cell content.
-	Position Position          `yaml:"position"` // Position determines where this cell is placed in the dashboard grid.
+	Hash     string            `yaml:"-" json:"-"` // Hash is the hash of the cell content.
+	Title    string            `yaml:"title"`      // Title is the visible title shown above the cell content.
+	Query    string            `yaml:"query"`      // Query is the JQL query used to fetch issues for this cell.
+	Params   map[string]string `yaml:"params"`     // Params is an optional map of extra query parameters (e.g. maxResults).
+	Template string            `yaml:"template"`   // Template is the name of the template used to render the cell content.
+	Position Position          `yaml:"position"`   // Position determines where this cell is placed in the dashboard grid.
 }
 
 // Position specifies the grid position and span for a given cell.

@@ -23,9 +23,8 @@ func BaseHandler(
 	baseTmpl := templates.ParseBaseTemplates(webFS, funcMap)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Compute hashes for all cells
-		computeHashes(&cfg, logger)
 		cfgHash, _ := hashAny(cfg)
+		computeCellHashes(&cfg, logger) // Compute hashes for all cells
 		err := baseTmpl.ExecuteTemplate(w, "base", map[string]any{
 			"Version":         version,
 			"Grid":            cfg.Grid,
@@ -43,7 +42,8 @@ func BaseHandler(
 	}
 }
 
-func computeHashes(cfg *config.DashboardConfig, logger *slog.Logger) {
+// computeCellHashes hashes each cell in the given config.
+func computeCellHashes(cfg *config.DashboardConfig, logger *slog.Logger) {
 	for i := range cfg.Cells {
 		cell := &cfg.Cells[i]
 		h, err := hashAny(cell)
