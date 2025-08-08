@@ -5,7 +5,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Track all card elements
   const cards = document.querySelectorAll("[data-cell-id]");
-
   // Track in-flight reloads to prevent double-fetching
   const inFlight = new Set();
 
@@ -21,30 +20,35 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((html) => {
         card.innerHTML = html;
 
-        // Hide card if template signaled "empty"
+        // Hide/show card based on template signal
         const isHidden = !!card.querySelector("[data-jp-hidden]");
-        card.style.display = isHidden ? "none" : "";
+        card.classList.toggle("jp-hidden", isHidden);
 
-        if (!isHidden) {
-          // Re-init Tablesort safely
-          if (typeof Tablesort === "function") {
-            card.querySelectorAll("table.tablesort").forEach((table) => {
-              new Tablesort(table);
-            });
-          }
-          // Re-apply debug label only on visible cards
-          if (document.body.classList.contains("debug-mode")) {
-            injectDebugLabel(card);
-          }
+        // Re-init Tablesort on newly inserted tables
+        card.querySelectorAll("table.tablesort").forEach((table) => {
+          // eslint-disable-next-line no-undef
+          new Tablesort(table);
+        });
+
+        // Re-apply debug label if in debug mode
+        if (document.body.classList.contains("debug-mode")) {
+          injectDebugLabel(card);
         }
       })
       .catch((err) => {
-        // On error, show the error markup so users see it
-        card.style.display = "";
-        card.innerHTML = `<div class="alert alert-danger">Error loading cell: ${err}</div>`;
-        console.warn(`Error reloading card ${id}:`, err);
+        // Only for true network failures; server normally returns HTML (incl. errors)
+        card.innerHTML = `
+          <div class="alert alert-danger" role="alert">
+            <strong>Network error:</strong> Could not load cell.
+            <div><small>${String(err)}</small></div>
+          </div>
+        `;
+        // Keep hidden state off on network error so you can see the problem
+        card.classList.remove("jp-hidden");
       })
-      .finally(() => inFlight.delete(id));
+      .finally(() => {
+        inFlight.delete(id);
+      });
   }
 
   /**
@@ -55,11 +59,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const col = card.getAttribute("data-col");
     const span = card.getAttribute("data-col-span");
     const tmpl = card.getAttribute("data-template");
+    const hidden = card.classList.contains("jp-hidden") ? " (hidden)" : "";
+
+    // Avoid stacking duplicates
+    const existing = card.querySelector(".debug-label");
+    if (existing) existing.remove();
 
     const label = document.createElement("div");
     label.className = "debug-label";
-    label.innerHTML = `row: ${row}\ncol: ${col}\nspan: ${span}\ntemplate: ${tmpl}`;
-
+    label.innerHTML = `row: ${row}\ncol: ${col}\nspan: ${span}${hidden}\ntemplate: ${tmpl}`;
     card.appendChild(label);
   }
 
@@ -68,7 +76,6 @@ document.addEventListener("DOMContentLoaded", function () {
    */
   function toggleDebug() {
     const enabled = document.body.classList.toggle("debug-mode");
-
     if (enabled) {
       cards.forEach(injectDebugLabel);
       localStorage.setItem(DEBUG_KEY, "1");
@@ -105,7 +112,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         cards.forEach((card) => {
           const id = card.getAttribute("data-cell-id");
-
           fetch(`/api/v1/hash/${id}`)
             .then((res) => res.text())
             .then((newHash) => {
@@ -115,13 +121,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     `Reloading cell ${id} (old=${cellHashes[id]}, new=${newHash})`,
                   );
                 }
-
                 cellHashes[id] = newHash;
                 reloadCard(id, card);
-              } else {
-                if (document.body.classList.contains("debug-mode")) {
-                  console.log(`Cell ${id} unchanged (hash=${newHash})`);
-                }
+              } else if (document.body.classList.contains("debug-mode")) {
+                console.log(`Cell ${id} unchanged (hash=${newHash})`);
               }
             })
             .catch((err) => {
@@ -147,9 +150,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Refresh loop
   const meta = document.querySelector('meta[name="refresh-interval"]');
-  const interval = meta ? parseInt(meta.content) : 60;
+  const interval = meta ? parseInt(meta.content, 10) : 60;
   setInterval(refresh, interval * 1000);
 
-  // Apply debug state if persisted
+  // Restore debug state
   initializeDebugMode();
 });

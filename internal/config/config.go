@@ -1,9 +1,9 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
-	"log"
 	"os"
 	"sort"
 	"strings"
@@ -29,6 +29,8 @@ const (
 	defaultFontSize           template.CSS = "16px"
 )
 
+var illegalCSSChars = []rune{'<', '>', '{', '}', '"', '\'', '`'}
+
 // LoadConfig loads the dashboard configuration from the given path.
 func LoadConfig(path string) (DashboardConfig, error) {
 	cfg := DashboardConfig{}
@@ -37,14 +39,18 @@ func LoadConfig(path string) (DashboardConfig, error) {
 		return cfg, fmt.Errorf("failed to read config file: %v", err)
 	}
 
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		log.Fatalf("invalid config: %v", err)
+	r := bytes.NewReader(data)
+	dec := yaml.NewDecoder(r)
+	dec.KnownFields(true)
+	if err := dec.Decode(&cfg); err != nil {
+		return cfg, fmt.Errorf("failed to parse config: %v", err)
 	}
 
 	return cfg, nil
 }
 
 // ValidateConfig checks the consistency and correctness of a dashboard config and its templates.
+// All detected errors (including CSS issues) are returned together in a single error.
 func ValidateConfig(cfg *DashboardConfig, tmpl *template.Template) error {
 	var errs []string
 
@@ -116,15 +122,12 @@ func ValidateConfig(cfg *DashboardConfig, tmpl *template.Template) error {
 			for c := col; c < col+colSpan; c++ {
 				key := [2]int{row, c}
 				if other, ok := occupied[key]; ok {
-					errs = append(errs, fmt.Sprintf("%s: overlaps cell (%d,%d) used by section %q", label, section.Position.Row, section.Position.Col, other))
+					errs = append(errs, fmt.Sprintf("%s: overlaps cell (%d,%d) used by section %q",
+						label, section.Position.Row, section.Position.Col, other))
 				}
 				occupied[key] = section.Title
 			}
 		}
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("config validation failed:\n  - %s", strings.Join(errs, "\n  - "))
 	}
 
 	// Always initialize Customization if not provided
@@ -132,8 +135,15 @@ func ValidateConfig(cfg *DashboardConfig, tmpl *template.Template) error {
 		cfg.Customization = &Customization{}
 	}
 
+	// Set defaults for all unset customization fields
 	setStyleDefaults(cfg.Customization)
 
+	// Append CSS validation errors to the same list
+	errs = append(errs, validateCSSs(cfg.Customization)...)
+
+	if len(errs) > 0 {
+		return fmt.Errorf("config has errors:\n  - %s", strings.Join(errs, "\n  - "))
+	}
 	return nil
 }
 
@@ -176,4 +186,49 @@ func (c *DashboardConfig) SortCellsByPosition() {
 		}
 		return pi.Col < pj.Col
 	})
+}
+
+// validateCSSs validates all CSS fields and returns a slice of error messages.
+func validateCSSs(customization *Customization) []string {
+	var errs []string
+	fields := []struct {
+		name string
+		val  template.CSS
+	}{
+		{"grid.gap", customization.Grid.Gap},
+		{"grid.padding", customization.Grid.Padding},
+		{"grid.marginTop", customization.Grid.MarginTop},
+		{"grid.marginBottom", customization.Grid.MarginBottom},
+		{"card.borderColor", customization.Card.BorderColor},
+		{"card.padding", customization.Card.Padding},
+		{"card.backgroundColor", customization.Card.BackgroundColor},
+		{"card.borderRadius", customization.Card.BorderRadius},
+		{"card.boxShadow", customization.Card.BoxShadow},
+		{"header.align", customization.Header.Align},
+		{"header.marginBottom", customization.Header.MarginBottom},
+		{"footer.marginTop", customization.Footer.MarginTop},
+		{"font.family", customization.Font.Family},
+		{"font.size", customization.Font.Size},
+	}
+
+	for _, f := range fields {
+		if err := validateCSSValue(f.name, f.val); err != nil {
+			errs = append(errs, err.Error())
+		}
+	}
+	return errs
+}
+
+// validateCSSValue validates a single CSS value.
+func validateCSSValue(name string, val template.CSS) error {
+	s := strings.TrimSpace(string(val))
+	if s == "" {
+		return nil
+	}
+	for _, ch := range illegalCSSChars {
+		if strings.ContainsRune(s, ch) {
+			return fmt.Errorf("%s: contains illegal character %q", name, ch)
+		}
+	}
+	return nil
 }

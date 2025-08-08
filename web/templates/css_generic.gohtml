@@ -1,0 +1,38 @@
+{{ define "css_generic" }}
+/* ======= Theming using Customization Variables ======= */
+body {
+  margin: 0;
+  padding: 2rem;
+  font-family: {{ .Customization.Font.Family }};
+  font-size: {{ .Customization.Font.Size }};
+}
+
+h1 {
+  text-align: {{ .Customization.Header.Align }};
+  margin-bottom: {{ .Customization.Header.MarginBottom }};
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat({{ .Grid.Columns }}, 1fr);
+  grid-auto-rows: minmax(0, auto);
+  gap: {{ .Customization.Grid.Gap }};
+  padding: {{ .Customization.Grid.Padding }};
+  margin-top: {{ .Customization.Grid.MarginTop }};
+  margin-bottom: {{ .Customization.Grid.MarginBottom }};
+}
+
+.card {
+  border: 1px solid {{ .Customization.Card.BorderColor }};
+  padding: {{ .Customization.Card.Padding }};
+  background-color: {{ .Customization.Card.BackgroundColor }};
+  box-shadow: {{ .Customization.Card.BoxShadow }};
+  border-radius: {{ .Customization.Card.BorderRadius }};
+  position: relative;
+}
+
+footer {
+  margin-top: {{ .Customization.Footer.MarginTop }};
+}
+
+{{ end }}

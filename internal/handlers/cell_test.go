@@ -119,7 +119,7 @@ func TestCellHandler(t *testing.T) {
 		body, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 
-		assert.Equal(t, http.StatusOK, res.StatusCode)
+		require.Equal(t, http.StatusInternalServerError, res.StatusCode)
 		assert.Contains(t, string(body), "Error: Request failed")
 	})
 

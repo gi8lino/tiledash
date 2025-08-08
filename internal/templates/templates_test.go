@@ -39,9 +39,11 @@ func TestParseBaseTemplates(t *testing.T) {
 
 		// Provide dummy base, footer, and error templates
 		webFS := fstest.MapFS{
-			"web/templates/base.gohtml":   &fstest.MapFile{Data: []byte(`{{define "base"}}base{{end}}`)},
-			"web/templates/footer.gohtml": &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
-			"web/templates/error.gohtml":  &fstest.MapFile{Data: []byte(`{{define "error"}}error{{end}}`)},
+			"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}base{{end}}`)},
+			"web/templates/css_generic.gohtml": &fstest.MapFile{Data: []byte(`{{define "css_generic"}}css_generic{{end}}`)},
+			"web/templates/css_debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
+			"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
+			"web/templates/error.gohtml":       &fstest.MapFile{Data: []byte(`{{define "error"}}error{{end}}`)},
 		}
 
 		tmpl := templates.ParseBaseTemplates(webFS, template.FuncMap{})
@@ -56,9 +58,11 @@ func TestParseBaseTemplates(t *testing.T) {
 	t.Run("fails if template is broken", func(t *testing.T) {
 		// Provide dummy base, footer, and error templates
 		webFS := fstest.MapFS{
-			"web/templates/base.gohtml":   &fstest.MapFile{Data: []byte(`{{define "base"}}{{ if .Title }} <h1>{{ .Title }}</h1>`)}, // missing end
-			"web/templates/footer.gohtml": &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
-			"web/templates/error.gohtml":  &fstest.MapFile{Data: []byte(`{{define "error"}}error{{end}}`)},
+			"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}{{ if .Title }} <h1>{{ .Title }}</h1>`)}, // missing end
+			"web/templates/css_generic.gohtml": &fstest.MapFile{Data: []byte(`{{define "css_generic"}}css_generic{{end}}`)},
+			"web/templates/css_debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
+			"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
+			"web/templates/error.gohtml":       &fstest.MapFile{Data: []byte(`{{define "error"}}error{{end}}`)},
 		}
 
 		assert.PanicsWithError(t,

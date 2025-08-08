@@ -1,5 +1,3 @@
-// Package config defines the structure for the dashboard configuration,
-// including layout, cell definitions, styling, and refresh settings.
 package config
 
 import (

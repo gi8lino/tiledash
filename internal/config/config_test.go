@@ -135,7 +135,7 @@ func TestValidateConfig(t *testing.T) {
 			"  - section[2] (not-found): template \"not-fond.gohtml\" not found",
 		}
 
-		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
+		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
 	})
 
 	t.Run("invalid grid config", func(t *testing.T) {
@@ -157,7 +157,7 @@ func TestValidateConfig(t *testing.T) {
 			"  - refreshInterval must be > 0",
 		}
 
-		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
+		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
 	})
 
 	t.Run("overlapping cell config", func(t *testing.T) {
@@ -191,7 +191,7 @@ func TestValidateConfig(t *testing.T) {
 			"  - section[1] (overlapping): overlaps cell (1,1) used by section \"valid\"",
 		}
 
-		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
+		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
 	})
 
 	t.Run("rejects invalid config with other values", func(t *testing.T) {
@@ -219,7 +219,7 @@ func TestValidateConfig(t *testing.T) {
 			"  - section[0] (almost valid): colSpan 4 overflows grid width 2",
 		}
 
-		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
+		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
 	})
 
 	t.Run("sets style defaults if customization is nil", func(t *testing.T) {
@@ -313,7 +313,7 @@ func TestValidateConfig(t *testing.T) {
 			"  - section[0] (missing extension): template \"template-without-extension\" must end with \".gohtml\"",
 		}
 
-		assert.EqualError(t, err, "config validation failed:\n"+strings.Join(expected, "\n"))
+		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
 	})
 
 	t.Run("defaults colSpan to 1 when unset or <= 0", func(t *testing.T) {
@@ -538,5 +538,89 @@ func TestSortCellsByPosition(t *testing.T) {
 		cfg.SortCellsByPosition()
 
 		assert.Empty(t, cfg.Cells)
+	})
+}
+
+func TestValidateCSSValue(t *testing.T) {
+	t.Parallel()
+
+	t.Run("accepts empty value", func(t *testing.T) {
+		t.Parallel()
+		require.NoError(t, validateCSSValue("font.size", ""))
+	})
+
+	t.Run("accepts normal values", func(t *testing.T) {
+		t.Parallel()
+		require.NoError(t, validateCSSValue("grid.gap", "2rem"))
+		require.NoError(t, validateCSSValue("card.borderColor", "#ccc"))
+		require.NoError(t, validateCSSValue("font.family", "Segoe UI, sans-serif"))
+	})
+
+	t.Run("rejects illegal characters", func(t *testing.T) {
+		t.Parallel()
+		err := validateCSSValue("font.family", `bad"value`)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `font.family: contains illegal character '"'`)
+
+		err = validateCSSValue("grid.gap", "2rem<")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `grid.gap: contains illegal character '<'`)
+	})
+}
+
+func TestValidateCSSs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no errors for sane customization", func(t *testing.T) {
+		t.Parallel()
+		c := &Customization{
+			Grid: GridStyle{
+				Gap:          "2rem",
+				Padding:      "0rem",
+				MarginTop:    "1rem",
+				MarginBottom: "1rem",
+			},
+			Card: CardStyle{
+				BorderColor:     "#ccc",
+				Padding:         "1rem",
+				BackgroundColor: "#fff",
+				BorderRadius:    "0.5rem",
+				BoxShadow:       "0 2px 4px rgba(0,0,0,0.05)",
+			},
+			Header: HeaderStyle{
+				Align:        "center",
+				MarginBottom: "0.5rem",
+			},
+			Footer: FooterStyle{
+				MarginTop: "1rem",
+			},
+			Font: FontStyle{
+				Family: "Segoe UI, sans-serif",
+				Size:   "16px",
+			},
+		}
+		setStyleDefaults(c) // should be safe regardless
+		errs := validateCSSs(c)
+		require.Empty(t, errs)
+	})
+
+	t.Run("collects all illegal char errors", func(t *testing.T) {
+		t.Parallel()
+		c := &Customization{
+			Grid: GridStyle{
+				Gap: "2rem", // ok
+			},
+			Card: CardStyle{
+				BorderColor: `#fff"`, // illegal quote
+			},
+			Font: FontStyle{
+				Family: "monospace<", // illegal <
+				Size:   "16px",       // ok
+			},
+		}
+		errs := validateCSSs(c)
+		require.Len(t, errs, 2)
+		assert.Contains(t, strings.Join(errs, "\n"), `card.borderColor: contains illegal character '"'`)
+		assert.Contains(t, strings.Join(errs, "\n"), `font.family: contains illegal character '<'`)
 	})
 }

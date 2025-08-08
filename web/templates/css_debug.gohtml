@@ -1,0 +1,64 @@
+{{ define "css_debug" }}
+/* ======= Debug Mode Styles ======= */
+body.debug-mode .card {
+  outline: 2px dashed red;
+}
+
+body.debug-mode .card > *:not(.debug-label) {
+  filter: blur(2px); /* Blur content behind debug label */
+}
+
+body.debug-mode .debug-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  font-weight: bold;
+  color: red;
+  opacity: 0.85;
+  pointer-events: none;
+  white-space: pre-line;
+  z-index: 10;
+}
+
+/* Hide cards flagged as hidden by template output */
+.card.jp-hidden {
+  display: none !important;
+}
+
+/* In debug mode, still show hidden cards (visually de-emphasized) */
+body.debug-mode .card.jp-hidden {
+  display: block !important;
+  outline: 2px dashed #999;
+  background-image: repeating-linear-gradient(
+    45deg,
+    #f8f9fa 0 10px,
+    #eef1f4 10px 20px
+  );
+}
+
+body.debug-mode .card.jp-hidden > *:not(.debug-label) {
+  filter: grayscale(1) blur(1px);
+  opacity: 0.35;
+}
+
+/* Improve debug label readability and sizing */
+body.debug-mode .debug-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(14px, 2.5vw, 28px);
+  line-height: 1.2;
+  font-weight: 700;
+  color: #c1121f;
+  text-align: center;
+  pointer-events: none;
+  white-space: pre-line;
+  z-index: 10;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 0.375rem;
+}
+{{ end }}

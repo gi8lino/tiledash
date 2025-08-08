@@ -16,6 +16,8 @@ func ParseBaseTemplates(webFS fs.FS, funcMap template.FuncMap) *template.Templat
 			Funcs(funcMap).
 			ParseFS(webFS,
 				"web/templates/base.gohtml",
+				"web/templates/css_generic.gohtml",
+				"web/templates/css_debug.gohtml",
 				"web/templates/footer.gohtml",
 				"web/templates/error.gohtml",
 			),

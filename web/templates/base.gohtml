@@ -5,72 +5,21 @@
     <meta charset="UTF-8" />
     <meta name="refresh-interval" content="{{ .RefreshInterval }}" />
     <meta name="config-hash" content="{{ .ConfigHash }}" />
+
     <link rel="preload" href="/static/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/static/css/bootstrap.min.css"></noscript>
+    <noscript>
+      <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    </noscript>
+
     <title>{{ .Title }}</title>
+
     <style>
-      /* ======= Theming using Customization Variables ======= */
-      body {
-        margin: 0;
-        padding: 2rem;
-        font-family: {{ .Customization.Font.Family }};
-        font-size: {{ .Customization.Font.Size }};
-      }
-
-      h1 {
-        text-align: {{ .Customization.Header.Align }};
-        margin-bottom: {{ .Customization.Header.MarginBottom }};
-      }
-
-      .grid {
-        display: grid;
-        grid-template-columns: repeat({{ .Grid.Columns }}, 1fr);
-        grid-auto-rows: minmax(0, auto);
-        gap: {{ .Customization.Grid.Gap }};
-        padding: {{ .Customization.Grid.Padding }};
-        margin-top: {{ .Customization.Grid.MarginTop }};
-        margin-bottom: {{ .Customization.Grid.MarginBottom }};
-      }
-
-      .card {
-        border: 1px solid {{ .Customization.Card.BorderColor }};
-        padding: {{ .Customization.Card.Padding }};
-        background-color: {{ .Customization.Card.BackgroundColor }};
-        box-shadow: {{ .Customization.Card.BoxShadow }};
-        border-radius: {{ .Customization.Card.BorderRadius }};
-        position: relative;
-      }
-
-      footer {
-        margin-top: {{ .Customization.Footer.MarginTop }};
-      }
-
-      /* ======= Debug Mode Styles ======= */
-      body.debug-mode .card {
-        outline: 2px dashed red;
-      }
-
-      body.debug-mode .card > *:not(.debug-label) {
-        filter: blur(2px); /* Blur content behind debug label */
-      }
-
-      body.debug-mode .debug-label {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 2rem;
-        font-weight: bold;
-        color: red;
-        opacity: 0.85;
-        pointer-events: none;
-        white-space: pre-line;
-        z-index: 10;
-      }
+      {{ template "css_generic" . }}
+      {{ template "css_debug" . }}
     </style>
+
     <script>
-      // Create a map of cell IDs to their latest hash
-      // Will later be updated by the JS refresh loop
+      // Map of cell IDs to their latest hash (for JS refresh loop)
       const cellHashes = {
         {{- range $i, $cell := .Cells }}
         "{{ $i }}": "{{ $cell.Hash }}",
@@ -80,6 +29,7 @@
   </head>
   <body>
     <h1>{{ .Title }}</h1>
+
     <div class="grid">
       {{ range $i, $cell := .Cells }}
         <div
@@ -103,6 +53,7 @@
         </div>
       {{ end }}
     </div>
+
     {{ template "footer" . }}
   </body>
 </html>

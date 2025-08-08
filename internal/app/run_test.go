@@ -21,10 +21,12 @@ func TestRun(t *testing.T) {
 	dummyEnv := func(key string) string { return "" }
 
 	webFS := fstest.MapFS{
-		"web/templates/base.gohtml":       &fstest.MapFile{Data: []byte(`{{define "base"}}{{end}}`)},
-		"web/templates/footer.gohtml":     &fstest.MapFile{Data: []byte(`{{define "footer"}}{{end}}`)},
-		"web/templates/error.gohtml":      &fstest.MapFile{Data: []byte(`{{define "error"}}err{{end}}`)},
-		"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}<!-- cell error -->{{end}}`)},
+		"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}{{end}}`)},
+		"web/templates/css_generic.gohtml": &fstest.MapFile{Data: []byte(`{{define "css_generic"}}css_generic{{end}}`)},
+		"web/templates/css_debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
+		"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}{{end}}`)},
+		"web/templates/error.gohtml":       &fstest.MapFile{Data: []byte(`{{define "error"}}err{{end}}`)},
+		"web/templates/cell_error.gohtml":  &fstest.MapFile{Data: []byte(`{{define "cell_error"}}<!-- cell error -->{{end}}`)},
 	}
 
 	t.Run("Success", func(t *testing.T) {
@@ -163,7 +165,7 @@ cells:
 		err := app.Run(ctx, webFS, "v1", "c0ffee", args, &buf, dummyEnv)
 
 		require.Error(t, err)
-		assert.EqualError(t, err, "validating config error: config validation failed:\n  - section[0] (Env Epics): template \"epics.gohtml\" not found")
+		assert.EqualError(t, err, "validating config error: config has errors:\n  - section[0] (Env Epics): template \"epics.gohtml\" not found")
 	})
 
 	t.Run("Config Validation Error", func(t *testing.T) {
@@ -205,7 +207,7 @@ cells:
 		err := app.Run(ctx, webFS, "v1", "c0ffee", args, &buf, dummyEnv)
 
 		require.Error(t, err)
-		assert.EqualError(t, err, "validating config error: config validation failed:\n  - section[0] (Env Epics): template \"epics.gohtml\" not found")
+		assert.EqualError(t, err, "validating config error: config has errors:\n  - section[0] (Env Epics): template \"epics.gohtml\" not found")
 	})
 
 	t.Run("ParseCellTemplates Error", func(t *testing.T) {
