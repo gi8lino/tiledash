@@ -14,7 +14,6 @@ document.addEventListener("DOMContentLoaded", function () {
    */
   function reloadCard(id, card) {
     if (!card || inFlight.has(id)) return;
-
     inFlight.add(id);
 
     fetch(`/api/v1/cell/${id}`)
@@ -22,23 +21,30 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((html) => {
         card.innerHTML = html;
 
-        // Re-initialize Tablesort on newly inserted tables
-        card.querySelectorAll("table.tablesort").forEach((table) => {
-          new Tablesort(table);
-        });
+        // Hide card if template signaled "empty"
+        const isHidden = !!card.querySelector("[data-jp-hidden]");
+        card.style.display = isHidden ? "none" : "";
 
-        // Re-apply debug label if in debug mode
-        if (document.body.classList.contains("debug-mode")) {
-          injectDebugLabel(card);
+        if (!isHidden) {
+          // Re-init Tablesort safely
+          if (typeof Tablesort === "function") {
+            card.querySelectorAll("table.tablesort").forEach((table) => {
+              new Tablesort(table);
+            });
+          }
+          // Re-apply debug label only on visible cards
+          if (document.body.classList.contains("debug-mode")) {
+            injectDebugLabel(card);
+          }
         }
       })
       .catch((err) => {
+        // On error, show the error markup so users see it
+        card.style.display = "";
         card.innerHTML = `<div class="alert alert-danger">Error loading cell: ${err}</div>`;
         console.warn(`Error reloading card ${id}:`, err);
       })
-      .finally(() => {
-        inFlight.delete(id);
-      });
+      .finally(() => inFlight.delete(id));
   }
 
   /**

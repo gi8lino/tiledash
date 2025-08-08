@@ -15,11 +15,7 @@
     <p class="mt-2 fw-bold text-danger">Production issue detected</p>
   </div>
 {{- else }}
-  <style>
-    #cell-{{ .ID }} {
-      display: none !important;
-    }
-  </style>
+  <div data-jp-hidden></div>
 {{- end }}
 
 <style>

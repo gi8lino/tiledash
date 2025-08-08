@@ -165,6 +165,16 @@ Each template has access to the following:
 > - CSS: `#cell-{{ .ID }} { display: none; }`
 >   see [examples/templates/env_alert.gohtml](examples/templates/env_alert.gohtml)
 
+> **Template Visibility**
+>
+> A template can hide its containing card by rendering a marker element:
+>
+> ```html
+> <div data-jp-hidden></div>
+> ```
+>
+> JiraPanel’s JS will hide the card when this marker is present. Use this for “empty/quiet” states (e.g., no alerts). This avoids layout flicker and doesn’t require special client-side rules.
+
 ### 🛠 Example Template
 
 This template shows a list of issues with their summary.
