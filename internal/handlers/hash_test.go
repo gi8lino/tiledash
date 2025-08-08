@@ -36,7 +36,7 @@ func TestHashHandler(t *testing.T) {
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
-		defer res.Body.Close()
+		defer res.Body.Close() // nolint:errcheck
 
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 

@@ -1,3 +1,4 @@
 .envrc
 coverage.out
 cover.out
+bin/
