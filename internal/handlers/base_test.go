@@ -28,10 +28,10 @@ func TestDashboard(t *testing.T) {
 
 		webFS := fstest.MapFS{
 			"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}{{.Title}} v{{.Version}}{{end}}`)},
-			"web/templates/css_generic.gohtml": &fstest.MapFile{Data: []byte(`{{define "css_generic"}}css_generic{{end}}`)},
-			"web/templates/css_debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
+			"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
+			"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
 			"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
-			"web/templates/error.gohtml":       &fstest.MapFile{Data: []byte(`{{define "error"}}Error: {{.Message}}{{end}}`)},
+			"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "error"}}Error: {{.Message}}{{end}}`)},
 		}
 
 		// Create cell template with expected name
@@ -98,10 +98,10 @@ func TestDashboard(t *testing.T) {
 </div>
 {{end}}
 `)},
-			"web/templates/css_generic.gohtml": &fstest.MapFile{Data: []byte(`{{define "css_generic"}}css_generic{{end}}`)},
-			"web/templates/css_debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
+			"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
+			"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
 			"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
-			"web/templates/error.gohtml":       &fstest.MapFile{Data: []byte(`{{define "error"}}Error: {{.Message}}{{end}}`)},
+			"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "error"}}Error: {{.Message}}{{end}}`)},
 		}
 
 		tmpDir := t.TempDir()
@@ -143,8 +143,8 @@ func TestDashboard(t *testing.T) {
 		body, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 
-		assert.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Contains(t, string(body), "Failed to render dashboard cells")
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Equal(t, "\n<div class=\"grid\">\n  \n    <div class=\"card\">\n      <div class=\"alert alert-danger\">Failed to render error page</div>", string(body))
 	})
 }
 

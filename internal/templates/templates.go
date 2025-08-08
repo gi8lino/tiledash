@@ -16,10 +16,10 @@ func ParseBaseTemplates(webFS fs.FS, funcMap template.FuncMap) *template.Templat
 			Funcs(funcMap).
 			ParseFS(webFS,
 				"web/templates/base.gohtml",
-				"web/templates/css_generic.gohtml",
-				"web/templates/css_debug.gohtml",
+				"web/templates/css/page.gohtml",
+				"web/templates/css/debug.gohtml",
 				"web/templates/footer.gohtml",
-				"web/templates/error.gohtml",
+				"web/templates/errors/page.gohtml",
 			),
 	)
 }
@@ -48,6 +48,6 @@ func ParseCellErrorTemplate(webFS fs.FS, funcMap template.FuncMap) *template.Tem
 	return template.Must(
 		template.New("cell_error").
 			Funcs(funcMap).
-			ParseFS(webFS, "web/templates/cell_error.gohtml"),
+			ParseFS(webFS, "web/templates/errors/cell.gohtml"),
 	)
 }

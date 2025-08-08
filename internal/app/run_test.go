@@ -22,11 +22,11 @@ func TestRun(t *testing.T) {
 
 	webFS := fstest.MapFS{
 		"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}{{end}}`)},
-		"web/templates/css_generic.gohtml": &fstest.MapFile{Data: []byte(`{{define "css_generic"}}css_generic{{end}}`)},
-		"web/templates/css_debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
+		"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
+		"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
 		"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}{{end}}`)},
-		"web/templates/error.gohtml":       &fstest.MapFile{Data: []byte(`{{define "error"}}err{{end}}`)},
-		"web/templates/cell_error.gohtml":  &fstest.MapFile{Data: []byte(`{{define "cell_error"}}<!-- cell error -->{{end}}`)},
+		"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "error"}}err{{end}}`)},
+		"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}<!-- cell error -->{{end}}`)},
 	}
 
 	t.Run("Success", func(t *testing.T) {

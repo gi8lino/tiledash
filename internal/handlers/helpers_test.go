@@ -55,6 +55,6 @@ func TestRenderErrorPage(t *testing.T) {
 		defer resp.Body.Close() // nolint:errcheck
 
 		require.Equal(t, http.StatusNotFound, resp.StatusCode)
-		assert.Len(t, rr.Body.Bytes(), 0)
+		assert.Equal(t, "<div class=\"alert alert-danger\">Failed to render error page</div>", rr.Body.String())
 	})
 }

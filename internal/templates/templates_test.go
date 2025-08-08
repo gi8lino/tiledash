@@ -29,7 +29,7 @@ func TestParseBaseTemplates(t *testing.T) {
 		base := baseTmpl.Lookup("base")
 		require.NotNil(t, base)
 
-		for _, name := range []string{"base", "footer", "error"} {
+		for _, name := range []string{"base", "footer", "page_error"} {
 			assert.NotNil(t, baseTmpl.Lookup(name), "template %q should be parsed", name)
 		}
 	})
@@ -40,10 +40,10 @@ func TestParseBaseTemplates(t *testing.T) {
 		// Provide dummy base, footer, and error templates
 		webFS := fstest.MapFS{
 			"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}base{{end}}`)},
-			"web/templates/css_generic.gohtml": &fstest.MapFile{Data: []byte(`{{define "css_generic"}}css_generic{{end}}`)},
-			"web/templates/css_debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
+			"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
+			"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
 			"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
-			"web/templates/error.gohtml":       &fstest.MapFile{Data: []byte(`{{define "error"}}error{{end}}`)},
+			"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "error"}}error{{end}}`)},
 		}
 
 		tmpl := templates.ParseBaseTemplates(webFS, template.FuncMap{})
@@ -59,10 +59,10 @@ func TestParseBaseTemplates(t *testing.T) {
 		// Provide dummy base, footer, and error templates
 		webFS := fstest.MapFS{
 			"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}{{ if .Title }} <h1>{{ .Title }}</h1>`)}, // missing end
-			"web/templates/css_generic.gohtml": &fstest.MapFile{Data: []byte(`{{define "css_generic"}}css_generic{{end}}`)},
-			"web/templates/css_debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
+			"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
+			"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
 			"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
-			"web/templates/error.gohtml":       &fstest.MapFile{Data: []byte(`{{define "error"}}error{{end}}`)},
+			"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "error"}}error{{end}}`)},
 		}
 
 		assert.PanicsWithError(t,
@@ -137,7 +137,7 @@ func TestParseSectionErrorTemplate(t *testing.T) {
 
 		// Provide dummy base, footer, and error templates
 		webFS := fstest.MapFS{
-			"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}cell error{{end}}`)},
+			"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}cell error{{end}}`)},
 		}
 
 		tmpl := templates.ParseCellErrorTemplate(webFS, template.FuncMap{})
@@ -148,11 +148,11 @@ func TestParseSectionErrorTemplate(t *testing.T) {
 	t.Run("fails if template is broken", func(t *testing.T) {
 		// Provide dummy base, footer, and error templates
 		webFS := fstest.MapFS{
-			"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}{{end`)}, // unclosed
+			"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}{{end`)}, // unclosed
 		}
 
 		assert.PanicsWithError(t,
-			"template: cell_error.gohtml:1: unclosed action",
+			"template: cell.gohtml:1: unclosed action",
 			func() { templates.ParseCellErrorTemplate(webFS, template.FuncMap{}) },
 		)
 	})

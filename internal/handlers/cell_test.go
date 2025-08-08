@@ -28,7 +28,7 @@ func TestCellHandler(t *testing.T) {
 		t.Parallel()
 
 		webFS := fstest.MapFS{
-			"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}ERROR: {{.Message}}{{end}}`)},
+			"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}ERROR: {{.Message}}{{end}}`)},
 		}
 
 		tmpDir := t.TempDir()
@@ -79,7 +79,7 @@ func TestCellHandler(t *testing.T) {
 		t.Parallel()
 
 		webFS := fstest.MapFS{
-			"web/templates/cell_error.gohtml": &fstest.MapFile{
+			"web/templates/errors/cell.gohtml": &fstest.MapFile{
 				Data: []byte(`{{define "cell_error"}}<div class="error">Error: {{.Message}}</div>{{end}}`),
 			},
 		}
@@ -132,7 +132,7 @@ func TestCellHandler(t *testing.T) {
 		t.Parallel()
 
 		webFS := fstest.MapFS{
-			"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}Message: {{.Message}}{{end}}`)},
+			"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}Message: {{.Message}}{{end}}`)},
 		}
 
 		cfg := config.DashboardConfig{}
@@ -163,7 +163,7 @@ func TestCellHandler(t *testing.T) {
 		t.Parallel()
 
 		webFS := fstest.MapFS{
-			"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}ERROR: {{.Message}}{{end}}`)},
+			"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}ERROR: {{.Message}}{{end}}`)},
 		}
 		cfg := config.DashboardConfig{}
 		mockClient := &jira.Client{}
