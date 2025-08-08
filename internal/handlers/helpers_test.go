@@ -5,8 +5,10 @@ import (
 	"html/template"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRenderErrorPage(t *testing.T) {
@@ -17,7 +19,7 @@ func TestRenderErrorPage(t *testing.T) {
 
 		// Define a base template with an "error" template block
 		tmpl := template.Must(template.New("base").Parse(`
-			{{define "error"}}<html><head><title>{{.Title}}</title></head><body>
+			{{define "cell_error"}}<html><head><title>{{.Title}}</title></head><body>
 			<h1>{{.Message}}</h1><pre>{{.Error}}</pre></body></html>{{end}}
 		`))
 
@@ -26,7 +28,7 @@ func TestRenderErrorPage(t *testing.T) {
 		renderErrorPage(rr, http.StatusInternalServerError, tmpl, "Internal Error", "Something went wrong", errors.New("example failure"))
 
 		resp := rr.Result()
-		defer resp.Body.Close()
+		defer resp.Body.Close() // nolint:errcheck
 
 		if resp.StatusCode != http.StatusInternalServerError {
 			t.Fatalf("expected status %d, got %d", http.StatusInternalServerError, resp.StatusCode)
@@ -34,15 +36,9 @@ func TestRenderErrorPage(t *testing.T) {
 
 		body := rr.Body.String()
 
-		if !strings.Contains(body, "<title>Internal Error</title>") {
-			t.Errorf("missing title in output: %q", body)
-		}
-		if !strings.Contains(body, "<h1>Something went wrong</h1>") {
-			t.Errorf("missing message in output: %q", body)
-		}
-		if !strings.Contains(body, "<pre>example failure</pre>") {
-			t.Errorf("missing error detail in output: %q", body)
-		}
+		expected := `<html><head><title>Internal Error</title></head><body>
+			<h1>Something went wrong</h1><pre>example failure</pre></body></html>`
+		require.Equal(t, expected, body)
 	})
 
 	t.Run("template execution fails gracefully", func(t *testing.T) {
@@ -58,15 +54,7 @@ func TestRenderErrorPage(t *testing.T) {
 		resp := rr.Result()
 		defer resp.Body.Close() // nolint:errcheck
 
-		// Status code should still be correct
-		if resp.StatusCode != http.StatusNotFound {
-			t.Errorf("expected status %d, got %d", http.StatusNotFound, resp.StatusCode)
-		}
-
-		// Since ExecuteTemplate fails, the body will likely be empty
-		if rr.Body.Len() == 0 {
-			// Acceptable fallback behavior
-			return
-		}
+		require.Equal(t, http.StatusNotFound, resp.StatusCode)
+		assert.Len(t, rr.Body.Bytes(), 0)
 	})
 }

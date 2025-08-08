@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -56,7 +57,7 @@ func TestCellHandler(t *testing.T) {
 		var logs bytes.Buffer
 		logger := slog.New(slog.NewTextHandler(&logs, nil))
 
-		req := httptest.NewRequest(http.MethodGet, "/layout/0", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/cell", nil)
 		req.SetPathValue("id", "0")
 
 		w := httptest.NewRecorder()
@@ -78,7 +79,9 @@ func TestCellHandler(t *testing.T) {
 		t.Parallel()
 
 		webFS := fstest.MapFS{
-			"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}Error: {{.Message}}{{end}}`)},
+			"web/templates/cell_error.gohtml": &fstest.MapFile{
+				Data: []byte(`{{define "cell_error"}}<div class="error">Error: {{.Message}}</div>{{end}}`),
+			},
 		}
 
 		tmpDir := t.TempDir()
@@ -106,7 +109,7 @@ func TestCellHandler(t *testing.T) {
 		var logs bytes.Buffer
 		logger := slog.New(slog.NewTextHandler(&logs, nil))
 
-		req := httptest.NewRequest(http.MethodGet, "/layout/0", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/cell", nil)
 		req.SetPathValue("id", "0")
 
 		w := httptest.NewRecorder()
@@ -120,14 +123,16 @@ func TestCellHandler(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, http.StatusInternalServerError, res.StatusCode)
-		assert.Contains(t, string(body), "Error: Request failed")
+
+		expectedHTML := "<div class=\"error\">Error: Render cell error</div>"
+		assert.Equal(t, expectedHTML, strings.TrimSpace(string(body)))
 	})
 
 	t.Run("invalid id returns error", func(t *testing.T) {
 		t.Parallel()
 
 		webFS := fstest.MapFS{
-			"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}invalid{{end}}`)},
+			"web/templates/cell_error.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}Message: {{.Message}}{{end}}`)},
 		}
 
 		cfg := config.DashboardConfig{}
@@ -145,9 +150,13 @@ func TestCellHandler(t *testing.T) {
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
-		defer res.Body.Close() // nolint:errcheck
 
-		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+		defer res.Body.Close() // nolint:errcheck
+		body, err := io.ReadAll(res.Body)
+		assert.NoError(t, err)
+
+		require.Equal(t, http.StatusBadRequest, res.StatusCode)
+		assert.Equal(t, "Message: Invalid cell id", string(body))
 	})
 
 	t.Run("missing id returns error", func(t *testing.T) {

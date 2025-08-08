@@ -51,8 +51,6 @@ func CellHandler(
 
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-
-		// Always return HTML (either valid content or rendered error)
 		w.Write([]byte(html)) // nolint:errcheck
 	}
 }
