@@ -38,14 +38,15 @@ func CellHandler(
 		idx, err := strconv.Atoi(id)
 		if err != nil {
 			logger.Error("invalid cell id", "id", id)
-			renderErrorPage(w, http.StatusBadRequest, errTmpl, cfg.Title, "Invalid cell id", err)
+			renderCellError(w, http.StatusBadRequest, errTmpl,
+				templates.NewRenderError("render", "Invalid cell id", err.Error()))
 			return
 		}
 
-		html, renderErr := templates.RenderCell(r.Context(), idx, cfg, cellTmpl, errTmpl, s)
+		html, renderErr := templates.RenderCell(r.Context(), idx, cfg, cellTmpl, s)
 		if renderErr != nil {
 			logger.Error("render cell error", "error", renderErr.Error())
-			renderErrorPage(w, http.StatusInternalServerError, errTmpl, cfg.Title, "Render cell error", renderErr)
+			renderCellError(w, http.StatusInternalServerError, errTmpl, renderErr)
 			return
 		}
 

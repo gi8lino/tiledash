@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const label = document.createElement("div");
     label.className = "debug-label";
-    label.innerHTML = `row: ${row}\ncol: ${col}\nspan: ${span}${hidden}\ntemplate: ${tmpl}`;
+    label.innerHTML = `row: ${row} | col: ${col} | span: ${span}${hidden}\ntemplate: ${tmpl}`;
     card.appendChild(label);
   }
 

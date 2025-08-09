@@ -31,8 +31,7 @@ func TestRenderCell(t *testing.T) {
 	t.Run("renders valid cell", func(t *testing.T) {
 		t.Parallel()
 
-		sectionTmpl := template.Must(template.New("").Parse(`{{define "s1"}}<div>{{.Title}}: {{.Data.key}}</div>{{end}}`))
-		errTmpl := template.Must(template.New("").Parse(`{{define "cell_error"}}ERROR: {{.Type}} - {{.Message}}{{end}}`))
+		cellTmpl := template.Must(template.New("").Parse(`{{define "s1"}}<div>{{.Title}}: {{.Data.key}}</div>{{end}}`))
 
 		client := &testutils.MockClient{
 			SearchFn: func(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
@@ -50,7 +49,7 @@ func TestRenderCell(t *testing.T) {
 			},
 		}
 
-		html, err := RenderCell(context.Background(), 0, cfg, sectionTmpl, errTmpl, client)
+		html, err := RenderCell(context.Background(), 0, cfg, cellTmpl, client)
 		assert.Nil(t, err)
 		assert.Contains(t, string(html), "Test: value")
 	})
@@ -58,8 +57,7 @@ func TestRenderCell(t *testing.T) {
 	t.Run("handles fetch error", func(t *testing.T) {
 		t.Parallel()
 
-		sectionTmpl := template.New("")
-		errTmpl := template.Must(template.New("").Parse(`{{define "cell_error"}}ERROR: {{.Type}} - {{.Message}}{{end}}`))
+		cellTmpl := template.Must(template.New("").Parse(`{{define "cell_error"}}ERROR: {{.Type}} - {{.Message}}{{end}}`))
 
 		client := &testutils.MockClient{
 			SearchFn: func(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
@@ -71,16 +69,15 @@ func TestRenderCell(t *testing.T) {
 			Cells: []config.Cell{{Title: "Fail", Query: "bad", Template: "x"}},
 		}
 
-		html, renderErr := RenderCell(context.Background(), 0, cfg, sectionTmpl, errTmpl, client)
-		require.NotNil(t, renderErr)
-		assert.Equal(t, "fetch", renderErr.Type)
-		assert.Contains(t, string(html), "ERROR: fetch - Request failed: status 418")
+		html, renderErr := RenderCell(context.Background(), 0, cfg, cellTmpl, client)
+		require.Error(t, renderErr)
+		assert.EqualError(t, renderErr, "fetch: Request failed: status 418 (backend error)")
+		assert.Empty(t, html)
 	})
 
 	t.Run("handles JSON parsing error", func(t *testing.T) {
 		t.Parallel()
 
-		sectionTmpl := template.Must(template.New("").Parse(`{{define "s1"}}ok{{end}}`))
 		errTmpl := template.Must(template.New("").Parse(`{{define "cell_error"}}ERROR: {{.Type}} - {{.Message}}{{end}}`))
 
 		client := &testutils.MockClient{
@@ -93,17 +90,15 @@ func TestRenderCell(t *testing.T) {
 			Cells: []config.Cell{{Title: "Broken JSON", Query: "test", Template: "s1"}},
 		}
 
-		html, renderErr := RenderCell(context.Background(), 0, cfg, sectionTmpl, errTmpl, client)
-		require.NotNil(t, renderErr)
-		assert.Equal(t, "json", renderErr.Type)
-		assert.Contains(t, renderErr.Detail, "invalid character")
-		assert.Contains(t, string(html), "ERROR: json - Response could not be parsed")
+		html, renderErr := RenderCell(context.Background(), 0, cfg, errTmpl, client)
+		require.Error(t, renderErr)
+		assert.EqualError(t, renderErr, "json: Response could not be parsed (invalid character 'i' looking for beginning of object key string)")
+		assert.Empty(t, html)
 	})
 
 	t.Run("handles template render error", func(t *testing.T) {
 		t.Parallel()
 
-		sectionTmpl := template.Must(template.New("").Parse(`{{define "s1"}}{{index nil 0}}{{end}}`))
 		errTmpl := template.Must(template.New("").Parse(`{{define "cell_error"}}ERROR: {{.Type}} - {{.Message}}{{end}}`))
 
 		client := &testutils.MockClient{
@@ -116,66 +111,23 @@ func TestRenderCell(t *testing.T) {
 			Cells: []config.Cell{{Title: "Template Fail", Query: "test", Template: "s1"}},
 		}
 
-		html, renderErr := RenderCell(context.Background(), 0, cfg, sectionTmpl, errTmpl, client)
-		require.NotNil(t, renderErr)
-		assert.Equal(t, "template", renderErr.Type)
-		assert.Contains(t, renderErr.Detail, "index")
-		assert.Contains(t, string(html), "ERROR: template - Template rendering failed")
+		html, renderErr := RenderCell(context.Background(), 0, cfg, errTmpl, client)
+		require.Error(t, renderErr)
+		assert.EqualError(t, renderErr, "template: Template rendering failed (html/template: \"s1\" is undefined)")
+		assert.Empty(t, html)
 	})
 
 	t.Run("handles invalid index", func(t *testing.T) {
 		t.Parallel()
 
-		sectionTmpl := template.New("")
-		errTmpl := template.Must(template.New("").Parse(`{{define "cell_error"}}ERROR: {{.Type}} - {{.Message}}{{end}}`))
+		cellTmpl := template.Must(template.New("").Parse(`{{define "cell_error"}}ERROR: {{.Type}} - {{.Message}}{{end}}`))
 
 		client := &jira.Client{}
 		cfg := config.DashboardConfig{} // empty Cells
 
-		html, renderErr := RenderCell(context.Background(), 42, cfg, sectionTmpl, errTmpl, client)
-		require.NotNil(t, renderErr)
-		assert.Equal(t, "render", renderErr.Type)
-		assert.Contains(t, renderErr.Message, "Failed to get section")
-		assert.Contains(t, string(html), "ERROR: render - Failed to get section")
-	})
-}
-
-func TestRenderErrorHTML(t *testing.T) {
-	t.Parallel()
-
-	t.Run("renders valid error template", func(t *testing.T) {
-		t.Parallel()
-
-		tmpl := template.Must(template.New("cell_error").Parse(`{{define "cell_error"}}Type: {{.Type}}, Msg: {{.Message}}, Detail: {{.Detail}}{{end}}`))
-
-		err := &RenderError{
-			Type:    "json",
-			Message: "Failed to parse JSON",
-			Detail:  "unexpected token",
-		}
-
-		html := renderErrorHTML(tmpl, err)
-		assert.Contains(t, string(html), "Type: json")
-		assert.Contains(t, string(html), "Msg: Failed to parse JSON")
-		assert.Contains(t, string(html), "Detail: unexpected token")
-	})
-
-	t.Run("panics on missing template", func(t *testing.T) {
-		t.Parallel()
-
-		tmpl := template.Must(template.New("other").Parse(`{{define "other"}}noop{{end}}`))
-
-		err := &RenderError{
-			Type:    "oops",
-			Message: "bad",
-			Detail:  "missing template",
-		}
-
-		assert.PanicsWithError(t,
-			"failed to render cell_error template: html/template: \"cell_error\" is undefined",
-			func() {
-				renderErrorHTML(tmpl, err)
-			},
-		)
+		html, renderErr := RenderCell(context.Background(), 42, cfg, cellTmpl, client)
+		require.Error(t, renderErr)
+		assert.EqualError(t, renderErr, "render: Failed to get section (cell index 42 out of bounds)")
+		assert.Empty(t, html)
 	})
 }

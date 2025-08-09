@@ -29,7 +29,7 @@ help: ## Display this help.
 
 .PHONY: run
 run: ## Run the server for local testing
-	go  run main.go --template-dir examples/templates --config examples/config.yaml --debug
+	go run main.go --template-dir examples/templates --config examples/config.yaml --debug
 
 .PHONY: download
 download: ## Download go packages

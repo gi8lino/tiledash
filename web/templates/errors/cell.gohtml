@@ -1,6 +1,7 @@
 {{ define "cell_error" }}
 <div class="alert alert-danger" role="alert">
-  <strong>{{ .Type }} error:</strong> {{ .Message }}
+  <strong>{{ .Title }} error:</strong>
+  <div><small>{{ .Message }}</small></div>
   <div><small>{{ .Detail }}</small></div>
 </div>
 {{ end }}

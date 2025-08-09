@@ -25,7 +25,7 @@ func TestRun(t *testing.T) {
 		"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
 		"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
 		"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}{{end}}`)},
-		"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "error"}}err{{end}}`)},
+		"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "page_error"}}err{{end}}`)},
 		"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}<!-- cell error -->{{end}}`)},
 	}
 

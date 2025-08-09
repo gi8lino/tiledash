@@ -25,7 +25,8 @@ func BaseHandler(
 	return func(w http.ResponseWriter, r *http.Request) {
 		cfgHash, _ := hashAny(cfg)
 		computeCellHashes(&cfg, logger) // Compute hashes for all cells
-		err := baseTmpl.ExecuteTemplate(w, "base", map[string]any{
+
+		if err := baseTmpl.ExecuteTemplate(w, "base", map[string]any{
 			"Version":         version,
 			"Grid":            cfg.Grid,
 			"Title":           cfg.Title,
@@ -33,11 +34,8 @@ func BaseHandler(
 			"Customization":   &cfg.Customization,
 			"Cells":           cfg.Cells, // pass cells directly for async placeholder generation
 			"ConfigHash":      cfgHash,
-		})
-		if err != nil {
-			logger.Error("render base error", "error", err)
-			renderErrorPage(w, http.StatusInternalServerError, baseTmpl, cfg.Title, "Failed to render dashboard cells.", err)
-			return
+		}); err != nil {
+			renderErrorPage(w, http.StatusInternalServerError, baseTmpl, "Error", "Failed to render dashboard cells.", err)
 		}
 	}
 }

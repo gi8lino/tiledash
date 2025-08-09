@@ -124,7 +124,7 @@ func TestCellHandler(t *testing.T) {
 
 		require.Equal(t, http.StatusInternalServerError, res.StatusCode)
 
-		expectedHTML := "<div class=\"error\">Error: Render cell error</div>"
+		expectedHTML := "<div class=\"error\">Error: Request failed: status 500</div>"
 		assert.Equal(t, expectedHTML, strings.TrimSpace(string(body)))
 	})
 

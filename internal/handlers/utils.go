@@ -1,20 +1,22 @@
 package handlers
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
+
+	"github.com/gi8lino/jirapanel/internal/templates"
 )
 
-// renderErrorPage renders a simple error card. Never panics; always writes something.
+// renderErrorPage renders a simple error page. Never panics; always writes something.
 func renderErrorPage(
 	w http.ResponseWriter,
 	status int,
-	tmpl *template.Template, // should contain "cell_error"
+	pageErrTmpl *template.Template, // must contain "page_error"
 	title, msg string,
-	cause error,
+	err error,
 ) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// Write the status before attempting template execution.
 	w.WriteHeader(status)
 
 	data := struct {
@@ -24,13 +26,27 @@ func renderErrorPage(
 	}{
 		Title:   title,
 		Message: msg,
-		Error:   "",
 	}
-	if cause != nil {
-		data.Error = cause.Error()
+	if err != nil {
+		data.Error = err.Error()
 	}
 
-	if tplErr := tmpl.ExecuteTemplate(w, "cell_error", data); tplErr != nil {
-		w.Write([]byte("<div class=\"alert alert-danger\">Failed to render error page</div>")) // nolint:errcheck
+	if tplErr := pageErrTmpl.ExecuteTemplate(w, "page_error", data); tplErr != nil {
+		fmt.Fprintf(w, `<div class="alert alert-danger">Failed to render error page: %s</div>`, tplErr) // nolint:errcheck
+	}
+}
+
+// renderCellError renders a cell error using the "cell_error" template.
+func renderCellError(
+	w http.ResponseWriter,
+	status int,
+	cellErrTmpl *template.Template, // must contain "cell_error"
+	re *templates.RenderError,
+) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+
+	if tplErr := cellErrTmpl.ExecuteTemplate(w, "cell_error", re); tplErr != nil {
+		fmt.Fprintf(w, `<div class="alert alert-danger">Failed to render cell error: %s</div>`, tplErr)
 	}
 }

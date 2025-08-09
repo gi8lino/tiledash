@@ -13,7 +13,7 @@ import (
 
 // RenderError is a generic error returned by RenderSection.
 type RenderError struct {
-	Type    string
+	Title   string
 	Message string
 	Detail  string
 }
@@ -21,7 +21,7 @@ type RenderError struct {
 // NewRenderError creates a new RenderError.
 func NewRenderError(typ, msg string, detail any) *RenderError {
 	return &RenderError{
-		Type:    typ,
+		Title:   typ,
 		Message: msg,
 		Detail:  fmt.Sprint(detail),
 	}
@@ -29,7 +29,7 @@ func NewRenderError(typ, msg string, detail any) *RenderError {
 
 // Error implements the error interface.
 func (e *RenderError) Error() string {
-	return fmt.Sprintf("%s: %s (%s)", e.Type, e.Message, e.Detail)
+	return fmt.Sprintf("%s: %s (%s)", e.Title, e.Message, e.Detail)
 }
 
 // RenderCell fetches and renders a single dashboard layout by index.
@@ -37,46 +37,32 @@ func RenderCell(
 	ctx context.Context,
 	id int,
 	cfg config.DashboardConfig,
-	sectionTmpl *template.Template,
-	errTmpl *template.Template,
+	cellTmpl *template.Template,
 	client jira.Searcher,
 ) (template.HTML, *RenderError) {
 	cell, err := cfg.GetLayoutByIndex(id)
 	if err != nil {
-		re := NewRenderError("render", "Failed to get section", err.Error())
-		return renderErrorHTML(errTmpl, re), re
+		return "", NewRenderError("render", "Failed to get section", err.Error())
 	}
 
 	respBody, status, fetchErr := client.SearchByJQL(ctx, cell.Query, cell.Params)
 	if fetchErr != nil {
-		re := NewRenderError("fetch", fmt.Sprintf("Request failed: status %d", status), fetchErr.Error())
-		return renderErrorHTML(errTmpl, re), re
+		return "", NewRenderError("fetch", fmt.Sprintf("Request failed: status %d", status), fetchErr.Error())
 	}
 
 	var jsonData any
 	if err := json.Unmarshal(respBody, &jsonData); err != nil {
-		re := NewRenderError("json", "Response could not be parsed", err.Error())
-		return renderErrorHTML(errTmpl, re), re
+		return "", NewRenderError("json", "Response could not be parsed", err.Error())
 	}
 
 	var buf bytes.Buffer
-	if err := sectionTmpl.ExecuteTemplate(&buf, cell.Template, map[string]any{
+	if err := cellTmpl.ExecuteTemplate(&buf, cell.Template, map[string]any{
 		"ID":    id,
 		"Title": cell.Title,
 		"Data":  jsonData,
 	}); err != nil {
-		re := NewRenderError("template", "Template rendering failed", err.Error())
-		return renderErrorHTML(errTmpl, re), re
+		return "", NewRenderError("template", "Template rendering failed", err.Error())
 	}
 
 	return template.HTML(buf.String()), nil
-}
-
-// renderErrorHTML renders a cell error using the "cell_error" template.
-func renderErrorHTML(tmpl *template.Template, err *RenderError) template.HTML {
-	var buf bytes.Buffer
-	if e := tmpl.ExecuteTemplate(&buf, "cell_error", err); e != nil {
-		panic(fmt.Errorf("failed to render cell_error template: %w", e))
-	}
-	return template.HTML(buf.String())
 }

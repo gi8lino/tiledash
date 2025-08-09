@@ -31,7 +31,7 @@ func TestDashboard(t *testing.T) {
 			"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
 			"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
 			"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
-			"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "error"}}Error: {{.Message}}{{end}}`)},
+			"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "page_error"}}Error: {{.Message}}{{end}}`)},
 		}
 
 		// Create cell template with expected name
@@ -101,7 +101,7 @@ func TestDashboard(t *testing.T) {
 			"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
 			"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
 			"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
-			"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "error"}}Error: {{.Message}}{{end}}`)},
+			"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "page_error"}}Error: {{.Message}}{{end}}`)},
 		}
 
 		tmpDir := t.TempDir()
@@ -144,7 +144,7 @@ func TestDashboard(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Equal(t, "\n<div class=\"grid\">\n  \n    <div class=\"card\">\n      <div class=\"alert alert-danger\">Failed to render error page</div>", string(body))
+		assert.Equal(t, "\n<div class=\"grid\">\n  \n    <div class=\"card\">\n      Error: Failed to render dashboard cells.", string(body))
 	})
 }
 

@@ -19,7 +19,7 @@ func TestRenderErrorPage(t *testing.T) {
 
 		// Define a base template with an "error" template block
 		tmpl := template.Must(template.New("base").Parse(`
-			{{define "cell_error"}}<html><head><title>{{.Title}}</title></head><body>
+			{{define "page_error"}}<html><head><title>{{.Title}}</title></head><body>
 			<h1>{{.Message}}</h1><pre>{{.Error}}</pre></body></html>{{end}}
 		`))
 
@@ -36,8 +36,7 @@ func TestRenderErrorPage(t *testing.T) {
 
 		body := rr.Body.String()
 
-		expected := `<html><head><title>Internal Error</title></head><body>
-			<h1>Something went wrong</h1><pre>example failure</pre></body></html>`
+		expected := "<html><head><title>Internal Error</title></head><body>\n\t\t\t<h1>Something went wrong</h1><pre>example failure</pre></body></html>"
 		require.Equal(t, expected, body)
 	})
 
@@ -49,12 +48,12 @@ func TestRenderErrorPage(t *testing.T) {
 
 		rr := httptest.NewRecorder()
 
-		renderErrorPage(rr, http.StatusNotFound, tmpl, "Not Found", "Missing template", errors.New("missing"))
+		renderErrorPage(rr, http.StatusNotFound, tmpl, "Missing template", "some error", errors.New("missing"))
 
 		resp := rr.Result()
 		defer resp.Body.Close() // nolint:errcheck
 
 		require.Equal(t, http.StatusNotFound, resp.StatusCode)
-		assert.Equal(t, "<div class=\"alert alert-danger\">Failed to render error page</div>", rr.Body.String())
+		assert.Equal(t, "<div class=\"alert alert-danger\">Failed to render error page: html/template: \"page_error\" is undefined</div>", rr.Body.String())
 	})
 }
