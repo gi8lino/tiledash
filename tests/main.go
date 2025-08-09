@@ -64,7 +64,7 @@ func handleSection(cfg *Config) http.HandlerFunc {
 			return
 		}
 
-		log.Printf("Mock server serving %s", path)
+		log.Printf("serving %s", path)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
