@@ -1,5 +1,13 @@
 # JiraPanel
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/gi8lino/jira-panel?style=flat-square)](https://goreportcard.com/report/github.com/gi8lino/jira-panel)
+[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/gi8lino/jira-panel)
+[![Release](https://img.shields.io/github/release/gi8lino/jira-panel.svg?style=flat-square)](https://github.com/gi8lino/jira-panel/releases/latest)
+[![GitHub tag](https://img.shields.io/github/tag/gi8lino/jira-panel.svg?style=flat-square)](https://github.com/gi8lino/jira-panel/releases/latest)
+![Tests](https://github.com/gi8lino/jira-panel/actions/workflows/tests.yml/badge.svg)
+[![Build](https://github.com/gi8lino/jira-panel/actions/workflows/release.yml/badge.svg)](https://github.com/gi8lino/jira-panel/actions/workflows/release.yml)
+[![license](https://img.shields.io/github/license/gi8lino/jira-panel.svg?style=flat-square)](LICENSE)
+
 **JiraPanel** is a flexible, self-hosted dashboard for visualizing data from your Jira Cloud or Server instance using templates and JQL queries.
 
 ## Features
@@ -173,7 +181,7 @@ Each template has access to the following:
 > <div data-jp-hidden></div>
 > ```
 >
-> JiraPanel’s JS will hide the card when this marker is present. Use this for “empty/quiet” states (e.g., no alerts). This avoids layout flicker and doesn’t require special client-side rules.
+> JiraPanel's JS will hide the card when this marker is present. Use this for "empty/quiet" states (e.g., no alerts). This avoids layout flicker and doesn't require special client-side rules.
 
 ### 🛠 Example Template
 
