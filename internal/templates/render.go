@@ -18,6 +18,15 @@ type RenderError struct {
 	Detail  string
 }
 
+// NewRenderError creates a new RenderError.
+func NewRenderError(typ, msg string, detail any) *RenderError {
+	return &RenderError{
+		Type:    typ,
+		Message: msg,
+		Detail:  fmt.Sprint(detail),
+	}
+}
+
 // Error implements the error interface.
 func (e *RenderError) Error() string {
 	return fmt.Sprintf("%s: %s (%s)", e.Type, e.Message, e.Detail)
@@ -34,33 +43,20 @@ func RenderCell(
 ) (template.HTML, *RenderError) {
 	cell, err := cfg.GetLayoutByIndex(id)
 	if err != nil {
-		err := &RenderError{
-			Type:    "render",
-			Message: "Failed to get section",
-			Detail:  err.Error(),
-		}
-		return renderErrorHTML(errTmpl, err), err
-
+		re := NewRenderError("render", "Failed to get section", err.Error())
+		return renderErrorHTML(errTmpl, re), re
 	}
 
 	respBody, status, fetchErr := client.SearchByJQL(ctx, cell.Query, cell.Params)
 	if fetchErr != nil {
-		err := &RenderError{
-			Type:    "fetch",
-			Message: fmt.Sprintf("Request failed: status %d", status),
-			Detail:  fetchErr.Error(),
-		}
-		return renderErrorHTML(errTmpl, err), err
+		re := NewRenderError("fetch", fmt.Sprintf("Request failed: status %d", status), fetchErr.Error())
+		return renderErrorHTML(errTmpl, re), re
 	}
 
 	var jsonData any
 	if err := json.Unmarshal(respBody, &jsonData); err != nil {
-		err := &RenderError{
-			Type:    "json",
-			Message: "Response could not be parsed",
-			Detail:  err.Error(),
-		}
-		return renderErrorHTML(errTmpl, err), err
+		re := NewRenderError("json", "Response could not be parsed", err.Error())
+		return renderErrorHTML(errTmpl, re), re
 	}
 
 	var buf bytes.Buffer
@@ -69,12 +65,8 @@ func RenderCell(
 		"Title": cell.Title,
 		"Data":  jsonData,
 	}); err != nil {
-		err := &RenderError{
-			Type:    "template",
-			Message: "Template rendering failed",
-			Detail:  err.Error(),
-		}
-		return renderErrorHTML(errTmpl, err), err
+		re := NewRenderError("template", "Template rendering failed", err.Error())
+		return renderErrorHTML(errTmpl, re), re
 	}
 
 	return template.HTML(buf.String()), nil
