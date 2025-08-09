@@ -29,7 +29,7 @@ help: ## Display this help.
 
 .PHONY: run
 run: ## Run the server for local testing
-	go  run main.go --template-dir examples/templates --config examples/config.yaml
+	go  run main.go --template-dir examples/templates --config examples/config.yaml --debug
 
 .PHONY: download
 download: ## Download go packages
@@ -50,10 +50,11 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: fmt vet ## Run unit tests.
-	go test -coverprofile=coverage.out -covermode=atomic -count=1 -parallel=4 -timeout=5m ./...
+	go test -covermode=atomic -count=1 -parallel=4 -timeout=5m ./...
 
 .PHONY: cover
 cover: ## Display test coverage
+	go test -coverprofile=coverage.out -covermode=atomic -count=1 -parallel=4 -timeout=5m ./...
 	go tool cover -html=coverage.out
 
 .PHONY: clean
