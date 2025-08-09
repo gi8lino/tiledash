@@ -1,5 +1,5 @@
 ---
-name: Run Unit and E2E Tests
+name: Unit Tests
 
 on:
   workflow_call:
