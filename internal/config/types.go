@@ -1,90 +1,140 @@
 package config
 
 import (
-	"fmt"
+	"errors"
 	"html/template"
 	"time"
 )
 
-// DashboardConfig holds the full configuration for the rendered dashboard.
+// DashboardConfig is the top-level configuration for the dashboard.
 type DashboardConfig struct {
-	Title           string         `yaml:"title"`                   // Title is the main title shown at the top of the dashboard.
-	Grid            Grid           `yaml:"grid"`                    // Grid defines the number of rows and columns in the dashboard layout.
-	Cells           []Cell         `yaml:"cells"`                   // Cells are the individual dashboard cells to be rendered inside the grid.
-	RefreshInterval time.Duration  `yaml:"refreshInterval"`         // RefreshInterval defines how frequently the dashboard auto-refreshes.
-	Customization   *Customization `yaml:"customization,omitempty"` // Customization holds styling overrides for layout, font, spacing, etc.
+	Title           string              `yaml:"title"`
+	RefreshInterval time.Duration       `yaml:"refreshInterval"`
+	Grid            *GridConfig         `yaml:"grid"`
+	Customization   *Customization      `yaml:"customization"`
+	Providers       map[string]Provider `yaml:"providers"`
+	Tiles           []Tile              `yaml:"tiles"`
 }
 
-// GetLayoutByIndex returns the Cell at the given index or an error if out of range.
-func (c *DashboardConfig) GetLayoutByIndex(idx int) (*Cell, error) {
-	if idx < 0 || idx >= len(c.Cells) {
-		return nil, fmt.Errorf("cell index %d out of bounds", idx)
-	}
-	return &c.Cells[idx], nil
+// GridConfig controls the grid dimensions.
+type GridConfig struct {
+	Columns int `yaml:"columns"`
+	Rows    int `yaml:"rows"`
 }
 
-// Grid defines the number of columns and rows used in the dashboard grid.
-type Grid struct {
-	Columns int `yaml:"columns"` // Columns is the number of columns in the grid.
-	Rows    int `yaml:"rows"`    // Rows is the number of rows in the grid.
-}
-
-// Cell represents a single unit inside the dashboard grid.
-type Cell struct {
-	Hash     string            `yaml:"-" json:"-"` // Hash is the hash of the cell content.
-	Title    string            `yaml:"title"`      // Title is the visible title shown above the cell content.
-	Query    string            `yaml:"query"`      // Query is the JQL query used to fetch issues for this cell.
-	Params   map[string]string `yaml:"params"`     // Params is an optional map of extra query parameters (e.g. maxResults).
-	Template string            `yaml:"template"`   // Template is the name of the template used to render the cell content.
-	Position Position          `yaml:"position"`   // Position determines where this cell is placed in the dashboard grid.
-}
-
-// Position specifies the grid position and span for a given cell.
-type Position struct {
-	Row     int `yaml:"row"`               // Row is the zero-based row index of the cell.
-	Col     int `yaml:"col"`               // Col is the zero-based column index of the cell.
-	ColSpan int `yaml:"colSpan,omitempty"` // ColSpan optionally allows the cell to span multiple columns.
-}
-
-// Customization groups all styling-related fields for the dashboard.
+// Customization collects optional presentation preferences.
 type Customization struct {
-	Grid   GridStyle   `yaml:"grid"`   // Grid defines padding, gap, and margins for the grid container.
-	Card   CardStyle   `yaml:"card"`   // Card controls the style of each individual cell/card.
-	Header HeaderStyle `yaml:"header"` // Header customizes the main title header.
-	Footer FooterStyle `yaml:"footer"` // Footer customizes spacing below the grid.
-	Font   FontStyle   `yaml:"font"`   // Font sets global font family and size.
+	Grid   CustomGrid   `yaml:"grid"`
+	Card   CustomCard   `yaml:"card"`
+	Header CustomHeader `yaml:"header"`
+	Footer CustomFooter `yaml:"footer"`
+	Font   CustomFont   `yaml:"font"`
 }
 
-// GridStyle controls spacing and margins within the dashboard grid.
-type GridStyle struct {
-	Gap          template.CSS `yaml:"gap"`          // Gap defines spacing between grid items (e.g. "1rem").
-	Padding      template.CSS `yaml:"padding"`      // Padding is the internal padding of the grid container.
-	MarginTop    template.CSS `yaml:"marginTop"`    // MarginTop sets the top margin of the grid section.
-	MarginBottom template.CSS `yaml:"marginBottom"` // MarginBottom sets the bottom margin of the grid section.
+// CustomGrid customizes spacing around the grid.
+type CustomGrid struct {
+	Gap          template.CSS `yaml:"gap"`
+	Padding      template.CSS `yaml:"padding"`
+	MarginTop    template.CSS `yaml:"marginTop"`
+	MarginBottom template.CSS `yaml:"marginBottom"`
 }
 
-// CardStyle controls the appearance of each dashboard cell/card.
-type CardStyle struct {
-	BorderColor     template.CSS `yaml:"borderColor"`     // BorderColor is the CSS border color of the card.
-	Padding         template.CSS `yaml:"padding"`         // Padding is the internal padding inside the card.
-	BackgroundColor template.CSS `yaml:"backgroundColor"` // BackgroundColor is the fill/background color of the card.
-	BorderRadius    template.CSS `yaml:"borderRadius"`    // BorderRadius defines how rounded the card edges are.
-	BoxShadow       template.CSS `yaml:"boxShadow"`       // BoxShadow sets the shadow used behind the card.
+// CustomCard customizes card visuals.
+type CustomCard struct {
+	BorderColor     template.CSS `yaml:"borderColor"`
+	Padding         template.CSS `yaml:"padding"`
+	BackgroundColor template.CSS `yaml:"backgroundColor"`
+	BorderRadius    template.CSS `yaml:"borderRadius"`
+	BoxShadow       template.CSS `yaml:"boxShadow"`
 }
 
-// HeaderStyle customizes the appearance of the main dashboard title.
-type HeaderStyle struct {
-	Align        template.CSS `yaml:"align"`        // Align is the text alignment of the title (e.g. "center").
-	MarginBottom template.CSS `yaml:"marginBottom"` // MarginBottom adds spacing below the title.
+// CustomHeader customizes headers.
+type CustomHeader struct {
+	Align        template.CSS `yaml:"align"`
+	MarginBottom template.CSS `yaml:"marginBottom"`
 }
 
-// FooterStyle defines the spacing below the dashboard.
-type FooterStyle struct {
-	MarginTop template.CSS `yaml:"marginTop"` // MarginTop adds spacing between the grid and the footer.
+// CustomFooter customizes footers.
+type CustomFooter struct {
+	MarginTop template.CSS `yaml:"marginTop"`
 }
 
-// FontStyle configures the global font used across the dashboard.
-type FontStyle struct {
-	Family template.CSS `yaml:"family"` // Family is the CSS font-family string (e.g. "monospace").
-	Size   template.CSS `yaml:"size"`   // Size is the base font size (e.g. "14px", "1rem").
+// CustomFont customizes typography.
+type CustomFont struct {
+	Family template.CSS `yaml:"family"`
+	Size   template.CSS `yaml:"size"`
+}
+
+// Provider defines a named upstream (baseURL + auth).
+type Provider struct {
+	BaseURL       string     `yaml:"baseURL"`
+	SkipTLSVerify *bool      `yaml:"skipTLSVerify"`
+	Auth          AuthConfig `yaml:"auth"`
+}
+
+// AuthConfig infers the scheme from which subfield is present.
+type AuthConfig struct {
+	Basic  *BasicAuth  `yaml:"basic,omitempty"`
+	Bearer *BearerAuth `yaml:"bearer,omitempty"`
+}
+
+// BasicAuth carries username/password (or email/token) credentials.
+type BasicAuth struct {
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+// BearerAuth carries a bearer token.
+type BearerAuth struct {
+	Token string `yaml:"token"`
+}
+
+// Tile is a single dashboard unit with layout + request.
+type Tile struct {
+	Title    string   `yaml:"title"`
+	Template string   `yaml:"template"`
+	Position Position `yaml:"position"`
+	Request  Request  `yaml:"request"`
+	Hash     string   `yaml:"-"` // computed hash
+}
+
+// Position places a tile in the grid.
+type Position struct {
+	Row     int `yaml:"row"`
+	Col     int `yaml:"col"`
+	ColSpan int `yaml:"colSpan"`
+	RowSpan int `yaml:"rowSpan"`
+}
+
+// Request describes the HTTP request for a tile, bound to a provider.
+type Request struct {
+	Provider string            `yaml:"provider"`           // name under top-level providers
+	Method   string            `yaml:"method,omitempty"`   // default GET
+	Path     string            `yaml:"path"`               // relative to provider's BaseURL
+	TTL      time.Duration     `yaml:"ttl,omitempty"`      // cache TTL
+	Query    map[string]string `yaml:"query,omitempty"`    // query params
+	Headers  map[string]string `yaml:"headers,omitempty"`  // extra headers
+	Body     string            `yaml:"body,omitempty"`     // raw body
+	BodyJSON map[string]any    `yaml:"bodyJSON,omitempty"` // JSON body (preferred)
+	Paginate bool              `yaml:"paginate,omitempty"` // enable pagination
+	Page     PageParams        `yaml:"page,omitempty"`     // pagination config
+}
+
+// PageParams configures offset/limit style pagination.
+type PageParams struct {
+	Location   string `yaml:"location,omitempty"` // "query" | "body"
+	StartField string `yaml:"startField,omitempty"`
+	LimitField string `yaml:"limitField,omitempty"`
+	TotalField string `yaml:"totalField,omitempty"`
+	ReqStart   string `yaml:"reqStart,omitempty"`
+	ReqLimit   string `yaml:"reqLimit,omitempty"`
+	LimitPages int    `yaml:"limitPages,omitempty"`
+}
+
+// GetCellByIndex returns a tile by index.
+func (d DashboardConfig) GetCellByIndex(i int) (Tile, error) {
+	if i < 0 || i >= len(d.Tiles) {
+		return Tile{}, errors.New("index out of range")
+	}
+	return d.Tiles[i], nil
 }

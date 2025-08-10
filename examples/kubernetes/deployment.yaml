@@ -2,31 +2,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: jirapanel
+  name: tiledash
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: jirapanel
+      app: tiledash
   strategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
-        app: jirapanel
+        app: tiledash
     spec:
       containers:
-        - name: jirapanel
-          image: ghcr.io/gi8lino/jirapanel:latest
+        - name: tiledash
+          image: ghcr.io/gi8lino/tiledash:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
               value: Europe/Zurich
-            - name: JIRAPANEL_JIRA_API_URL
-              value: https://jira.example.com/rest/api/2
-          envFrom:
-            - secretRef:
-                name: jirapanel-jira-credentials
           ports:
             - name: http
               containerPort: 8080
@@ -59,9 +54,9 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: jirapanel-config
+            name: tiledash-config
             defaultMode: 0755
         - name: templates
           configMap:
-            name: jirapanel-templates
+            name: tiledash-templates
             defaultMode: 0755

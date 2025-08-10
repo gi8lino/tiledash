@@ -1,10 +1,7 @@
 package utils
 
 import (
-	"net/http"
 	"strings"
-
-	"github.com/gi8lino/jirapanel/internal/jira"
 )
 
 // ObfuscateHeader returns an obfuscated Authorization header,
@@ -36,10 +33,13 @@ func ObfuscateHeader(auth string) string {
 	return scheme + " " + prefix + stars + suffix
 }
 
-// GetAuthorizationHeader returns the "Authorization" header value that would be set
-// by the provided AuthFunc on a dummy HTTP request.
-func GetAuthorizationHeader(authFunc jira.AuthFunc) string {
-	req, _ := http.NewRequest("GET", "https://dummy", nil)
-	authFunc(req)
-	return req.Header.Get("Authorization")
-}
+// Ptr returns a pointer to the given value.
+func Ptr[T any](v T) *T { return &v }
+
+// // GetAuthorizationHeader returns the "Authorization" header value that would be set
+// // by the provided AuthFunc on a dummy HTTP request.
+// func GetAuthorizationHeader(authFunc jira.AuthFunc) string {
+// 	req, _ := http.NewRequest("GET", "https://dummy", nil)
+// 	authFunc(req)
+// 	return req.Header.Get("Authorization")
+// }

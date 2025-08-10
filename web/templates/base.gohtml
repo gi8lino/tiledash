@@ -17,10 +17,10 @@
     </style>
 
     <script>
-      // Map of cell IDs to their latest hash (for JS refresh loop)
-      const cellHashes = {
-        {{- range $i, $cell := .Cells }}
-        "{{ $i }}": "{{ $cell.Hash }}",
+      // Map of tile IDs to their latest hash (for JS refresh loop)
+      const tileHashes = {
+        {{- range $i, $tile := .Cells }}
+        "{{ $i }}": "{{ $tile.Hash }}",
         {{- end }}
       };
     </script>
@@ -29,19 +29,19 @@
     <h1>{{ .Title }}</h1>
 
     <div class="grid">
-      {{ range $i, $cell := .Cells }}
+      {{ range $i, $tile := .Cells }}
         <div
           class="card"
-          id="cell-{{ $i }}"
+          id="tile-{{ $i }}"
           style="
-            grid-column: {{ $cell.Position.Col }} / span {{ or $cell.Position.ColSpan 1 }};
-            grid-row: {{ $cell.Position.Row }};
+            grid-column: {{ $tile.Position.Col }} / span {{ or $tile.Position.ColSpan 1 }};
+            grid-row: {{ $tile.Position.Row }};
           "
-          data-cell-id="{{ $i }}"
-          data-row="{{ $cell.Position.Row }}"
-          data-col="{{ $cell.Position.Col }}"
-          data-col-span="{{ or $cell.Position.ColSpan 1 }}"
-          data-template="{{ $cell.Template }}"
+          data-tile-id="{{ $i }}"
+          data-row="{{ $tile.Position.Row }}"
+          data-col="{{ $tile.Position.Col }}"
+          data-col-span="{{ or $tile.Position.ColSpan 1 }}"
+          data-template="{{ $tile.Template }}"
         >
           <div class="text-center p-4">
             <div class="spinner-border" role="status">

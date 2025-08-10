@@ -29,7 +29,7 @@ help: ## Display this help.
 
 .PHONY: run
 run: ## Run the server for local testing
-	go run main.go --template-dir examples/templates --config examples/config.yaml --debug
+	go run main.go --template-dir examples/templates --config examples/config.yaml
 
 .PHONY: download
 download: ## Download go packages
@@ -71,12 +71,9 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes.
 
 ##@ Mock Server
 
-MOCK_PORT ?= 8081
-MOCK_DATA_DIR ?= ./tests/data
-
 .PHONY: run-mock
 run-mock: ## Run the mock server for local testing
-	go run ./tests/main.go --data-dir=$(MOCK_DATA_DIR) --port=$(MOCK_PORT) --random-delay
+	go run ./tests/main.go --config=./tests/config.yaml
 
 ##@ Tagging
 

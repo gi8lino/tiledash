@@ -1,10 +1,10 @@
 document.addEventListener("DOMContentLoaded", function () {
-  const DEBUG_KEY = "jirapanel-debug";
+  const DEBUG_KEY = "tiledash-debug";
   const configHash =
     document.querySelector('meta[name="config-hash"]')?.content || "";
 
   // Track all card elements
-  const cards = document.querySelectorAll("[data-cell-id]");
+  const cards = document.querySelectorAll("[data-tile-id]");
   // Track in-flight reloads to prevent double-fetching
   const inFlight = new Set();
 
@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!card || inFlight.has(id)) return;
     inFlight.add(id);
 
-    fetch(`/api/v1/cell/${id}`)
+    fetch(`/api/v1/tile/${id}`)
       .then((res) => res.text())
       .then((html) => {
         card.innerHTML = html;
@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Only for true network failures; server normally returns HTML (incl. errors)
         card.innerHTML = `
           <div class="alert alert-danger" role="alert">
-            <strong>Network error:</strong> Could not load cell.
+            <strong>Network error:</strong> Could not load tile.
             <div><small>${String(err)}</small></div>
           </div>
         `;
@@ -96,7 +96,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   /**
-   * Main refresh loop: checks config and cell hashes, and reloads as needed.
+   * Main refresh loop: checks config and tile hashes, and reloads as needed.
    */
   function refresh() {
     fetch("/api/v1/hash/config")
@@ -111,24 +111,24 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         cards.forEach((card) => {
-          const id = card.getAttribute("data-cell-id");
+          const id = card.getAttribute("data-tile-id");
           fetch(`/api/v1/hash/${id}`)
             .then((res) => res.text())
             .then((newHash) => {
-              if (!cellHashes[id] || cellHashes[id] !== newHash) {
+              if (!tileHashes[id] || tileHashes[id] !== newHash) {
                 if (document.body.classList.contains("debug-mode")) {
                   console.log(
-                    `Reloading cell ${id} (old=${cellHashes[id]}, new=${newHash})`,
+                    `Reloading tile ${id} (old=${tileHashes[id]}, new=${newHash})`,
                   );
                 }
-                cellHashes[id] = newHash;
+                tileHashes[id] = newHash;
                 reloadCard(id, card);
               } else if (document.body.classList.contains("debug-mode")) {
                 console.log(`Cell ${id} unchanged (hash=${newHash})`);
               }
             })
             .catch((err) => {
-              console.warn("Failed to check hash for cell", id, err);
+              console.warn("Failed to check hash for tile", id, err);
             });
         });
       })
@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initial card load
   cards.forEach((card) => {
-    const id = card.getAttribute("data-cell-id");
+    const id = card.getAttribute("data-tile-id");
     reloadCard(id, card);
   });
 

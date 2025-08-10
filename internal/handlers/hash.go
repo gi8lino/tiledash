@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gi8lino/jirapanel/internal/config"
+	"github.com/gi8lino/tiledash/internal/config"
 )
 
 // HashHandler returns an HTTP handler that responds with a hash of either the full config
-// or a specific cell layout, based on the requested path parameter.
+// or a specific tile layout, based on the requested path parameter.
 func HashHandler(
 	cfg config.DashboardConfig,
 	logger *slog.Logger,
@@ -33,20 +33,20 @@ func HashHandler(
 			return
 
 		default:
-			// Attempt to parse the id as a cell index
+			// Attempt to parse the id as a tile index
 			idx, err := strconv.Atoi(id)
 			if err != nil {
-				http.Error(w, "invalid cell id", http.StatusBadRequest)
+				http.Error(w, "invalid tile id", http.StatusBadRequest)
 				return
 			}
 
-			cell, err := cfg.GetLayoutByIndex(idx)
+			tile, err := cfg.GetCellByIndex(idx)
 			if err != nil {
-				http.Error(w, "cell not found", http.StatusNotFound)
+				http.Error(w, "tile not found", http.StatusNotFound)
 				return
 			}
 
-			hash, err := hashAny(cell)
+			hash, err := hashAny(tile)
 			if err != nil {
 				logger.Error("hash computation failed", "id", id, "error", err)
 				http.Error(w, "failed to compute hash", http.StatusInternalServerError)

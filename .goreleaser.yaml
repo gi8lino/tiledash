@@ -19,8 +19,8 @@ builds:
 
 dockers:
   - image_templates:
-      - ghcr.io/gi8lino/jirapanel:{{ .Tag }}
-      - ghcr.io/gi8lino/jirapanel:latest
+      - ghcr.io/gi8lino/tiledash:{{ .Tag }}
+      - ghcr.io/gi8lino/tiledash:latest
     use: buildx
     dockerfile: Dockerfile
     extra_files:
@@ -35,15 +35,15 @@ dockers:
       - --platform=linux/amd64
       - --label=org.opencontainers.image.title=JiraPanel
       - --label=org.opencontainers.image.description=JiraPanel
-      - --label=org.opencontainers.image.url=https://github.com/gi8lino/jirapanel
-      - --label=org.opencontainers.image.source=https://github.com/gi8lino/jirapanel
+      - --label=org.opencontainers.image.url=https://github.com/gi8lino/tiledash
+      - --label=org.opencontainers.image.source=https://github.com/gi8lino/tiledash
       - --label=org.opencontainers.image.version={{ .Version }}
       - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
       - --label=org.opencontainers.image.revision={{ .FullCommit }}
       - --label=org.opencontainers.image.licenses=GPL-3.0
 
 docker_manifests:
-  - name_template: ghcr.io/gi8lino/jirapanel:{{ .Tag }}
+  - name_template: ghcr.io/gi8lino/tiledash:{{ .Tag }}
     image_templates:
-      - ghcr.io/gi8lino/jirapanel:{{ .Tag }}
-      - ghcr.io/gi8lino/jirapanel:latest
+      - ghcr.io/gi8lino/tiledash:{{ .Tag }}
+      - ghcr.io/gi8lino/tiledash:latest

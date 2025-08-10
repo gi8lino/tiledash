@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gi8lino/jirapanel/internal/app"
+	"github.com/gi8lino/tiledash/internal/app"
 )
 
 var (

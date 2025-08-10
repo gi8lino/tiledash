@@ -7,8 +7,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/gi8lino/jirapanel/internal/templates"
-	"github.com/gi8lino/jirapanel/internal/testutils"
+	"github.com/gi8lino/tiledash/internal/templates"
+	"github.com/gi8lino/tiledash/internal/testutils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -128,7 +128,7 @@ func TestParseSectionErrorTemplate(t *testing.T) {
 		errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
 		require.NotNil(t, errTmpl)
 
-		result := errTmpl.Lookup("cell_error")
+		result := errTmpl.Lookup("tile_error")
 		require.NotNil(t, result)
 	})
 
@@ -137,22 +137,22 @@ func TestParseSectionErrorTemplate(t *testing.T) {
 
 		// Provide dummy base, footer, and error templates
 		webFS := fstest.MapFS{
-			"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}cell error{{end}}`)},
+			"web/templates/errors/tile.gohtml": &fstest.MapFile{Data: []byte(`{{define "tile_error"}}tile error{{end}}`)},
 		}
 
 		tmpl := templates.ParseCellErrorTemplate(webFS, template.FuncMap{})
 		require.NotNil(t, tmpl)
-		assert.NotNil(t, tmpl.Lookup("cell_error"))
+		assert.NotNil(t, tmpl.Lookup("tile_error"))
 	})
 
 	t.Run("fails if template is broken", func(t *testing.T) {
 		// Provide dummy base, footer, and error templates
 		webFS := fstest.MapFS{
-			"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}{{end`)}, // unclosed
+			"web/templates/errors/tile.gohtml": &fstest.MapFile{Data: []byte(`{{define "tile_error"}}{{end`)}, // unclosed
 		}
 
 		assert.PanicsWithError(t,
-			"template: cell.gohtml:1: unclosed action",
+			"template: tile.gohtml:1: unclosed action",
 			func() { templates.ParseCellErrorTemplate(webFS, template.FuncMap{}) },
 		)
 	})

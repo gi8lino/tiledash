@@ -8,11 +8,11 @@ import (
 
 // ParseBaseTemplates loads the base, footer, and error layout templates from webFS.
 func ParseBaseTemplates(webFS fs.FS, funcMap template.FuncMap) *template.Template {
-	// Use New("jirapanel") to avoid assigning a name to the root template.
+	// Use New("tiledash") to avoid assigning a name to the root template.
 	// This ensures that files like base.gohtml must explicitly declare {{define "base"}}
 	// in order to be invoked via ExecuteTemplate("base", ...), preventing accidental fallback behavior.
 	return template.Must(
-		template.New("jirapanel").
+		template.New("tiledash").
 			Funcs(funcMap).
 			ParseFS(webFS,
 				"web/templates/base.gohtml",
@@ -46,8 +46,8 @@ func ParseCellTemplates(templateDir string, funcMap template.FuncMap) (*template
 // ParseCellErrorTemplate returns a template that includes only the section error layout.
 func ParseCellErrorTemplate(webFS fs.FS, funcMap template.FuncMap) *template.Template {
 	return template.Must(
-		template.New("cell_error").
+		template.New("tile_error").
 			Funcs(funcMap).
-			ParseFS(webFS, "web/templates/errors/cell.gohtml"),
+			ParseFS(webFS, "web/templates/errors/tile.gohtml"),
 	)
 }

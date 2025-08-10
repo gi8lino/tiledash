@@ -5,7 +5,7 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/gi8lino/jirapanel/internal/templates"
+	"github.com/gi8lino/tiledash/internal/templates"
 )
 
 // renderErrorPage renders a simple error page. Never panics; always writes something.
@@ -36,17 +36,17 @@ func renderErrorPage(
 	}
 }
 
-// renderCellError renders a cell error using the "cell_error" template.
+// renderCellError renders a tile error using the "tile_error" template.
 func renderCellError(
 	w http.ResponseWriter,
 	status int,
-	cellErrTmpl *template.Template, // must contain "cell_error"
+	tileErrTmpl *template.Template, // must contain "tile_error"
 	re *templates.RenderError,
 ) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 
-	if tplErr := cellErrTmpl.ExecuteTemplate(w, "cell_error", re); tplErr != nil {
-		fmt.Fprintf(w, `<div class="alert alert-danger">Failed to render cell error: %s</div>`, tplErr)
+	if tplErr := tileErrTmpl.ExecuteTemplate(w, "tile_error", re); tplErr != nil {
+		fmt.Fprintf(w, `<div class="alert alert-danger">Failed to render tile error: %s</div>`, tplErr)
 	}
 }

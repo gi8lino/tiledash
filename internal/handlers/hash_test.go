@@ -10,7 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gi8lino/jirapanel/internal/config"
+	"github.com/gi8lino/tiledash/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,11 +45,11 @@ func TestHashHandler(t *testing.T) {
 		assert.Regexp(t, `^[a-f0-9]+$`, body)
 	})
 
-	t.Run("returns cell hash", func(t *testing.T) {
+	t.Run("returns tile hash", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.DashboardConfig{
-			Cells: []config.Cell{
+			Tiles: []config.Tile{
 				{
 					Title: "Cell One",
 				},
@@ -74,7 +74,7 @@ func TestHashHandler(t *testing.T) {
 		assert.Regexp(t, `^[a-f0-9]+$`, body)
 	})
 
-	t.Run("invalid cell id returns 400", func(t *testing.T) {
+	t.Run("invalid tile id returns 400", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.DashboardConfig{}
@@ -95,11 +95,11 @@ func TestHashHandler(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
 
-	t.Run("cell index out of bounds returns 404", func(t *testing.T) {
+	t.Run("tile index out of bounds returns 404", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.DashboardConfig{
-			Cells: []config.Cell{},
+			Tiles: []config.Tile{},
 		}
 		var logs bytes.Buffer
 		logger := slog.New(slog.NewTextHandler(&logs, nil))
