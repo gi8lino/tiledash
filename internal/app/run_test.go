@@ -8,8 +8,8 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/gi8lino/jirapanel/internal/app"
-	"github.com/gi8lino/jirapanel/internal/testutils"
+	"github.com/gi8lino/tiledash/internal/app"
+	"github.com/gi8lino/tiledash/internal/testutils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,235 +18,100 @@ import (
 func TestRun(t *testing.T) {
 	t.Parallel()
 
-	dummyEnv := func(key string) string { return "" }
-
+	// Minimal embedded FS with required base/error templates.
 	webFS := fstest.MapFS{
-		"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}{{end}}`)},
-		"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
-		"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
-		"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}{{end}}`)},
+		"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}ok{{end}}`)},
+		"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css{{end}}`)},
+		"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}cssd{{end}}`)},
+		"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}f{{end}}`)},
 		"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "page_error"}}err{{end}}`)},
-		"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}<!-- cell error -->{{end}}`)},
+		"web/templates/errors/tile.gohtml": &fstest.MapFile{Data: []byte(`{{define "tile_error"}}terr{{end}}`)},
 	}
 
-	t.Run("Success", func(t *testing.T) {
+	dummyEnv := func(string) string { return "" }
+
+	t.Run("Success (minimal config, empty tiles, ephemeral port)", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), 4*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 		defer cancel()
 
-		tmpDir := t.TempDir()
-		configPath := filepath.Join(tmpDir, "config.yaml")
-		templateDir := filepath.Join(tmpDir, "templates")
+		tmp := t.TempDir()
+		cfgPath := filepath.Join(tmp, "config.yaml")
+		tplDir := filepath.Join(tmp, "templates")
 
-		testutils.MustWriteFile(t, configPath, `
+		// Minimal valid config; no providers/tiles needed for startup.
+		testutils.MustWriteFile(t, cfgPath, `
 title: My Dashboard
-grid:
-  columns: 1
-  rows: 1
-cells:
-  - title: Section 1
-    query: filter=12345
-    template: test.gohtml
-    position: { row: 1, col: 1 }
-refreshInterval: 30s
+grid: { columns: 1, rows: 1 }
+refreshInterval: 1s
 `)
-
-		testutils.MustWriteFile(t, filepath.Join(templateDir, "test.gohtml"), `{{define "test"}}test{{end}}`)
-
-		args := []string{
-			"--config=" + configPath,
-			"--template-dir=" + templateDir,
-			"--jira-api-url=https://example.com/rest/api/2",
-			"--jira-email=foo@example.com",
-			"--jira-auth=xxx",
-		}
-
-		var buf bytes.Buffer
-
-		err := app.Run(ctx, webFS, "v1", "cafe", args, &buf, func(string) string { return "" })
-		require.NoError(t, err)
-	})
-
-	t.Run("Jira Auth Error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithTimeout(t.Context(), 4*time.Second)
-		defer cancel()
-
-		args := []string{
-			"--config=./examples/config.yaml",
-			"--template-dir=testdata/templates",
-			"--jira-api-url=https://example.com/rest/api/2",
-			"--jira-email=foo@example.com",
-			"--jira-auth=xxx",
-			"--jira-bearer-token=zzz", // both -> error
-		}
-
-		var buf bytes.Buffer
-		err := app.Run(ctx, webFS, "v1", "c0ffee", args, &buf, dummyEnv)
-
-		require.Error(t, err)
-		assert.EqualError(t, err, "parsing error: mutually exclusive flags used in group \"auth-method\": --jira-bearer-token vs [--jira-email, --jira-auth]")
-	})
-
-	t.Run("Help Requested", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithTimeout(t.Context(), 4*time.Second)
-		defer cancel()
-
-		var buf bytes.Buffer
-		err := app.Run(ctx, webFS, "v1", "deadbeef", []string{"--help"}, &buf, dummyEnv)
-
-		require.NoError(t, err)
-		assert.Contains(t, buf.String(), "Usage")
-	})
-
-	t.Run("Version Requested", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithTimeout(t.Context(), 4*time.Second)
-		defer cancel()
-
-		var buf bytes.Buffer
-		err := app.Run(ctx, webFS, "v1.2.3", "abc123", []string{"--version"}, &buf, dummyEnv)
-
-		require.NoError(t, err)
-		assert.Contains(t, buf.String(), "v1.2.3")
-	})
-
-	t.Run("Invalid Flag", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithTimeout(t.Context(), 4*time.Second)
-		defer cancel()
-
-		var buf bytes.Buffer
-		err := app.Run(ctx, webFS, "vX", "yyy", []string{"--unknown"}, &buf, dummyEnv)
-
-		require.Error(t, err)
-		assert.EqualError(t, err, "parsing error: unknown flag: --unknown")
-	})
-
-	t.Run("Config Error", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithTimeout(t.Context(), 4*time.Second)
-		defer cancel()
-
-		cfg := `
----
-title: My Jira Dashboard
-refreshInterval: 60s
-grid:
-  columns: 2
-  rows: 4
-cells:
-  - title: Env Epics
-    query: filter=17201
-    template: epics.gohtml
-    position: { row: 1, col: 1 }
-`
-
-		tmpdDir := t.TempDir()
-		cfgPath := filepath.Join(tmpdDir, "config.yaml")
-		testutils.MustWriteFile(t, cfgPath, cfg)
+		// Ensure tile template dir exists with at least one valid .gohtml,
+		// because handlers.TileHandler parses directory at router construction.
+		testutils.MustWriteFile(t, filepath.Join(tplDir, "dummy.gohtml"), `{{define "dummy"}}dummy{{end}}`)
 
 		args := []string{
 			"--config=" + cfgPath,
-			"--template-dir=testdata/templates",
-			"--jira-api-url=https://example.com/rest/api/2",
-			"--jira-email=foo@example.com",
-			"--jira-auth=xxx",
+			"--template-dir=" + tplDir,
+			"--listen-address=127.0.0.1:0", // avoid port conflicts
 		}
 
-		var buf bytes.Buffer
-		err := app.Run(ctx, webFS, "v1", "c0ffee", args, &buf, dummyEnv)
-
-		require.Error(t, err)
-		assert.EqualError(t, err, "validating config error: config has errors:\n  - section[0] (Env Epics): template \"epics.gohtml\" not found")
+		var out bytes.Buffer
+		err := app.Run(ctx, webFS, "v1", "deadbeef", args, &out, dummyEnv)
+		require.NoError(t, err)
 	})
 
-	t.Run("Config Validation Error", func(t *testing.T) {
+	t.Run("Help requested prints usage and returns nil", func(t *testing.T) {
 		t.Parallel()
 
-		ctx, cancel := context.WithTimeout(t.Context(), 4*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		defer cancel()
 
-		cfg := `
----
-title: My Jira Dashboard
-refreshInterval: 60s
-grid:
-  columns: 2
-  rows: 4
-cells:
-  - title: Env Epics
-    query: filter=17201
-    template: epics.gohtml
-    position: { row: 1, col: 1 }
-`
-
-		cfgdDir := t.TempDir()
-		cfgPath := filepath.Join(cfgdDir, "config.yaml")
-		testutils.MustWriteFile(t, cfgPath, cfg)
-
-		tmplDir := t.TempDir()
-		testutils.MustWriteFile(t, filepath.Join(tmplDir, "bad.gohtml"), `{{define "bad"}}bad{{end}}`)
-
-		args := []string{
-			"--config=" + cfgPath,
-			"--template-dir=" + tmplDir,
-			"--jira-api-url=https://example.com/rest/api/2",
-			"--jira-email=foo@example.com",
-			"--jira-auth=xxx",
-		}
-
-		var buf bytes.Buffer
-		err := app.Run(ctx, webFS, "v1", "c0ffee", args, &buf, dummyEnv)
-
-		require.Error(t, err)
-		assert.EqualError(t, err, "validating config error: config has errors:\n  - section[0] (Env Epics): template \"epics.gohtml\" not found")
+		var out bytes.Buffer
+		err := app.Run(ctx, webFS, "v1.2.3", "abc", []string{"--help"}, &out, dummyEnv)
+		require.NoError(t, err)
+		assert.Contains(t, out.String(), "Usage")
 	})
 
-	t.Run("ParseCellTemplates Error", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(t.Context(), 4*time.Second)
+	t.Run("Version requested prints version and returns nil", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 		defer cancel()
 
-		cfg := `
----
-title: My Jira Dashboard
-refreshInterval: 60s
-grid:
-  columns: 2
-  rows: 4
-cells:
-  - title: Env Epics
-    query: filter=17201
-    template: epics.gohtml
-    position: { row: 0, col: 0 }
-`
+		var out bytes.Buffer
+		err := app.Run(ctx, webFS, "v9.8.7", "cafebabe", []string{"--version"}, &out, dummyEnv)
+		require.NoError(t, err)
+		assert.Contains(t, out.String(), "v9.8.7")
+	})
 
-		cfgdDir := t.TempDir()
-		cfgPath := filepath.Join(cfgdDir, "config.yaml")
-		testutils.MustWriteFile(t, cfgPath, cfg)
+	t.Run("Unknown flag surfaces parsing error", func(t *testing.T) {
+		t.Parallel()
 
-		tmplDir := t.TempDir()
-		testutils.MustWriteFile(t, filepath.Join(tmplDir, "bad.gohtml"), `{{define "bad"}bad{{end}}`)
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		defer cancel()
 
-		args := []string{
-			"--config=" + cfgPath,
-			"--template-dir=" + tmplDir,
-			"--jira-api-url=https://example.com/rest/api/2",
-			"--jira-email=foo@example.com",
-			"--jira-auth=xxx",
-		}
-
-		var buf bytes.Buffer
-		err := app.Run(ctx, webFS, "v1", "c0ffee", args, &buf, dummyEnv)
-
+		var out bytes.Buffer
+		err := app.Run(ctx, webFS, "vX", "yyy", []string{"--totally-unknown"}, &out, dummyEnv)
 		require.Error(t, err)
-		assert.EqualError(t, err, "template parse error: template: bad.gohtml:1: unexpected \"}\" in define clause")
+		assert.EqualError(t, err, "parsing error: unknown flag: --totally-unknown")
+	})
+
+	t.Run("Missing config file surfaces load error", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		defer cancel()
+
+		var out bytes.Buffer
+		// Intentionally point to a non-existent file
+		args := []string{
+			"--config=/nope/does-not-exist.yaml",
+			"--template-dir=" + t.TempDir(),
+			"--listen-address=127.0.0.1:0",
+		}
+		err := app.Run(ctx, webFS, "v1", "deadbeef", args, &out, dummyEnv)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "loading config error: failed to read config file")
 	})
 }

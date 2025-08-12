@@ -10,89 +10,95 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/gi8lino/jirapanel/internal/config"
-	"github.com/gi8lino/jirapanel/internal/jira"
-	"github.com/gi8lino/jirapanel/internal/server"
-	"github.com/gi8lino/jirapanel/internal/testutils"
+	"github.com/gi8lino/tiledash/internal/config"
+	"github.com/gi8lino/tiledash/internal/providers"
+	"github.com/gi8lino/tiledash/internal/server"
+	"github.com/gi8lino/tiledash/internal/testutils"
 
 	"github.com/stretchr/testify/assert"
 )
 
+// mockRunner implements providers.Runner.
+type mockRunner struct {
+	fn func(ctx context.Context) (providers.Accumulator, int, int, error)
+}
+
+func (m mockRunner) Do(ctx context.Context) (providers.Accumulator, int, int, error) {
+	return m.fn(ctx)
+}
+
 func TestNewRouter(t *testing.T) {
 	t.Parallel()
 
-	// Minimal in-memory file system
+	// Minimal in-memory FS with required base templates + static assets.
 	webFS := fstest.MapFS{
-		// templates
-		"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}<html>Jira Panel>{{ template "footer" . }}</html>{{end}}`)},
+		// base templates
+		"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}<html>Tiledash>{{ template "footer" . }}</html>{{end}}`)},
 		"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
 		"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
 		"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}<footer>{{ .Version }}</footer>{{end}}`)},
 		"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "page_error"}}<!-- error -->{{end}}`)},
-		"web/templates/errors/cell.gohtml": &fstest.MapFile{Data: []byte(`{{define "cell_error"}}<!-- cell error -->{{end}}`)},
+		"web/templates/errors/tile.gohtml": &fstest.MapFile{Data: []byte(`{{define "tile_error"}}<!-- tile error -->{{end}}`)},
 
 		// static files
 		"web/static/css/bootstrap.min.css": &fstest.MapFile{Data: []byte(`/* bootstrap */`)},
-		"web/static/js/jirapanel.js":       &fstest.MapFile{Data: []byte(`// js code`)},
+		"web/static/js/tiledash.js":        &fstest.MapFile{Data: []byte(`// js code`)},
 	}
 
-	// Dummy dependencies
 	version := "vTEST"
 	debug := true
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 
-	// Dummy Jira client
-	client := &jira.Client{}
-
-	// Create real cell templates dir with at least one .gohtml file
+	// real template dir containing at least one .gohtml file used by TileHandler
 	tmpDir := t.TempDir()
 	testutils.MustWriteFile(t,
 		filepath.Join(tmpDir, "example.gohtml"),
-		`<div>{{.Title}}</div>`,
+		// define the template with the same name the handler executes
+		`{{define "example.gohtml"}}<div>{{.Title}}</div>{{end}}`,
 	)
 
 	t.Run("GET /", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.DashboardConfig{Title: "Home"}
+		var runners []providers.Runner // not used by "/" handler
+
+		router := server.NewRouter(webFS, tmpDir, cfg, logger, runners, debug, version)
+
 		req := httptest.NewRequest("GET", "/", nil)
 		rec := httptest.NewRecorder()
-
-		// Minimal valid config
-		cfg := config.DashboardConfig{}
-
-		// Build the router
-		router := server.NewRouter(webFS, tmpDir, client, cfg, logger, debug, version)
-
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "<html>Jira Panel><footer>vTEST</footer></html>", rec.Body.String())
+		assert.Equal(t, "<html>Tiledash><footer>vTEST</footer></html>", rec.Body.String())
 	})
 
 	t.Run("GET /static/css/bootstrap.min.css", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.DashboardConfig{}
+		var runners []providers.Runner
+
+		router := server.NewRouter(webFS, tmpDir, cfg, logger, runners, debug, version)
+
 		req := httptest.NewRequest("GET", "/static/css/bootstrap.min.css", nil)
 		rec := httptest.NewRecorder()
-
-		// Minimal valid config
-		cfg := config.DashboardConfig{}
-
-		// Build the router
-		router := server.NewRouter(webFS, tmpDir, client, cfg, logger, debug, version)
-
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Contains(t, rec.Body.String(), "bootstrap")
 	})
 
-	t.Run("GET /healthz", func(t *testing.T) {
+	t.Run("GET /healthz (GET)", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.DashboardConfig{}
+		var runners []providers.Runner
+
+		router := server.NewRouter(webFS, tmpDir, cfg, logger, runners, debug, version)
+
 		req := httptest.NewRequest("GET", "/healthz", nil)
 		rec := httptest.NewRecorder()
-
-		// Minimal valid config
-		cfg := config.DashboardConfig{}
-
-		// Build the router
-		router := server.NewRouter(webFS, tmpDir, client, cfg, logger, debug, version)
-
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -100,26 +106,26 @@ func TestNewRouter(t *testing.T) {
 	})
 
 	t.Run("POST /healthz", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.DashboardConfig{}
+		var runners []providers.Runner
+
+		router := server.NewRouter(webFS, tmpDir, cfg, logger, runners, debug, version)
+
 		req := httptest.NewRequest("POST", "/healthz", nil)
 		rec := httptest.NewRecorder()
-
-		// Minimal valid config
-		cfg := config.DashboardConfig{}
-
-		// Build the router
-		router := server.NewRouter(webFS, tmpDir, client, cfg, logger, debug, version)
-
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "ok", rec.Body.String())
 	})
 
-	t.Run("GET /cell/0", func(t *testing.T) {
+	t.Run("GET /api/v1/tile/0", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.DashboardConfig{
-			Cells: []config.Cell{
+			Tiles: []config.Tile{
 				{
 					Template: "example.gohtml",
 					Title:    "Hello",
@@ -127,64 +133,62 @@ func TestNewRouter(t *testing.T) {
 			},
 		}
 
-		mockClient := &testutils.MockClient{
-			SearchFn: func(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
-				return []byte(`{"issues":[{"fields":{"summary":"Mock issue"}}]}`), 200, nil
+		// Runner returns a minimal accumulator; templates.RenderCell uses .Title from cfg.
+		runners := []providers.Runner{
+			mockRunner{
+				fn: func(ctx context.Context) (providers.Accumulator, int, int, error) {
+					return providers.Accumulator{"merged": map[string]any{"ok": true}}, 1, http.StatusOK, nil
+				},
 			},
 		}
 
-		router := server.NewRouter(webFS, tmpDir, mockClient, cfg, logger, debug, version)
+		router := server.NewRouter(webFS, tmpDir, cfg, logger, runners, debug, version)
 
-		req := httptest.NewRequest("GET", "/api/v1/cell/0", nil)
+		req := httptest.NewRequest("GET", "/api/v1/tile/0", nil)
 		rec := httptest.NewRecorder()
-
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Contains(t, rec.Body.String(), "Hello")
 	})
 
-	t.Run("GET /hash/0", func(t *testing.T) {
+	t.Run("GET /api/v1/hash/0", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.DashboardConfig{
-			Cells: []config.Cell{
-				{
-					Template: "example", // will transormed to "example.html"
-					Title:    "Hashed",
-				},
+			Tiles: []config.Tile{
+				{Template: "example.gohtml", Title: "Hashed"},
 			},
 		}
-		router := server.NewRouter(webFS, tmpDir, client, cfg, logger, debug, version)
+		var runners []providers.Runner
+
+		router := server.NewRouter(webFS, tmpDir, cfg, logger, runners, debug, version)
 
 		req := httptest.NewRequest("GET", "/api/v1/hash/0", nil)
 		rec := httptest.NewRecorder()
-
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Regexp(t, `^[a-f0-9]+$`, rec.Body.String()) // hex hash
+		assert.Regexp(t, `^[a-f0-9]+$`, rec.Body.String())
 	})
 
-	t.Run("GET /hash/config", func(t *testing.T) {
+	t.Run("GET /api/v1/hash/config", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.DashboardConfig{
-			Cells: []config.Cell{
-				{
-					Template: "example.html",
-					Title:    "ConfigHash",
-				},
+			Tiles: []config.Tile{
+				{Template: "example.gohtml", Title: "ConfigHash"},
 			},
 		}
-		router := server.NewRouter(webFS, tmpDir, client, cfg, logger, debug, version)
+		var runners []providers.Runner
+
+		router := server.NewRouter(webFS, tmpDir, cfg, logger, runners, debug, version)
 
 		req := httptest.NewRequest("GET", "/api/v1/hash/config", nil)
 		rec := httptest.NewRecorder()
-
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Regexp(t, `^[a-f0-9]+$`, rec.Body.String()) // hex hash
+		assert.Regexp(t, `^[a-f0-9]+$`, rec.Body.String())
 	})
 }

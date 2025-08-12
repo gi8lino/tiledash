@@ -2,17 +2,17 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: jirapanel
+  name: tiledash
 spec:
   ingressClassName: nginx
   rules:
-    - host: jirapanel.example.com
+    - host: tiledash.example.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: jirapanel
+                name: tiledash
                 port:
                   name: http

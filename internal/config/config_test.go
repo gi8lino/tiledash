@@ -19,21 +19,22 @@ func assertCSS(t *testing.T, expected string, actual template.CSS) {
 func TestLoadConfig(t *testing.T) {
 	t.Parallel()
 
-	t.Run("loads valid YAML file", func(t *testing.T) {
+	t.Run("loads valid YAML file (new schema)", func(t *testing.T) {
 		t.Parallel()
 
 		yaml := `
 grid:
   rows: 2
   columns: 2
-cells:
-  - title: Sample
-    query: SELECT *
-    template: box
-    position: { row: 0, col: 0 }
 refreshInterval: 30s
+tiles:
+  - title: Sample
+    template: box.gohtml
+    position: { row: 1, col: 1 }
+    request:
+      provider: p
+      path: /x
 `
-
 		tmp, err := os.CreateTemp("", "test-config-*.yaml")
 		require.NoError(t, err)
 		defer os.Remove(tmp.Name()) // nolint:errcheck
@@ -47,8 +48,8 @@ refreshInterval: 30s
 
 		assert.Equal(t, 2, cfg.Grid.Rows)
 		assert.Equal(t, 2, cfg.Grid.Columns)
-		assert.Equal(t, 1, len(cfg.Cells))
-		assert.Equal(t, "Sample", cfg.Cells[0].Title)
+		require.Len(t, cfg.Tiles, 1)
+		assert.Equal(t, "Sample", cfg.Tiles[0].Title)
 	})
 
 	t.Run("fails if file missing", func(t *testing.T) {
@@ -66,17 +67,26 @@ func TestValidateConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid: Grid{
+			Grid: &GridConfig{
 				Rows:    1,
 				Columns: 1,
 			},
-			RefreshInterval: 60,
-			Cells: []Cell{
+			RefreshInterval: 60 * time.Second,
+			Providers: map[string]Provider{
+				"p": { // minimal provider; details validated elsewhere
+					// SkipTLSVerify will be defaulted by setProviderDefaults
+				},
+			},
+			Tiles: []Tile{
 				{
 					Title:    "A",
-					Query:    "SELECT",
 					Template: "card.gohtml",
 					Position: Position{Row: 1, Col: 1},
+					Request: Request{
+						Provider: "p",
+						Method:   "GET",
+						Path:     "/ok",
+					},
 				},
 			},
 		}
@@ -87,29 +97,31 @@ func TestValidateConfig(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("rejects invalid config", func(t *testing.T) {
+	t.Run("rejects invalid config (many errors)", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            Grid{Rows: 1, Columns: 2},
-			RefreshInterval: 0,
-			Cells: []Cell{
+			Grid:            &GridConfig{Rows: 1, Columns: 2},
+			RefreshInterval: 0,                     // triggers refresh error
+			Providers:       map[string]Provider{}, // triggers providers empty error
+			Tiles: []Tile{
 				{
 					Title:    "",
-					Query:    "",
-					Template: "missing",
+					Template: "missing", // no .gohtml
 					Position: Position{Row: 99, Col: 99},
+					Request:  Request{}, // no provider, no path
 				},
 				{
 					Title:    "invalid",
-					Query:    "",
+					Template: "", // required
 					Position: Position{Row: -1, Col: -1},
+					Request:  Request{}, // no provider, no path
 				},
 				{
 					Title:    "not-found",
-					Query:    "not-found",
+					Template: "not-fond.gohtml", // template not in set
 					Position: Position{Row: 1, Col: 1},
-					Template: "not-fond.gohtml",
+					Request:  Request{}, // no provider, no path
 				},
 			},
 		}
@@ -121,18 +133,32 @@ func TestValidateConfig(t *testing.T) {
 
 		expected := []string{
 			"  - refreshInterval must be > 0",
-			"  - section[0]: title is required",
-			"  - section[0]: query is required",
-			"  - section[0]: template \"missing\" must end with \".gohtml\"",
-			"  - section[0]: row 99 out of bounds (max 1)",
-			"  - section[0]: col 99 out of bounds (max 2)",
-			"  - section[0]: colSpan 1 overflows grid width 2",
-			"  - section[1] (invalid): query is required",
-			"  - section[1] (invalid): template is required",
-			"  - section[1] (invalid): row -1 out of bounds (min 1)",
-			"  - section[1] (invalid): col -1 out of bounds (min 1)",
-			"  - section[1] (invalid): colSpan 1 out of bounds (min 1)",
-			"  - section[2] (not-found): template \"not-fond.gohtml\" not found",
+			"  - providers must not be empty when tiles are defined",
+
+			// tile[0]
+			`  - tile[0]: title is required`,
+			`  - tile[0]: template "missing" must end with ".gohtml"`,
+			`  - tile[0]: request.provider is required`,
+			`  - tile[0]: request.path is required`,
+			"  - tile[0]: row 99 out of bounds (max 1)",
+			"  - tile[0]: col 99 out of bounds (max 2)",
+			"  - tile[0]: colSpan 1 overflows grid width 2",
+			`  - tile[0]: unknown provider ""`,
+
+			// tile[1]
+			"  - tile[1] (invalid): template is required",
+			"  - tile[1] (invalid): request.provider is required",
+			"  - tile[1] (invalid): request.path is required",
+			"  - tile[1] (invalid): row -1 out of bounds (min 1)",
+			"  - tile[1] (invalid): col -1 out of bounds (min 1)",
+			"  - tile[1] (invalid): colSpan 1 out of bounds (min 1)",
+			`  - tile[1] (invalid): unknown provider ""`,
+
+			// tile[2]
+			`  - tile[2] (not-found): template "not-fond.gohtml" not found`,
+			"  - tile[2] (not-found): request.provider is required",
+			"  - tile[2] (not-found): request.path is required",
+			`  - tile[2] (not-found): unknown provider ""`,
 		}
 
 		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
@@ -142,7 +168,7 @@ func TestValidateConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            Grid{Rows: 0, Columns: 0},
+			Grid:            &GridConfig{Rows: 0, Columns: 0},
 			RefreshInterval: 0,
 		}
 
@@ -160,24 +186,27 @@ func TestValidateConfig(t *testing.T) {
 		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
 	})
 
-	t.Run("overlapping cell config", func(t *testing.T) {
+	t.Run("overlapping tile config", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            Grid{Rows: 1, Columns: 2},
+			Grid:            &GridConfig{Rows: 1, Columns: 2},
 			RefreshInterval: 2 * time.Second,
-			Cells: []Cell{
+			Providers: map[string]Provider{
+				"p": {},
+			},
+			Tiles: []Tile{
 				{
 					Title:    "valid",
-					Query:    "valid",
 					Template: "valid.gohtml",
 					Position: Position{Row: 1, Col: 1},
+					Request:  Request{Provider: "p", Path: "/a"},
 				},
 				{
 					Title:    "overlapping",
-					Query:    "query",
 					Template: "overlapping.gohtml",
 					Position: Position{Row: 1, Col: 1},
+					Request:  Request{Provider: "p", Path: "/b"},
 				},
 			},
 		}
@@ -188,7 +217,7 @@ func TestValidateConfig(t *testing.T) {
 		require.Error(t, err)
 
 		expected := []string{
-			"  - section[1] (overlapping): overlaps cell (1,1) used by section \"valid\"",
+			`  - tile[1] (overlapping): overlaps tile (1,1) used by "valid"`,
 		}
 
 		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
@@ -198,14 +227,17 @@ func TestValidateConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            Grid{Rows: 1, Columns: 2},
+			Grid:            &GridConfig{Rows: 1, Columns: 2},
 			RefreshInterval: 2 * time.Second,
-			Cells: []Cell{
+			Providers: map[string]Provider{
+				"p": {},
+			},
+			Tiles: []Tile{
 				{
 					Title:    "almost valid",
-					Query:    "some query",
 					Template: "almost.gohtml",
-					Position: Position{Row: 1, Col: 1, ColSpan: 4},
+					Position: Position{Row: 1, Col: 1, ColSpan: 4}, // overflow
+					Request:  Request{Provider: "p", Path: "/x"},
 				},
 			},
 		}
@@ -216,7 +248,7 @@ func TestValidateConfig(t *testing.T) {
 		require.Error(t, err)
 
 		expected := []string{
-			"  - section[0] (almost valid): colSpan 4 overflows grid width 2",
+			"  - tile[0] (almost valid): colSpan 4 overflows grid width 2",
 		}
 
 		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
@@ -226,14 +258,15 @@ func TestValidateConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            Grid{Rows: 1, Columns: 1},
+			Grid:            &GridConfig{Rows: 1, Columns: 1},
 			RefreshInterval: 10 * time.Second,
-			Cells: []Cell{
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
 				{
 					Title:    "basic",
-					Query:    "JQL",
 					Template: "default.gohtml",
 					Position: Position{Row: 1, Col: 1},
+					Request:  Request{Provider: "p", Path: "/x"},
 				},
 			},
 			Customization: nil, // explicitly not set
@@ -243,7 +276,6 @@ func TestValidateConfig(t *testing.T) {
 		err := ValidateConfig(&cfg, tmpl)
 		require.NoError(t, err)
 
-		// customization should be initialized with default values
 		require.NotNil(t, cfg.Customization)
 		assert.Equal(t, defaultGridGap, cfg.Customization.Grid.Gap)
 		assert.Equal(t, defaultFontSize, cfg.Customization.Font.Size)
@@ -253,21 +285,22 @@ func TestValidateConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            Grid{Rows: 1, Columns: 1},
+			Grid:            &GridConfig{Rows: 1, Columns: 1},
 			RefreshInterval: 30 * time.Second,
-			Cells: []Cell{
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
 				{
 					Title:    "styled",
-					Query:    "Q",
 					Template: "t.gohtml",
 					Position: Position{Row: 1, Col: 1},
+					Request:  Request{Provider: "p", Path: "/x"},
 				},
 			},
 			Customization: &Customization{
-				Grid: GridStyle{
+				Grid: CustomGrid{
 					Gap: "4rem",
 				},
-				Font: FontStyle{
+				Font: CustomFont{
 					Family: "Fira Code",
 				},
 			},
@@ -292,14 +325,15 @@ func TestValidateConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            Grid{Rows: 1, Columns: 1},
-			RefreshInterval: 10,
-			Cells: []Cell{
+			Grid:            &GridConfig{Rows: 1, Columns: 1},
+			RefreshInterval: 10 * time.Second,
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
 				{
 					Title:    "missing extension",
-					Query:    "SELECT",
 					Template: "template-without-extension", // no .gohtml
 					Position: Position{Row: 1, Col: 1},
+					Request:  Request{Provider: "p", Path: "/x"},
 				},
 			},
 		}
@@ -310,7 +344,7 @@ func TestValidateConfig(t *testing.T) {
 		require.Error(t, err)
 
 		expected := []string{
-			"  - section[0] (missing extension): template \"template-without-extension\" must end with \".gohtml\"",
+			`  - tile[0] (missing extension): template "template-without-extension" must end with ".gohtml"`,
 		}
 
 		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
@@ -320,14 +354,15 @@ func TestValidateConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            Grid{Rows: 1, Columns: 2},
-			RefreshInterval: 10,
-			Cells: []Cell{
+			Grid:            &GridConfig{Rows: 1, Columns: 2},
+			RefreshInterval: 10 * time.Second,
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
 				{
 					Title:    "default span",
-					Query:    "q",
 					Template: "default.gohtml",
-					Position: Position{Row: 1, Col: 1, ColSpan: 0}, // should default to 1
+					Position: Position{Row: 1, Col: 1, ColSpan: 0}, // should default to 1 for bounds check
+					Request:  Request{Provider: "p", Path: "/x"},
 				},
 			},
 		}
@@ -341,14 +376,15 @@ func TestValidateConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            Grid{Rows: 1, Columns: 2},
-			RefreshInterval: 10,
-			Cells: []Cell{
+			Grid:            &GridConfig{Rows: 1, Columns: 2},
+			RefreshInterval: 10 * time.Second,
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
 				{
 					Title:    "wide",
-					Query:    "q",
 					Template: "wide.gohtml",
 					Position: Position{Row: 1, Col: 2, ColSpan: 2},
+					Request:  Request{Provider: "p", Path: "/x"},
 				},
 			},
 		}
@@ -364,19 +400,20 @@ func TestValidateConfig(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            Grid{Rows: 2, Columns: 2},
-			RefreshInterval: 10,
-			Cells: []Cell{
+			Grid:            &GridConfig{Rows: 2, Columns: 2},
+			RefreshInterval: 10 * time.Second,
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
 				{
 					Title:    "zero-based",
-					Query:    "q",
-					Template: "cell.gohtml",
+					Template: "tile.gohtml",
 					Position: Position{Row: 0, Col: 0},
+					Request:  Request{Provider: "p", Path: "/x"},
 				},
 			},
 		}
 
-		tmpl := tmplWith(t, "cell.gohtml")
+		tmpl := tmplWith(t, "tile.gohtml")
 		err := ValidateConfig(&cfg, tmpl)
 		require.Error(t, err)
 
@@ -390,7 +427,7 @@ func tmplWith(t *testing.T, names ...string) *template.Template {
 	t.Helper()
 	tmpl := template.New("base")
 	for _, name := range names {
-		tmpl.New(name).Parse("template " + name) // nolint:errcheck
+		template.Must(tmpl.New(name).Parse("template " + name))
 	}
 	return tmpl
 }
@@ -421,23 +458,23 @@ func TestSetStyleDefaults(t *testing.T) {
 		t.Parallel()
 
 		c := &Customization{
-			Grid: GridStyle{
+			Grid: CustomGrid{
 				Gap:       "2rem",
 				Padding:   "3rem",
 				MarginTop: "4rem",
 			},
-			Card: CardStyle{
+			Card: CustomCard{
 				BorderColor:     "blue",
 				Padding:         "2px",
 				BackgroundColor: "#000",
 				BorderRadius:    "8px",
 				BoxShadow:       "none",
 			},
-			Header: HeaderStyle{
+			Header: CustomHeader{
 				Align:        "center",
 				MarginBottom: "5rem",
 			},
-			Font: FontStyle{
+			Font: CustomFont{
 				Family: "monospace",
 				Size:   "18px",
 			},
@@ -463,7 +500,7 @@ func TestSetStyleDefaults(t *testing.T) {
 		t.Parallel()
 
 		c := &Customization{
-			Font: FontStyle{
+			Font: CustomFont{
 				Family: "Segoe UI, sans-serif",
 				Size:   "16px",
 			},
@@ -497,7 +534,7 @@ func TestSortCellsByPosition(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Cells: []Cell{
+			Tiles: []Tile{
 				{Title: "C", Position: Position{Row: 2, Col: 1}},
 				{Title: "A", Position: Position{Row: 1, Col: 2}},
 				{Title: "B", Position: Position{Row: 1, Col: 1}},
@@ -508,8 +545,8 @@ func TestSortCellsByPosition(t *testing.T) {
 		cfg.SortCellsByPosition()
 
 		titles := []string{}
-		for _, cell := range cfg.Cells {
-			titles = append(titles, cell.Title)
+		for _, tile := range cfg.Tiles {
+			titles = append(titles, tile.Title)
 		}
 
 		assert.Equal(t, []string{"B", "A", "C", "D"}, titles)
@@ -519,7 +556,7 @@ func TestSortCellsByPosition(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Cells: []Cell{
+			Tiles: []Tile{
 				{Title: "First", Position: Position{Row: 1, Col: 1}},
 				{Title: "Second", Position: Position{Row: 1, Col: 1}},
 			},
@@ -527,8 +564,8 @@ func TestSortCellsByPosition(t *testing.T) {
 
 		cfg.SortCellsByPosition()
 
-		assert.Equal(t, "First", cfg.Cells[0].Title)
-		assert.Equal(t, "Second", cfg.Cells[1].Title)
+		assert.Equal(t, "First", cfg.Tiles[0].Title)
+		assert.Equal(t, "Second", cfg.Tiles[1].Title)
 	})
 
 	t.Run("sorts empty slice safely", func(t *testing.T) {
@@ -537,7 +574,7 @@ func TestSortCellsByPosition(t *testing.T) {
 		cfg := DashboardConfig{}
 		cfg.SortCellsByPosition()
 
-		assert.Empty(t, cfg.Cells)
+		assert.Empty(t, cfg.Tiles)
 	})
 }
 
@@ -574,32 +611,32 @@ func TestValidateCSSs(t *testing.T) {
 	t.Run("no errors for sane customization", func(t *testing.T) {
 		t.Parallel()
 		c := &Customization{
-			Grid: GridStyle{
+			Grid: CustomGrid{
 				Gap:          "2rem",
 				Padding:      "0rem",
 				MarginTop:    "1rem",
 				MarginBottom: "1rem",
 			},
-			Card: CardStyle{
+			Card: CustomCard{
 				BorderColor:     "#ccc",
 				Padding:         "1rem",
 				BackgroundColor: "#fff",
 				BorderRadius:    "0.5rem",
 				BoxShadow:       "0 2px 4px rgba(0,0,0,0.05)",
 			},
-			Header: HeaderStyle{
+			Header: CustomHeader{
 				Align:        "center",
 				MarginBottom: "0.5rem",
 			},
-			Footer: FooterStyle{
+			Footer: CustomFooter{
 				MarginTop: "1rem",
 			},
-			Font: FontStyle{
+			Font: CustomFont{
 				Family: "Segoe UI, sans-serif",
 				Size:   "16px",
 			},
 		}
-		setStyleDefaults(c) // should be safe regardless
+		setStyleDefaults(c) // safe regardless
 		errs := validateCSSs(c)
 		require.Empty(t, errs)
 	})
@@ -607,13 +644,13 @@ func TestValidateCSSs(t *testing.T) {
 	t.Run("collects all illegal char errors", func(t *testing.T) {
 		t.Parallel()
 		c := &Customization{
-			Grid: GridStyle{
+			Grid: CustomGrid{
 				Gap: "2rem", // ok
 			},
-			Card: CardStyle{
+			Card: CustomCard{
 				BorderColor: `#fff"`, // illegal quote
 			},
-			Font: FontStyle{
+			Font: CustomFont{
 				Family: "monospace<", // illegal <
 				Size:   "16px",       // ok
 			},
@@ -622,5 +659,87 @@ func TestValidateCSSs(t *testing.T) {
 		require.Len(t, errs, 2)
 		assert.Contains(t, strings.Join(errs, "\n"), `card.borderColor: contains illegal character '"'`)
 		assert.Contains(t, strings.Join(errs, "\n"), `font.family: contains illegal character '<'`)
+	})
+}
+
+// TestSetProviderDefaults validates defaulting of SkipTLSVerify.
+func TestSetProviderDefaults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("defaults SkipTLSVerify to false", func(t *testing.T) {
+		t.Parallel()
+		cfg := DashboardConfig{
+			Providers: map[string]Provider{
+				"p1": {}, // SkipTLSVerify is nil
+			},
+		}
+		setProviderDefaults(&cfg)
+		if cfg.Providers["p1"].SkipTLSVerify == nil || *cfg.Providers["p1"].SkipTLSVerify != false {
+			t.Fatalf("SkipTLSVerify default not applied")
+		}
+	})
+}
+
+func TestValidateProvidersAuth(t *testing.T) {
+	t.Parallel()
+
+	t.Run("both basic and bearer set", func(t *testing.T) {
+		t.Parallel()
+		cfg := DashboardConfig{
+			Providers: map[string]Provider{
+				"p": {
+					Auth: AuthConfig{
+						Basic:  &BasicAuth{Username: "u", Password: "p"},
+						Bearer: &BearerAuth{Token: "t"},
+					},
+				},
+			},
+		}
+		errs := validateProvidersAuth(&cfg)
+		if len(errs) != 1 {
+			t.Fatalf("expected 1 error, got %d: %v", len(errs), errs)
+		}
+	})
+
+	t.Run("basic missing username or password", func(t *testing.T) {
+		t.Parallel()
+		cfg := DashboardConfig{
+			Providers: map[string]Provider{
+				"p1": {Auth: AuthConfig{Basic: &BasicAuth{Username: "", Password: "x"}}},
+				"p2": {Auth: AuthConfig{Basic: &BasicAuth{Username: "x", Password: ""}}},
+			},
+		}
+		errs := validateProvidersAuth(&cfg)
+		if len(errs) != 2 {
+			t.Fatalf("expected 2 errors, got %d: %v", len(errs), errs)
+		}
+	})
+
+	t.Run("bearer missing token", func(t *testing.T) {
+		t.Parallel()
+		cfg := DashboardConfig{
+			Providers: map[string]Provider{
+				"p": {Auth: AuthConfig{Bearer: &BearerAuth{Token: ""}}},
+			},
+		}
+		errs := validateProvidersAuth(&cfg)
+		if len(errs) != 1 {
+			t.Fatalf("expected 1 error, got %d: %v", len(errs), errs)
+		}
+	})
+
+	t.Run("no auth or single valid method is OK", func(t *testing.T) {
+		t.Parallel()
+		cfg := DashboardConfig{
+			Providers: map[string]Provider{
+				"none":  {},
+				"basic": {Auth: AuthConfig{Basic: &BasicAuth{Username: "u", Password: "p"}}},
+				"bear":  {Auth: AuthConfig{Bearer: &BearerAuth{Token: "t"}}},
+			},
+		}
+		errs := validateProvidersAuth(&cfg)
+		if len(errs) != 0 {
+			t.Fatalf("expected no errors, got %d: %v", len(errs), errs)
+		}
 	})
 }

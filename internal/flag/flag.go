@@ -1,104 +1,49 @@
 package flag
 
 import (
-	"fmt"
 	"io"
 	"net"
-	"net/url"
-	"strings"
-	"time"
+	"path/filepath"
 
 	"github.com/containeroo/tinyflags"
-	"github.com/gi8lino/jirapanel/internal/logging"
+	"github.com/gi8lino/tiledash/internal/logging"
 )
 
 // Config holds all application and Jira-specific configuration.
 type Config struct {
-	ListenAddr        string            // HTTP bind address (e.g. ":8080")
-	APIToken          string            // Shared token to authorize external API calls
-	JiraAPIURL        *url.URL          // Parsed Jira REST base URL (must end with /rest/api/2 or /3)
-	JiraTimeout       time.Duration     // Timeout for Jira API requests
-	JiraEmail         string            // Email for cloud/basic authentication
-	JiraAuth          string            // API token or password
-	JiraBearerToken   string            // Bearer token for self-hosted Jira
-	JiraSkipTLSVerify bool              // If true, disables TLS verification
-	Debug             bool              // Enables debug logging
-	LogFormat         logging.LogFormat // Log output format (text or json)
-	Config            string            // Path to config file
-	TemplateDir       string            // Path to template directory
+	ListenAddr  string            // HTTP bind address (e.g. ":8080")
+	Debug       bool              // Enables debug logging
+	LogFormat   logging.LogFormat // Log output format (text or json)
+	Config      string            // Path to config file
+	TemplateDir string            // Path to template directory
 }
 
 // ParseArgs parses CLI arguments into Config, handling version/help flags.
 func ParseArgs(version string, args []string, out io.Writer, getEnv func(string) string) (Config, error) {
 	var cfg Config
-	tf := tinyflags.NewFlagSet("jirapanel", tinyflags.ContinueOnError)
+	tf := tinyflags.NewFlagSet("tiledash", tinyflags.ContinueOnError)
 	tf.Version(version)
 	tf.SetGetEnvFn(getEnv) // useful for testing
-	tf.EnvPrefix("JIRAPANEL")
+	tf.EnvPrefix("TILEDASH")
 	tf.SetOutput(out)
 
 	// Server
 	tf.StringVar(&cfg.Config, "config", "config.yaml", "Path to config file").
 		Value()
-	tf.StringVar(&cfg.TemplateDir, "template-dir", "templates", "Path to template directory. ").
+
+	tf.StringVar(&cfg.TemplateDir, "template-dir", "./templates", "Path to template directory").
+		// Finalize only works if user has set a value
+		Finalize(func(s string) string {
+			if !filepath.IsAbs(s) {
+				base := filepath.Dir(".")
+				path, _ := filepath.Abs(filepath.Join(base, s))
+				return path
+			}
+			return s
+		}).
 		Value()
 	listenAddr := tf.TCPAddr("listen-address", &net.TCPAddr{IP: nil, Port: 8080}, "HTTP server listen address").
 		Placeholder("ADDR:PORT").
-		Value()
-
-	// Jira connection
-	tf.URLVar(&cfg.JiraAPIURL, "jira-api-url", &url.URL{}, "Base Jira REST API URL (e.g. https://org.atlassian.net/rest/api/3)").
-		Finalize(func(u *url.URL) *url.URL {
-			// Clone to avoid mutating the original (optional, if needed)
-			u2 := *u
-			if len(u2.Path) > 0 && u2.Path[len(u2.Path)-1] != '/' {
-				u2.Path += "/"
-			}
-			return &u2
-		}).
-		Validate(func(u *url.URL) error {
-			switch u.Path {
-			case "/rest/api/2/", "/rest/api/3/", "/rest/api/2", "/rest/api/3":
-				return nil
-			default:
-				return fmt.Errorf("URL path must end with /rest/api/2 or /rest/api/3, got %q", u.Path)
-			}
-		}).
-		Placeholder("URL").
-		Value()
-	tf.DurationVar(&cfg.JiraTimeout, "jira-timeout", 10*time.Second, "Timeout for Jira API requests").
-		Validate(func(d time.Duration) error {
-			if d < 1 {
-				return fmt.Errorf("timeout must be > 0")
-			}
-			return nil
-		}).
-		Value()
-
-	// Jira authentication
-	tf.StringVar(&cfg.JiraEmail, "jira-email", "", "Email for cloud/basic authentication").
-		Validate(func(email string) error {
-			if !strings.Contains(email, "@") {
-				return fmt.Errorf("email must contain @")
-			}
-			return nil
-		}).
-		AllOrNone("basic-auth").
-		Placeholder("EMAIL").
-		Value()
-	tf.StringVar(&cfg.JiraAuth, "jira-auth", "", "Password or API token (used with --jira-email)").
-		Placeholder("TOKEN").
-		AllOrNone("basic-auth").
-		Value()
-	tf.GetOneOfGroup("auth-method").
-		AddGroup(tf.GetAllOrNoneGroup("basic-auth"))
-
-	tf.StringVar(&cfg.JiraBearerToken, "jira-bearer-token", "", "Bearer token for self-hosted Jira").
-		OneOfGroup("auth-method").
-		Placeholder("BEARER").
-		Value()
-
-	tf.BoolVar(&cfg.JiraSkipTLSVerify, "jira-skip-tls-verify", false, "Disable TLS verification for Jira connections").
 		Value()
 
 	// Logging
@@ -116,6 +61,11 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 	// This needs to be done after parsing, since the flag value is not set until after the Parse call.
 	cfg.LogFormat = logging.LogFormat(*logFormat)
 	cfg.ListenAddr = (*listenAddr).String()
+	if cfg.TemplateDir == "./templates" {
+		// Finalize only works if user has set a value, not for defaults
+		base := filepath.Dir(".")
+		cfg.TemplateDir = filepath.Join(base, cfg.TemplateDir)
+	}
 
 	return cfg, nil
 }

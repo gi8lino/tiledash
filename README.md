@@ -1,296 +1,237 @@
-# JiraPanel
+# tiledash (formerly **JiraPanel**)
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/gi8lino/jira-panel?style=flat-square)](https://goreportcard.com/report/github.com/gi8lino/jira-panel)
-[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/gi8lino/jira-panel)
-[![Release](https://img.shields.io/github/release/gi8lino/jira-panel.svg?style=flat-square)](https://github.com/gi8lino/jira-panel/releases/latest)
-[![GitHub tag](https://img.shields.io/github/tag/gi8lino/jira-panel.svg?style=flat-square)](https://github.com/gi8lino/jira-panel/releases/latest)
-![Tests](https://github.com/gi8lino/jira-panel/actions/workflows/tests.yml/badge.svg)
-[![Build](https://github.com/gi8lino/jira-panel/actions/workflows/release.yml/badge.svg)](https://github.com/gi8lino/jira-panel/actions/workflows/release.yml)
-[![license](https://img.shields.io/github/license/gi8lino/jira-panel.svg?style=flat-square)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gi8lino/tiledash?style=flat-square)](https://goreportcard.com/report/github.com/gi8lino/tiledash)
+[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/gi8lino/tiledash)
+[![Release](https://img.shields.io/github/release/gi8lino/tiledash.svg?style=flat-square)](https://github.com/gi8lino/tiledash/releases/latest)
+[![GitHub tag](https://img.shields.io/github/tag/gi8lino/tiledash.svg?style=flat-square)](https://github.com/gi8lino/tiledash/releases/latest)
+![Tests](https://github.com/gi8lino/tiledash/actions/workflows/tests.yml/badge.svg)
+[![Build](https://github.com/gi8lino/tiledash/actions/workflows/release.yml/badge.svg)](https://github.com/gi8lino/tiledash/actions/workflows/release.yml)
+[![license](https://img.shields.io/github/license/gi8lino/tiledash.svg?style=flat-square)](LICENSE)
 
-**JiraPanel** is a flexible, self-hosted dashboard for visualizing data from your Jira Cloud or Server instance using templates and JQL queries.
+## What changed?
+
+This project was previously called **JiraPanel**. It’s now **tiledash** with a more general model:
+
+- ✅ Not just Jira — **any HTTP API** via “providers”
+- ✅ First-class **pagination** (query or body)
+- ✅ Request-level **TTL caching**
+- ✅ Cleaner config & validation, generic **auth** (basic or bearer)
+- ✅ Go templates as before, but a clearer **data shape** for paginated responses
+
+If you used JiraPanel, see **Migration notes** at the end.
 
 ## Features
 
-- 📊 Multiple dashboard grid cells rendered from Go HTML templates
-- 🧾 Query Jira issues using JQL or saved filters
-- 🎯 1-based grid layout configuration
-- 🔁 Auto-refresh support (configurable interval)
-- 🧰 Simple CLI or environment variable setup
-- 🧠 Debug mode for visualizing layout structure
-- 🎨 Full visual customization via YAML
+- 🧱 Grid of tiles rendered from Go HTML templates
+- 🌍 Pluggable **providers** (base URL + auth) you can reuse across tiles
+- 🔎 Flexible per-tile request: method, path, query/headers, raw or JSON body
+- 📑 **Pagination** (query/body) with automatic page merging + de-dup
+- ⚡ Per-request **cache TTL**
+- 🔁 Auto-refresh interval for the whole dashboard
+- 🎨 CSS-like **customization** via YAML (fonts, spacing, cards)
+- 🧰 Minimal CLI (config path, template dir, bind address, logs)
+- 🧪 Simple **mock server** for local development
 
-## 🚀 How It Works
+## How it works
 
-JiraPanel renders a dynamic HTML dashboard by combining a **base layout template** (`base.gohtml`) with **per-cell content** fetched and rendered individually.
+1. The dashboard (`/`) renders the grid shell.
+2. The browser fetches each tile from `/api/v1/tile/{id}`.
+3. The server executes the configured HTTP request (and pagination if enabled).
+4. JSON is decoded and passed to the tile’s `.gohtml` template.
+5. Failures render an error partial instead of breaking the page.
 
-### Rendering Flow
+Each tile is independent.
 
-1. **Dashboard page (`/`)** renders the grid and placeholders.
-2. **JavaScript fetches each cell** from `/api/v1/cells/{id}`.
-3. Server executes the cell's **JQL query** and renders the **associated template**.
-4. If errors occur, a fallback template (`cell_error.gohtml`) is used.
+## Configuration
 
-Each cell is rendered independently, allowing fast and fault-tolerant dashboards.
+tiledash is configured with a single **YAML** file plus a folder of `.gohtml` templates.
 
-## 📁 Configuration Overview
-
-You configure the dashboard using:
-
-- A `config.yaml` file
-- `.gohtml` templates for each cell
-- A CLI or environment flags for server setup
-
-### 🧾 `config.yaml`
-
-This is your main dashboard layout and data source file.
-
-#### 🧱 Top-Level Keys
-
-| Key               | Type     | Description                                  |
-| :---------------- | :------- | :------------------------------------------- |
-| `title`           | string   | Dashboard title (HTML page title and header) |
-| `grid.columns`    | int      | Number of columns in the layout              |
-| `grid.rows`       | int      | Number of rows in the layout                 |
-| `refreshInterval` | duration | Auto-refresh interval (e.g., `60s`, `2m`)    |
-| `cells`           | []cell   | List of grid cells (data cards)              |
-| `customization`   | object   | Optional visual styles and layout settings   |
-
-#### 🧱 `cells[]` Fields
-
-| Field              | Type   | Description                                           |
-| :----------------- | :----- | :---------------------------------------------------- |
-| `title`            | string | Cell title (used in templates)                        |
-| `query`            | string | JQL query or filter (e.g., `filter=12345`)            |
-| `template`         | string | Template file name (must end with `.gohtml`)          |
-| `position.row`     | int    | **1-based** row index of the cell (top to bottom)     |
-| `position.col`     | int    | **1-based** column index of the cell (left to right)  |
-| `position.colSpan` | int    | Number of columns to span (optional, defaults to `1`) |
-
-#### 💡 Notes
-
-- Grid positions (`row`, `col`) are **1-based** in YAML, but internally converted to 0-based.
-- Templates must exist in `--template-dir` and be valid `.gohtml` files.
-- Cells are rendered **in the order listed**.
-
-#### 📄 Example
+### Top-level
 
 ```yaml
-title: My Jira Dashboard
+title: My Dashboard
+refreshInterval: 60s
 grid:
   columns: 2
-  rows: 3
-refreshInterval: 60s
-cells:
-  - title: Epics
-    query: filter=12345
-    template: epics.gohtml
-    position: { row: 1, col: 1 }
+  rows: 5
 
-  - title: Open Issues
-    query: filter=54321
+customization:
+  grid:
+    gap: 1rem
+    padding: 0rem
+    marginTop: 0rem
+    marginBottom: 0rem
+  card:
+    borderColor: "#ddd"
+    padding: 1rem
+    backgroundColor: "#fff"
+    borderRadius: 0.5rem
+    boxShadow: 0 2px 4px rgba(0, 0, 0, 0.05)
+  header:
+    align: center
+    marginBottom: 0.5rem
+  footer:
+    marginTop: 1rem
+  font:
+    family: "Segoe UI, sans-serif"
+    size: 16px
+```
+
+### Providers (base URL + auth)
+
+```yaml
+providers:
+  jira-v2:
+    baseURL: "https://jira.example.com"
+    skipTLSVerify: false
+    auth:
+      basic:
+        username: "me@example.com"
+        password: "JIRA_API_TOKEN"
+    # or:
+    # auth:
+    #   bearer:
+    #     token: "YOUR_BEARER_TOKEN"
+```
+
+Auth values (`providers.*.auth.basic.username`, `providers.*.auth.basic.password`, `providers.*.auth.bearer.token`) are resolved using [containeroo/resolver](https://github.com/containeroo/resolver) before use.
+That means you can reference environment variables or other resolver-supported sources instead of hardcoding secrets. See the resolver docs for syntax and supported backends.
+
+### Tiles
+
+```yaml
+tiles:
+  - title: issues
     template: issues.gohtml
-    position:
-      row: 1
-      col: 2
+    position: { row: 1, col: 1, colSpan: 2 } # 1-based indexing
+    request:
+      provider: jira-v2
+      method: GET
+      path: /rest/api/2/search
+      ttl: 20s
+      query:
+        jql: filter=17203
+        maxResults: 50
+      # headers:
+      #   X-Whatever: abc
 
-  - title: Grouped View
-    query: filter=54321
-    template: assignees.gohtml
-    position:
-      row: 2
-      col: 1
-      colSpan: 2
+      # One of:
+      # body: '{"raw":"payload"}'
+      # bodyJSON:
+      #   project: "ABC"
+
+      paginate: true # boolean (not string)
+      page:
+        location: query # "query" or "body"
+        startField: startAt # fields in the RESPONSE
+        limitField: maxResults
+        totalField: total
+        reqStart: startAt # fields in the REQUEST (query/body)
+        reqLimit: maxResults
+        # limitPages: 3         # optional cap
 ```
 
-## 🎨 Customization
+#### Request fields at a glance
 
-The `customization` block lets you tweak styling via CSS-like settings. If omitted, defaults are used.
+- `provider`: which configured provider to use
+- `method`: default `GET`
+- `path`: relative to provider’s `baseURL`
+- `ttl`: cache duration (Go duration string, e.g. `30s`)
+- `query`, `headers`: string maps
+- `body`: raw body string
+- `bodyJSON`: an object to be JSON-encoded (auto sets `Content-Type: application/json` unless you override)
+- `paginate`: enable pagination
+- `page`: pagination wiring (names in response vs. request)
 
-| Key                    | Default                           | Description            |
-| :--------------------- | :-------------------------------- | :--------------------- |
-| `grid.gap`             | `"2rem"`                          | Gap between cells      |
-| `grid.padding`         | `"0rem"`                          | Padding inside grid    |
-| `grid.marginTop`       | `"0rem"`                          | Space above grid       |
-| `grid.marginBottom`    | `"0rem"`                          | Space below grid       |
-| `card.borderColor`     | `"#ccc"`                          | Cell/card border color |
-| `card.padding`         | `"0rem"`                          | Padding inside cells   |
-| `card.backgroundColor` | `"#fff"`                          | Background color       |
-| `card.borderRadius`    | `"0.5rem"`                        | Border radius          |
-| `card.boxShadow`       | `"0 2px 4px rgba(0, 0, 0, 0.05)"` | Box shadow             |
-| `header.align`         | `"left"`                          | `<h1>` alignment       |
-| `header.marginBottom`  | `"0rem"`                          | Margin below header    |
-| `footer.marginTop`     | `"1rem"`                          | Margin above footer    |
-| `font.family`          | `"Segoe UI, sans-serif"`          | Font family            |
-| `font.size`            | `"16px"`                          | Font size              |
+> Pagination merges top-level array fields across pages into a single array in the **accumulator’s** `merged` map with de-duplication by `id`/`key` (if present), otherwise by structure.
 
-## 🧩 Creating Custom Templates
+## Templates
 
-Each cell renders a `.gohtml` file using the data returned by your Jira query.
+Templates are Go HTML templates (`.gohtml`). Every tile template receives:
 
-### 1. Explore the Data
+- `.Title` — tile title
+- `.ID` — 0-based tile index
+- `.Data` — **primary payload** (if pagination: usually the merged page or the first page; otherwise the object itself)
+- `.Acc` — full **accumulator** when pagination/merging is used:
 
-To see what fields you have access to:
+  - `.Acc.pages` — raw page payloads in order
+  - `.Acc.merged` — concatenated arrays by key, de-duplicated
 
-```sh
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-     -H "Accept: application/json" \
-     "https://jira.example.com/rest/api/2/search?jql=filter=12345"
-```
+- `.Raw` — original input (for debugging)
 
-JiraPanel will expose the `.issues` array under `.Data`.
-
-Example structure:
-
-```json
-{
-  "issues": [
-    {
-      "fields": {
-        "summary": "Some issue",
-        "assignee": { "displayName": "Alice" },
-        "status": { "name": "In Progress" }
-      }
-    }
-  ]
-}
-```
-
-### 2. Write a Template
-
-Place your `.gohtml` file in the directory passed via `--template-dir`.
-
-Each template has access to the following:
-
-- `.Title` - the cell title from your config
-- `.Data` - the parsed Jira API response
-- `.ID` - the 0-based index of the cell in your dashboard layout (e.g. `cell-0`, `cell-1`, `cell-2`, ...)
-
-> ⚠️ **You can now use `.ID` to target the card container** via:
->
-> - `id="cell-{{ .ID }}"` (already applied in `base.gohtml`)
-> - JS: `document.getElementById("cell-{{ .ID }}")`
-> - CSS: `#cell-{{ .ID }} { display: none; }`
->   see [examples/templates/env_alert.gohtml](examples/templates/env_alert.gohtml)
-
-> **Template Visibility**
->
-> A template can hide its containing card by rendering a marker element:
->
-> ```html
-> <div data-jp-hidden></div>
-> ```
->
-> JiraPanel's JS will hide the card when this marker is present. Use this for "empty/quiet" states (e.g., no alerts). This avoids layout flicker and doesn't require special client-side rules.
-
-### 🛠 Example Template
-
-This template shows a list of issues with their summary.
+### Example (Jira issues table)
 
 ```gohtml
+{{/* If pagination is enabled and "merged.issues" exists, .Data will be the merged map itself. */}}
 <h2>{{ .Title }}</h2>
 
-{{ $issues := .Data.issues }}
+{{ $merged := .Acc.merged }}
+{{ $issues := index $merged "issues" }}
 <ul>
-{{- range $i := $issues }}
-  <li>{{ dig $i.fields "summary" }}</li>
-{{- end }}
+  {{- range $i := $issues }}
+    <li>{{ index (index $i "fields") "summary" }}</li>
+  {{- end }}
 </ul>
 ```
 
-### 🛠 Why Use `dig`?
+### Template helpers
 
-Jira's API returns deeply nested and dynamic fields, especially under `.fields`. These values are usually `map[string]interface{}` in Go - meaning you can't access them directly like `.fields.summary`.
+tiledash ships with [sprig](https://masterminds.github.io/sprig/) (HTML-safe map) **plus** a few custom helpers:
 
-The `dig` function safely extracts values from maps as strings:
+- `formatJiraDate input layout` — parse Jira timestamp, format with `layout`
+- `setany map key value` — set a key on `map[string]any` and return the map
+- `dig map key` — safe string lookup
+- `sortBy field desc slice` — sort `[]any` of `map[string]any` by field
+- `appendSlice slice item` — append to a `[]any`
+- `uniq []string` — unique strings
+- `defaultStr val fallback` — fallback if empty/whitespace
+- `typeOf v` — Go type string
+- `sumBy field []map[string]any` — sum numeric field
 
-```gohtml
-{{ dig $issue.fields "summary" }}
+## Running
+
+```bash
+tiledash \
+  --config ./config.yaml \
+  --template-dir ./templates \
+  --listen-address :8080 \
+  --log-format text \
+  --debug
 ```
 
-If the field doesn't exist or isn't a string, it returns an empty string instead of crashing.
+Flags:
 
-Use `dig` for anything under `.fields`, `.fields.customfield_*`, or other unpredictable Jira fields.
+- `--config` (path to YAML; default `config.yaml`)
+- `--template-dir` (default `templates`)
+- `--listen-address` (default `:8080`)
+- `--debug` (bool)
+- `--log-format` (`text` or `json`)
 
-### 🧰 Built-in Helpers
+## Endpoints
 
-| Helper           | Signature                     | Description                                                            | Example Usage                                       |
-| :--------------- | :---------------------------- | :--------------------------------------------------------------------- | :-------------------------------------------------- |
-| `setany`         | `setany map key value`        | Sets `map[key] = value` and returns the map                            | `{{ setany $m "key" "val" }}`                       |
-| `dig`            | `dig map key`                 | Extracts a string from a `map[string]any`; safe for nested Jira fields | `{{ dig .fields "summary" }}`                       |
-| `formatJiraDate` | `formatJiraDate input layout` | Formats Jira timestamps using Go layouts                               | `{{ formatJiraDate .fields.created "2006-01-02" }}` |
-| `appendSlice`    | `appendSlice slice item`      | Appends `item` to a slice                                              | `{{ $list := appendSlice $list $item }}`            |
-| `sortBy`         | `sortBy field desc slice`     | Sorts a slice of maps by field name                                    | `{{ sortBy "count" true $entries }}`                |
-| `uniq`           | `uniq list`                   | Removes duplicate strings                                              | `{{ uniq (list "a" "b" "a") }}` → `["a", "b"]`      |
-| `defaultStr`     | `defaultStr value fallback`   | Fallback if `value` is empty or whitespace                             | `{{ defaultStr .name "Unknown" }}`                  |
-| `typeOf`         | `typeOf value`                | Returns the Go type of the input value                                 | `{{ typeOf .fields }}`                              |
-| `sumBy`          | `sumBy field slice`           | Sums numeric fields across a slice of maps                             | `{{ sumBy "count" $entries }}`                      |
+| Path                | Method | Description         |
+| :------------------ | :----- | :------------------ |
+| `/`                 | GET    | Dashboard           |
+| `/api/v1/tile/{id}` | GET    | Render tile by ID   |
+| `/api/v1/hash/{id}` | GET    | Hash of a tile spec |
+| `/healthz`          | GET    | Health check        |
+| `/static/*`         | GET    | Static assets       |
 
-You can also reuse logic from other templates using `{{ template "name" . }}` - great for status badges, labels, or error handling partials.
+> Notes: IDs are 0-based. Hash endpoints are useful for cache-busting on the client.
 
-### 3. 📁 Browse Examples
+## Local development: mock server
 
-See the [`examples/templates/`](examples/templates/) folder for more real-world templates, including:
+If you want to develop templates and requests without hitting real APIs, use the included mock server. It can emulate Jira’s `/rest/api/2/search` with optional pagination.
 
-- `assignees.gohtml` - count issues per assignee
-- `env_issues.gohtml` - issue table with columns
-- `epics.gohtml` - group by epic
-- `functions.gohtml` - reusable helpers
-- `issues.gohtml` - issue table with columns
-- `podium.gohtml` - podium chart
+➡️ See **mock-server/README.md** for full usage, flags, and data layout.
 
-With just YAML and `.gohtml` templates, you can build flexible, data-rich Jira dashboards tailored to your needs.
+## Migration notes (from JiraPanel)
 
-## 🐞 Debug Mode
+- **Config**: Jira-specific fields were replaced by a generic HTTP request (`request.method`, `request.path`, `request.query`, `request.bodyJSON`, etc.).
+- **Templates**: Pagination data now lives in the **accumulator**. Use `.Acc.merged.<key>` and `.Acc.pages` when you need all pages; `.Data` is the “primary” view (usually merged or first page).
+- **Endpoints**: tile endpoint is now `/api/v1/tile/{id}` (singular).
+- **Auth**: `providers.*.auth` supports **basic** and **bearer**.
 
-Press `D` on the dashboard to:
+## License
 
-- Show a red overlay with `row`, `col`, `colSpan`, and `template`
-- Blur actual content for layout focus
-
-Useful for spotting overlaps and grid misalignment.
-
-## 📦 CLI Flags
-
-| Flag                     | Description                               |
-| :----------------------- | :---------------------------------------- |
-| `--config`               | Path to `config.yaml` (**required**)      |
-| `--template-dir`         | Path to template files (**required**)     |
-| `--jira-api-url`         | Jira REST API base URL (**required**)     |
-| `--jira-email`           | Email for basic/cloud auth                |
-| `--jira-auth`            | API token or password (paired with email) |
-| `--jira-bearer-token`    | Bearer token (alternative to email/token) |
-| `--jira-skip-tls-verify` | Skip TLS verification (not recommended)   |
-| `--listen-address`       | HTTP listen address (default `:8080`)     |
-| `--debug`                | Enable debug logging                      |
-| `--log-format`           | `text` or `json` (default: `text`)        |
-
-### 🔐 Auth Methods
-
-Use one of:
-
-- `--jira-email` + `--jira-auth`
-- `--jira-bearer-token`
-
-## 🌐 Endpoints
-
-| Path                 | Method | Description            |
-| :------------------- | :----- | :--------------------- |
-| `/`                  | GET    | Dashboard view         |
-| `/api/v1/cells/{id}` | GET    | Render cell by ID      |
-| `/healthz`           | GET    | Health check           |
-| `/static/*`          | GET    | Static assets (JS/CSS) |
-
-## 🧪 Local Dev + Deployment
-
-Kubernetes manifests are available in `examples/kubernetes/`. Use `kustomize` to build ConfigMaps and deploy.
-
-To render final YAML:
-
-```sh
-kustomize build examples/kubernetes
-```
-
-## 🪪 License
-
-Apache 2.0. See `LICENSE`.
+Apache 2.0 — see [LICENSE](LICENSE).

@@ -4,32 +4,32 @@ import (
 	"testing"
 )
 
-func TestGetLayoutByIndex(t *testing.T) {
+func TestGetCellByIndex(t *testing.T) {
 	t.Parallel()
 
 	t.Run("valid index", func(t *testing.T) {
 		t.Parallel()
 		cfg := DashboardConfig{
-			Cells: []Cell{
+			Tiles: []Tile{
 				{Title: "A"},
 				{Title: "B"},
 			},
 		}
-		cell, err := cfg.GetLayoutByIndex(1)
+		tile, err := cfg.GetCellByIndex(1)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if cell.Title != "B" {
-			t.Errorf("expected Title 'B', got '%s'", cell.Title)
+		if tile.Title != "B" {
+			t.Errorf("expected Title 'B', got '%s'", tile.Title)
 		}
 	})
 
 	t.Run("index too low", func(t *testing.T) {
 		t.Parallel()
 		cfg := DashboardConfig{
-			Cells: []Cell{{Title: "Only"}},
+			Tiles: []Tile{{Title: "Only"}},
 		}
-		_, err := cfg.GetLayoutByIndex(-1)
+		_, err := cfg.GetCellByIndex(-1)
 		if err == nil {
 			t.Fatal("expected error for negative index, got nil")
 		}
@@ -38,9 +38,9 @@ func TestGetLayoutByIndex(t *testing.T) {
 	t.Run("index too high", func(t *testing.T) {
 		t.Parallel()
 		cfg := DashboardConfig{
-			Cells: []Cell{{Title: "Only"}},
+			Tiles: []Tile{{Title: "Only"}},
 		}
-		_, err := cfg.GetLayoutByIndex(2)
+		_, err := cfg.GetCellByIndex(2)
 		if err == nil {
 			t.Fatal("expected error for out-of-bounds index, got nil")
 		}

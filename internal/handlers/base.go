@@ -5,9 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/gi8lino/jirapanel/internal/config"
-	"github.com/gi8lino/jirapanel/internal/jira"
-	"github.com/gi8lino/jirapanel/internal/templates"
+	"github.com/gi8lino/tiledash/internal/config"
+	"github.com/gi8lino/tiledash/internal/templates"
 )
 
 // BaseHandler returns a handler function that renders a dashboard.
@@ -15,7 +14,6 @@ func BaseHandler(
 	webFS fs.FS,
 	templateDir string,
 	version string,
-	s jira.Searcher,
 	cfg config.DashboardConfig,
 	logger *slog.Logger,
 ) http.HandlerFunc {
@@ -24,7 +22,7 @@ func BaseHandler(
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		cfgHash, _ := hashAny(cfg)
-		computeCellHashes(&cfg, logger) // Compute hashes for all cells
+		computeCellHashes(&cfg, logger) // Compute hashes for all tiles
 
 		if err := baseTmpl.ExecuteTemplate(w, "base", map[string]any{
 			"Version":         version,
@@ -32,23 +30,23 @@ func BaseHandler(
 			"Title":           cfg.Title,
 			"RefreshInterval": int(cfg.RefreshInterval.Seconds()),
 			"Customization":   &cfg.Customization,
-			"Cells":           cfg.Cells, // pass cells directly for async placeholder generation
+			"Cells":           cfg.Tiles, // pass tiles directly for async placeholder generation
 			"ConfigHash":      cfgHash,
 		}); err != nil {
-			renderErrorPage(w, http.StatusInternalServerError, baseTmpl, "Error", "Failed to render dashboard cells.", err)
+			renderErrorPage(w, http.StatusInternalServerError, baseTmpl, "Error", "Failed to render dashboard tiles.", err)
 		}
 	}
 }
 
-// computeCellHashes hashes each cell in the given config.
+// computeCellHashes hashes each tile in the given config.
 func computeCellHashes(cfg *config.DashboardConfig, logger *slog.Logger) {
-	for i := range cfg.Cells {
-		cell := &cfg.Cells[i]
-		h, err := hashAny(cell)
+	for i := range cfg.Tiles {
+		tile := &cfg.Tiles[i]
+		h, err := hashAny(tile)
 		if err != nil {
 			logger.Error("hash computation failed", "id", i, "error", err)
 			continue
 		}
-		cell.Hash = h // Add this field to config.Cell
+		tile.Hash = h // Add this field to config.Cell
 	}
 }

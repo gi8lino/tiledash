@@ -1,11 +1,9 @@
 package utils_test
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/gi8lino/jirapanel/internal/jira"
-	"github.com/gi8lino/jirapanel/internal/utils"
+	"github.com/gi8lino/tiledash/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,24 +33,5 @@ func TestObfuscateHeader(t *testing.T) {
 		assert.Equal(t, "Bearer **", utils.ObfuscateHeader("Bearer ab"))
 		assert.Equal(t, "Bearer *", utils.ObfuscateHeader("Bearer a"))
 		assert.Equal(t, "Bearer ", utils.ObfuscateHeader("Bearer "))
-	})
-}
-
-func TestGetAuthorizationHeader(t *testing.T) {
-	t.Parallel()
-
-	t.Run("gets basic auth header", func(t *testing.T) {
-		t.Parallel()
-		authFunc := jira.NewBasicAuth("user@example.com", "secret123")
-		header := utils.GetAuthorizationHeader(authFunc)
-		assert.True(t, strings.HasPrefix(header, "Basic "))
-		assert.Equal(t, "Basic dXNlckBleGFtcGxlLmNvbTpzZWNyZXQxMjM=", header)
-	})
-
-	t.Run("gets bearer token header", func(t *testing.T) {
-		t.Parallel()
-		authFunc := jira.NewBearerAuth("my-token-xyz")
-		header := utils.GetAuthorizationHeader(authFunc)
-		assert.Equal(t, "Bearer my-token-xyz", header)
 	})
 }

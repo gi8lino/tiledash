@@ -11,24 +11,22 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gi8lino/jirapanel/internal/config"
-	"github.com/gi8lino/jirapanel/internal/flag"
-	"github.com/gi8lino/jirapanel/internal/jira"
-	"github.com/gi8lino/jirapanel/internal/logging"
-	"github.com/gi8lino/jirapanel/internal/server"
-	"github.com/gi8lino/jirapanel/internal/templates"
-	"github.com/gi8lino/jirapanel/internal/utils"
+	"github.com/gi8lino/tiledash/internal/config"
+	"github.com/gi8lino/tiledash/internal/flag"
+	"github.com/gi8lino/tiledash/internal/logging"
+	"github.com/gi8lino/tiledash/internal/providers"
+	"github.com/gi8lino/tiledash/internal/server"
 
 	"github.com/containeroo/tinyflags"
 )
 
-// Run starts the package-exporter application.
+// Run starts the tiledash application.
 func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string, w io.Writer, getEnv func(string) string) error {
-	// Create a new context that listens for interrupt signals
+	// Create a cantileable context on SIGINT/SIGTERM
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// Parse command-line flags
+	// Parse CLI flags
 	flags, err := flag.ParseArgs(version, args, w, getEnv)
 	if err != nil {
 		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
@@ -38,57 +36,34 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		return fmt.Errorf("parsing error: %w", err)
 	}
 
-	// Setup logger
+	// Logger
 	logger := logging.SetupLogger(flags.LogFormat, flags.Debug, w)
+	logger.Info("Starting tiledash", "version", version)
 
-	logger.Info("Starting jirapanel",
-		"version", version,
-	)
-
-	// Load config
+	// Config
 	cfg, err := config.LoadConfig(flags.Config)
 	if err != nil {
 		return fmt.Errorf("loading config error: %w", err)
 	}
-
-	// Try to parse user templates
-	tmpl, err := templates.ParseCellTemplates(flags.TemplateDir, templates.TemplateFuncMap())
-	if err != nil {
-		return fmt.Errorf("template parse error: %w", err)
-	}
-
-	// Validate config
-	if err := config.ValidateConfig(&cfg, tmpl); err != nil {
-		return fmt.Errorf("validating config error: %w", err)
-	}
-
 	cfg.SortCellsByPosition()
 
-	// Setup jira client
-	auth, method, err := jira.ResolveAuth(flags.JiraBearerToken, flags.JiraEmail, flags.JiraAuth)
+	// Providers → registry
+	reg, err := providers.BuildRegistry(cfg.Providers) // uses config.Provider
 	if err != nil {
-		return err
+		return fmt.Errorf("error building registry: %w", err)
 	}
-	c := jira.NewClient(flags.JiraAPIURL, auth, flags.JiraSkipTLSVerify, flags.JiraTimeout)
-	logger.Debug("jira auth",
-		"method", method,
-		"header", utils.ObfuscateHeader(utils.GetAuthorizationHeader(auth)),
-	)
 
-	// Setup Server and run forever
-	router := server.NewRouter(
-		webFS,
-		flags.TemplateDir,
-		c,
-		cfg,
-		logger,
-		flags.Debug,
-		version,
-	)
+	// Compile runners, one per tile
+	runners, err := providers.BuildRunners(reg, cfg.Tiles)
+	if err != nil {
+		return fmt.Errorf("error building runners: %w", err)
+	}
+
+	// HTTP server
+	router := server.NewRouter(webFS, flags.TemplateDir, cfg, logger, runners, flags.Debug, version)
 	err = server.Run(ctx, flags.ListenAddr, router, logger)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("HTTP server exited with error", "error", err)
 	}
-
 	return err
 }

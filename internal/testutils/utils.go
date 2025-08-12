@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,4 +30,30 @@ type MockClient struct {
 // SearchByJQL implements the jira.Searcher interface.
 func (m *MockClient) SearchByJQL(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
 	return m.SearchFn(ctx, jql, params)
+}
+
+func AtoiSafe(s string) int {
+	i := 0
+	for _, ch := range s {
+		if ch >= '0' && ch <= '9' {
+			i = i*10 + int(ch-'0')
+		}
+	}
+	return i
+}
+
+func AtoiAny(v any) int {
+	switch x := v.(type) {
+	case float64:
+		return int(x)
+	case int:
+		return x
+	case json.Number:
+		n, _ := x.Int64()
+		return int(n)
+	case string:
+		return AtoiSafe(x)
+	default:
+		return 0
+	}
 }

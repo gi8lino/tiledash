@@ -11,13 +11,13 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -ldflags="$LDFLAGS" -o /jirapanel ./main.go
+RUN go build -ldflags="$LDFLAGS" -o /tiledash ./main.go
 
 FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /
-COPY --from=builder /jirapanel ./
+COPY --from=builder /tiledash ./
 USER 65532:65532
 
-ENTRYPOINT ["./jirapanel"]
+ENTRYPOINT ["./tiledash"]
 

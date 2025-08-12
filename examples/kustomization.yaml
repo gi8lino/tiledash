@@ -4,10 +4,10 @@ kind: Kustomization
 resources:
   - kubernetes/
 configMapGenerator:
-  - name: jirapanel-config
+  - name: tiledash-config
     files:
       - config.yaml
-  - name: jirapanel-templates
+  - name: tiledash-templates
     files:
       - templates/assignees.gohtml
       - templates/env_issues.gohtml

@@ -1,78 +1,118 @@
 # Mock Jira API Server
 
-This mock server emulates Jira's `/rest/api/2/search` endpoint for **testing `jirapanel` locally** without connecting to a real Jira instance.
+This mock server emulates Jira’s `/rest/api/2/search` endpoint so you can test **tiledash** locally without connecting to a real Jira instance.
 
-> ⚠️ This is for **development and testing only**. It should **not** be used in production.
+> ⚠️ For **development and testing only** – not for production.
 
-## How It Works
+## What it does
 
-When `jirapanel` runs, it queries the Jira API with a JQL like:
+When tiledash issues a request like:
 
 ```bash
 GET /rest/api/2/search?jql=filter=17201
 ```
 
-The mock server intercepts this request and returns the contents of a static JSON file named:
+the mock server extracts the filter ID (`17201`) and returns the contents of a static JSON file:
 
 ```text
 data/17201.json
 ```
 
-It looks up files using the filter ID from the query (`filter=17201` → `data/17201.json`), which should match the `filterId` in your `config.yaml`.
+It also supports simple pagination so you can exercise tiledash’s query/body pagination paths.
 
-## Example File Layout
+## Project layout
 
 ```text
 mock-server/
 ├── main.go
-├── data/
-│   ├── 17201.json
-│   ├── 17203.json
-│   └── 17206.json
-└── Makefile
+├── README.md
+└── data/
+├── 17201.json
+├── 17203.json
+└── 17206.json
 ```
 
-Each file must be named `<filterId>.json`, where `<filterId>` is a number from your dashboard config:
+Each file is named `<filterId>.json` and should roughly match Jira’s search response shape (e.g., `issues`, `startAt`, `maxResults`, `total`).
 
-```yaml
-layout:
-  - filterId: 17201
-    title: Issues
-    template: issues
-  - filterId: 17203
-    title: Bugs
-    template: issues
+### Example `data/17203.json`
+
+```json
+{
+  "total": 3,
+  "startAt": 0,
+  "maxResults": 50,
+  "issues": [
+    { "id": "1", "fields": { "summary": "A" } },
+    { "id": "2", "fields": { "summary": "B" } },
+    { "id": "3", "fields": { "summary": "C" } }
+  ]
+}
 ```
 
-## Usage
+## Running
 
-### Start the server:
+### With make
 
 ```bash
-make run
+make run-mock
 ```
 
-Or run manually:
+### Or directly
 
 ```bash
-go run ./main.go --port=8081 --data-dir=./data --random-delay
+go run ./tests/main.go --config=./tests/config.yaml
 ```
 
-### Available Flags
+### Flags
 
-| Flag             | Description                                   | Default  |
-| :--------------- | :-------------------------------------------- | :------- |
-| `--port`         | Port to run mock server on                    | `8081`   |
-| `--data-dir`     | Directory to serve JSON data from             | `./data` |
-| `--random-delay` | Add random 200-1000 ms delay to each response | `false`  |
+| Flag         | Description                                   |
+| :----------- | :-------------------------------------------- |
+| `--config`   | Path to mock-server config.yaml (required)    |
+| `--log-body` | Log JSON request bodies (may contain secrets) |
 
-## Integration with jirapanel
+## Using with tiledash
 
-To use this server with `jirapanel`, simply configure your Jira base URL to point to it:
+Point a provider at the mock server:
 
 ```yaml
-jira:
-  baseUrl: http://localhost:8081
+providers:
+  mock:
+    baseURL: "http://localhost:8081"
 ```
 
-This makes `jirapanel` fetch data from your mock server instead of the real Jira API.
+Then create a tile that calls Jira search:
+
+```yaml
+tiles:
+  - title: Mocked Issues
+    template: issues.gohtml
+    position: { row: 1, col: 1 }
+    request:
+      provider: mock
+      method: GET
+      path: /rest/api/2/search
+      query:
+        jql: filter=17203
+      paginate: true
+      page:
+        location: query
+        startField: startAt
+        limitField: maxResults
+        totalField: total
+        reqStart: startAt
+        reqLimit: maxResults
+```
+
+## Pagination behavior
+
+When `paginate: true` is set, the mock server will:
+
+- Read the **request** start/limit from either query (`startAt` / `maxResults`) or body (if you’re testing body-based pagination).
+- Slice the `issues` array accordingly.
+- Emit `startAt`, `maxResults`, and `total` in the **response** so tiledash can request subsequent pages.
+
+This lets you verify:
+
+- Query-based pagination
+- Body-based pagination
+- Merging behavior in templates via `.Acc.merged` and `.Acc.pages`

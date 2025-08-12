@@ -1,0 +1,21 @@
+port: 8081
+dataDir: ./data
+randomDelay: true
+
+routes:
+  - path: /rest/api/2/search
+    itemsField: issues
+    select:
+      from: query
+      key: jql
+      regex: '^filter=(\d+)$'
+      fileTemplate: "%s.json"
+    paginate:
+      location: query
+      startField: startAt
+      limitField: maxResults
+      totalField: total
+      reqStart: startAt
+      reqLimit: maxResults
+      defaultStart: 0
+      defaultLimit: 50

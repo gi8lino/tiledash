@@ -2,19 +2,17 @@ package handlers
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"testing"
 	"testing/fstest"
 	"time"
 
-	"github.com/gi8lino/jirapanel/internal/config"
-	"github.com/gi8lino/jirapanel/internal/testutils"
+	"github.com/gi8lino/tiledash/internal/config"
+	"github.com/gi8lino/tiledash/internal/testutils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,6 +24,7 @@ func TestDashboard(t *testing.T) {
 	t.Run("renders dashboard successfully", func(t *testing.T) {
 		t.Parallel()
 
+		// Base template set used by BaseHandler
 		webFS := fstest.MapFS{
 			"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}{{.Title}} v{{.Version}}{{end}}`)},
 			"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
@@ -34,31 +33,26 @@ func TestDashboard(t *testing.T) {
 			"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "page_error"}}Error: {{.Message}}{{end}}`)},
 		}
 
-		// Create cell template with expected name
+		// Create a tile template directory to pass to BaseHandler (not directly used by BaseHandler,
+		// but we keep it to mirror your runtime layout).
 		tmpDir := t.TempDir()
-		testutils.MustWriteFile(t, filepath.Join(tmpDir, "templates/cell_example.gohtml"), `{{define "cell_example.html"}}<div>{{.Title}}</div>{{end}}`)
+		testutils.MustWriteFile(t,
+			filepath.Join(tmpDir, "templates", "tile_example.gohtml"),
+			`{{define "tile_example.html"}}<div>{{.Title}}</div>{{end}}`,
+		)
 
 		cfg := config.DashboardConfig{
 			Title: "My Dashboard",
-			Grid: config.Grid{
-				Columns: 3,
-				Rows:    2,
-			},
-			Cells: []config.Cell{
+			Grid:  &config.GridConfig{Columns: 3, Rows: 2},
+			Tiles: []config.Tile{
 				{
 					Title:    "Example Section",
-					Query:    "project = TEST",
-					Template: "cell_example.html",
-					Position: config.Position{Row: 0, Col: 0},
+					Template: "tile_example.html",
+					// Position values are not used by BaseHandler rendering itself
+					Position: config.Position{Row: 1, Col: 1},
 				},
 			},
 			RefreshInterval: 30 * time.Second,
-		}
-
-		mockClient := &testutils.MockClient{
-			SearchFn: func(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
-				return []byte(`{"issues": []}`), http.StatusOK, nil
-			},
 		}
 
 		var buf bytes.Buffer
@@ -67,8 +61,7 @@ func TestDashboard(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
-		// Use tmpDir/templates as the cell template directory
-		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "1.0.0", mockClient, cfg, logger)
+		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "1.0.0", cfg, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -79,25 +72,12 @@ func TestDashboard(t *testing.T) {
 		assert.Contains(t, body, "My Dashboard v1.0.0")
 	})
 
-	t.Run("renders cell error in base template", func(t *testing.T) {
+	t.Run("renders page_error when base template execution fails", func(t *testing.T) {
 		t.Parallel()
 
+		// Intentionally reference a missing template inside base.gohtml to force ExecuteTemplate error.
 		webFS := fstest.MapFS{
-			"web/templates/base.gohtml": &fstest.MapFile{Data: []byte(`
-{{define "base"}}
-<div class="grid">
-  {{range .Cells}}
-    <div class="card">
-      {{if .Error}}
-        <div class="alert alert-danger">
-          {{.Error.Type}}: {{.Error.Message}} ({{.Error.Detail}})
-        </div>
-      {{end}}
-    </div>
-  {{end}}
-</div>
-{{end}}
-`)},
+			"web/templates/base.gohtml":        &fstest.MapFile{Data: []byte(`{{define "base"}}{{template "missing_subtemplate"}}{{end}}`)},
 			"web/templates/css/page.gohtml":    &fstest.MapFile{Data: []byte(`{{define "css_page"}}css_generic{{end}}`)},
 			"web/templates/css/debug.gohtml":   &fstest.MapFile{Data: []byte(`{{define "css_debug"}}css_debug{{end}}`)},
 			"web/templates/footer.gohtml":      &fstest.MapFile{Data: []byte(`{{define "footer"}}footer{{end}}`)},
@@ -111,20 +91,10 @@ func TestDashboard(t *testing.T) {
 		)
 
 		cfg := config.DashboardConfig{
-			Title: "Broken Dashboard",
-			Cells: []config.Cell{
-				{
-					Title:    "Failing Section",
-					Query:    "FAIL-JQL",
-					Template: "dummy",
-				},
-			},
+			Title:           "Broken Dashboard",
 			RefreshInterval: 10 * time.Second,
-		}
-
-		mockClient := &testutils.MockClient{
-			SearchFn: func(ctx context.Context, jql string, params map[string]string) ([]byte, int, error) {
-				return nil, http.StatusInternalServerError, assert.AnError
+			Tiles: []config.Tile{
+				{Title: "Failing Section", Template: "dummy"},
 			},
 		}
 
@@ -134,7 +104,7 @@ func TestDashboard(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
-		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "dev", mockClient, cfg, logger)
+		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "dev", cfg, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -143,45 +113,38 @@ func TestDashboard(t *testing.T) {
 		body, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 
-		require.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Equal(t, "\n<div class=\"grid\">\n  \n    <div class=\"card\">\n      Error: Failed to render dashboard cells.", string(body))
+		// BaseHandler uses renderErrorPage with StatusInternalServerError on template failure.
+		require.Equal(t, http.StatusInternalServerError, res.StatusCode)
+		assert.Equal(t, "Error: Failed to render dashboard tiles.", string(bytes.TrimSpace(body)))
 	})
 }
 
 func TestComputeCellHashes(t *testing.T) {
 	t.Parallel()
 
-	t.Run("computes hashes for all cells", func(t *testing.T) {
+	t.Run("computes hashes for all tiles", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.DashboardConfig{
-			Cells: []config.Cell{
+			Tiles: []config.Tile{
 				{
 					Title:    "First",
-					Query:    "project = TEST",
 					Template: "simple.gohtml",
 					Position: config.Position{Row: 1, Col: 1},
 				},
 				{
 					Title:    "Second",
-					Query:    "assignee = currentUser()",
 					Template: "detailed.gohtml",
 					Position: config.Position{Row: 2, Col: 1},
 				},
 			},
 		}
 
-		logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+		logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 		computeCellHashes(&cfg, logger)
 
-		if cfg.Cells[0].Hash == "" {
-			t.Errorf("expected hash for first cell, got empty")
-		}
-		if cfg.Cells[1].Hash == "" {
-			t.Errorf("expected hash for second cell, got empty")
-		}
-		if cfg.Cells[0].Hash == cfg.Cells[1].Hash {
-			t.Errorf("expected different hashes for different cells")
-		}
+		require.NotEmpty(t, cfg.Tiles[0].Hash)
+		require.NotEmpty(t, cfg.Tiles[1].Hash)
+		assert.NotEqual(t, cfg.Tiles[0].Hash, cfg.Tiles[1].Hash)
 	})
 }
