@@ -21,8 +21,8 @@ document.addEventListener("DOMContentLoaded", function () {
         card.innerHTML = html;
 
         // Hide/show card based on template signal
-        const isHidden = !!card.querySelector("[data-jp-hidden]");
-        card.classList.toggle("jp-hidden", isHidden);
+        const isHidden = !!card.querySelector("[data-td-hidden]");
+        card.classList.toggle("td-hidden", isHidden);
 
         // Re-init Tablesort on newly inserted tables
         card.querySelectorAll("table.tablesort").forEach((table) => {
@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>
         `;
         // Keep hidden state off on network error so you can see the problem
-        card.classList.remove("jp-hidden");
+        card.classList.remove("td-hidden");
       })
       .finally(() => {
         inFlight.delete(id);
@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const col = card.getAttribute("data-col");
     const span = card.getAttribute("data-col-span");
     const tmpl = card.getAttribute("data-template");
-    const hidden = card.classList.contains("jp-hidden") ? " (hidden)" : "";
+    const hidden = card.classList.contains("td-hidden") ? " (hidden)" : "";
 
     // Avoid stacking duplicates
     const existing = card.querySelector(".debug-label");
