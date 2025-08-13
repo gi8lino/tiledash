@@ -112,6 +112,6 @@ refreshInterval: 1s
 		}
 		err := app.Run(ctx, webFS, "v1", "deadbeef", args, &out, dummyEnv)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "loading config error: failed to read config file")
+		assert.EqualError(t, err, "loading config error: read config: open /nope/does-not-exist.yaml: no such file or directory")
 	})
 }

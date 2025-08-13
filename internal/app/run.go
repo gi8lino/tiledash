@@ -16,6 +16,7 @@ import (
 	"github.com/gi8lino/tiledash/internal/logging"
 	"github.com/gi8lino/tiledash/internal/providers"
 	"github.com/gi8lino/tiledash/internal/server"
+	"github.com/gi8lino/tiledash/internal/templates"
 
 	"github.com/containeroo/tinyflags"
 )
@@ -36,16 +37,32 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		return fmt.Errorf("parsing error: %w", err)
 	}
 
-	// Logger
+	// Setup logger
 	logger := logging.SetupLogger(flags.LogFormat, flags.Debug, w)
 	logger.Info("Starting tiledash", "version", version)
 
-	// Config
+	// Load config
 	cfg, err := config.LoadConfig(flags.Config)
 	if err != nil {
 		return fmt.Errorf("loading config error: %w", err)
 	}
-	cfg.SortCellsByPosition()
+
+	// Try to parse user templates
+	tmpl, err := templates.ParseCellTemplates(flags.TemplateDir, templates.TemplateFuncMap())
+	if err != nil {
+		return fmt.Errorf("template parse error: %w", err)
+	}
+
+	// Validate config
+	if err := cfg.Validate(tmpl); err != nil {
+		return fmt.Errorf("config validation error: %w", err)
+	}
+
+	if err := cfg.ResolveProvidersAuth(); err != nil {
+		return fmt.Errorf("config provider auth resolution error: %w", err)
+	}
+
+	cfg.SortCellsByPosition() // Sorts all tiles top-to-bottom, left-to-right
 
 	// Providers → registry
 	reg, err := providers.BuildRegistry(cfg.Providers) // uses config.Provider

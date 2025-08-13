@@ -54,28 +54,41 @@ tiles:
 
 	t.Run("fails if file missing", func(t *testing.T) {
 		t.Parallel()
-
 		_, err := LoadConfig("does-not-exist.yaml")
 		assert.Error(t, err)
 	})
+
+	t.Run("rejects unknown keys (KnownFields)", func(t *testing.T) {
+		t.Parallel()
+
+		yaml := `
+gird:   # typo on purpose
+  rows: 1
+  columns: 1
+refreshInterval: 5s
+`
+		tmp, err := os.CreateTemp("", "bad-config-*.yaml")
+		require.NoError(t, err)
+		defer os.Remove(tmp.Name()) // nolint:errcheck
+		_, _ = tmp.WriteString(yaml)
+		_ = tmp.Close()
+
+		_, err = LoadConfig(tmp.Name())
+		require.Error(t, err)
+	})
 }
 
-func TestValidateConfig(t *testing.T) {
+func TestValidate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("accepts valid config", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid: &GridConfig{
-				Rows:    1,
-				Columns: 1,
-			},
+			Grid:            &GridConfig{Rows: 1, Columns: 1},
 			RefreshInterval: 60 * time.Second,
 			Providers: map[string]Provider{
-				"p": { // minimal provider; details validated elsewhere
-					// SkipTLSVerify will be defaulted by setProviderDefaults
-				},
+				"p": {}, // minimal provider; auth is optional
 			},
 			Tiles: []Tile{
 				{
@@ -93,7 +106,7 @@ func TestValidateConfig(t *testing.T) {
 
 		tmpl := tmplWith(t, "card.gohtml")
 
-		err := ValidateConfig(&cfg, tmpl)
+		err := cfg.Validate(tmpl)
 		assert.NoError(t, err)
 	})
 
@@ -128,9 +141,11 @@ func TestValidateConfig(t *testing.T) {
 
 		tmpl := tmplWith(t, "almost.gohtml")
 
-		err := ValidateConfig(&cfg, tmpl)
+		err := cfg.Validate(tmpl)
 		require.Error(t, err)
 
+		// Note: for empty provider names we expect "request.provider is required"
+		// (no extra "unknown provider").
 		expected := []string{
 			"  - refreshInterval must be > 0",
 			"  - providers must not be empty when tiles are defined",
@@ -143,7 +158,6 @@ func TestValidateConfig(t *testing.T) {
 			"  - tile[0]: row 99 out of bounds (max 1)",
 			"  - tile[0]: col 99 out of bounds (max 2)",
 			"  - tile[0]: colSpan 1 overflows grid width 2",
-			`  - tile[0]: unknown provider ""`,
 
 			// tile[1]
 			"  - tile[1] (invalid): template is required",
@@ -152,13 +166,11 @@ func TestValidateConfig(t *testing.T) {
 			"  - tile[1] (invalid): row -1 out of bounds (min 1)",
 			"  - tile[1] (invalid): col -1 out of bounds (min 1)",
 			"  - tile[1] (invalid): colSpan 1 out of bounds (min 1)",
-			`  - tile[1] (invalid): unknown provider ""`,
 
 			// tile[2]
 			`  - tile[2] (not-found): template "not-fond.gohtml" not found`,
 			"  - tile[2] (not-found): request.provider is required",
 			"  - tile[2] (not-found): request.path is required",
-			`  - tile[2] (not-found): unknown provider ""`,
 		}
 
 		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
@@ -174,7 +186,7 @@ func TestValidateConfig(t *testing.T) {
 
 		tmpl := tmplWith(t, "only-existing")
 
-		err := ValidateConfig(&cfg, tmpl)
+		err := cfg.Validate(tmpl)
 		require.Error(t, err)
 
 		expected := []string{
@@ -213,7 +225,7 @@ func TestValidateConfig(t *testing.T) {
 
 		tmpl := tmplWith(t, "valid.gohtml", "overlapping.gohtml")
 
-		err := ValidateConfig(&cfg, tmpl)
+		err := cfg.Validate(tmpl)
 		require.Error(t, err)
 
 		expected := []string{
@@ -223,35 +235,186 @@ func TestValidateConfig(t *testing.T) {
 		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
 	})
 
-	t.Run("rejects invalid config with other values", func(t *testing.T) {
+	t.Run("rejects invalid TTL and HTTP method", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := DashboardConfig{
-			Grid:            &GridConfig{Rows: 1, Columns: 2},
-			RefreshInterval: 2 * time.Second,
-			Providers: map[string]Provider{
-				"p": {},
-			},
+			Grid:            &GridConfig{Rows: 1, Columns: 1},
+			RefreshInterval: 5 * time.Second,
+			Providers:       map[string]Provider{"p": {}},
 			Tiles: []Tile{
 				{
-					Title:    "almost valid",
-					Template: "almost.gohtml",
-					Position: Position{Row: 1, Col: 1, ColSpan: 4}, // overflow
+					Title:    "bad",
+					Template: "bad.gohtml",
+					Position: Position{Row: 1, Col: 1},
+					Request: Request{
+						Provider: "p",
+						Method:   "NONSENSE",
+						Path:     "/x",
+						TTL:      -1,
+					},
+				},
+			},
+		}
+		tmpl := tmplWith(t, "bad.gohtml")
+		err := cfg.Validate(tmpl)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `request.method "NONSENSE" is not a valid HTTP verb`)
+		assert.Contains(t, err.Error(), "request.ttl must be >= 0")
+	})
+
+	t.Run("pagination requires request/response markers", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            &GridConfig{Rows: 1, Columns: 1},
+			RefreshInterval: 10 * time.Second,
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
+				{
+					Title:    "p1",
+					Template: "p.gohtml",
+					Position: Position{Row: 1, Col: 1},
+					Request: Request{
+						Provider: "p",
+						Path:     "/x",
+						Paginate: true,
+						Page: PageParams{
+							Location:   "query",
+							ReqStart:   "", // missing
+							ReqLimit:   "", // missing
+							StartField: "",
+							TotalField: "",
+						},
+					},
+				},
+			},
+		}
+		tmpl := tmplWith(t, "p.gohtml")
+		err := cfg.Validate(tmpl)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "page.reqStart and page.reqLimit must be set when paginate is true")
+		assert.Contains(t, err.Error(), "page.startField or page.totalField should be set")
+	})
+
+	t.Run("provider name matching is case-insensitive", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            &GridConfig{Rows: 1, Columns: 1},
+			RefreshInterval: 10 * time.Second,
+			Providers:       map[string]Provider{"Jira-V2": {}}, // mixed case in map
+			Tiles: []Tile{
+				{
+					Title:    "ok",
+					Template: "ok.gohtml",
+					Position: Position{Row: 1, Col: 1},
+					Request:  Request{Provider: "jira-v2", Path: "/x"},
+				},
+			},
+		}
+		tmpl := tmplWith(t, "ok.gohtml")
+		err := cfg.Validate(tmpl)
+		require.NoError(t, err)
+	})
+
+	t.Run("rejects template without .gohtml extension", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            &GridConfig{Rows: 1, Columns: 1},
+			RefreshInterval: 10 * time.Second,
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
+				{
+					Title:    "missing extension",
+					Template: "template-without-extension", // no .gohtml
+					Position: Position{Row: 1, Col: 1},
 					Request:  Request{Provider: "p", Path: "/x"},
 				},
 			},
 		}
 
-		tmpl := tmplWith(t, "almost.gohtml")
-
-		err := ValidateConfig(&cfg, tmpl)
+		tmpl := tmplWith(t, "template-without-extension.gohtml") // registered version
+		err := cfg.Validate(tmpl)
 		require.Error(t, err)
 
 		expected := []string{
-			"  - tile[0] (almost valid): colSpan 4 overflows grid width 2",
+			`  - tile[0] (missing extension): template "template-without-extension" must end with ".gohtml"`,
 		}
 
 		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
+	})
+
+	t.Run("colSpan defaults to 1 when <= 0 (bounds check uses default)", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            &GridConfig{Rows: 1, Columns: 2},
+			RefreshInterval: 10 * time.Second,
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
+				{
+					Title:    "default span",
+					Template: "default.gohtml",
+					Position: Position{Row: 1, Col: 1, ColSpan: 0}, // treated as 1
+					Request:  Request{Provider: "p", Path: "/x"},
+				},
+			},
+		}
+
+		tmpl := tmplWith(t, "default.gohtml")
+		err := cfg.Validate(tmpl)
+		require.NoError(t, err)
+	})
+
+	t.Run("rejects colSpan that exceeds grid width", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            &GridConfig{Rows: 1, Columns: 2},
+			RefreshInterval: 10 * time.Second,
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
+				{
+					Title:    "wide",
+					Template: "wide.gohtml",
+					Position: Position{Row: 1, Col: 2, ColSpan: 2},
+					Request:  Request{Provider: "p", Path: "/x"},
+				},
+			},
+		}
+
+		tmpl := tmplWith(t, "wide.gohtml")
+		err := cfg.Validate(tmpl)
+		require.Error(t, err)
+
+		assert.Contains(t, err.Error(), "colSpan 2 overflows grid width 2")
+	})
+
+	t.Run("rejects row and col less than 1", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := DashboardConfig{
+			Grid:            &GridConfig{Rows: 2, Columns: 2},
+			RefreshInterval: 10 * time.Second,
+			Providers:       map[string]Provider{"p": {}},
+			Tiles: []Tile{
+				{
+					Title:    "zero-based",
+					Template: "tile.gohtml",
+					Position: Position{Row: 0, Col: 0},
+					Request:  Request{Provider: "p", Path: "/x"},
+				},
+			},
+		}
+
+		tmpl := tmplWith(t, "tile.gohtml")
+		err := cfg.Validate(tmpl)
+		require.Error(t, err)
+
+		assert.Contains(t, err.Error(), ": row 0 out of bounds")
+		assert.Contains(t, err.Error(), ": col 0 out of bounds")
 	})
 
 	t.Run("sets style defaults if customization is nil", func(t *testing.T) {
@@ -273,7 +436,7 @@ func TestValidateConfig(t *testing.T) {
 		}
 
 		tmpl := tmplWith(t, "default.gohtml")
-		err := ValidateConfig(&cfg, tmpl)
+		err := cfg.Validate(tmpl)
 		require.NoError(t, err)
 
 		require.NotNil(t, cfg.Customization)
@@ -298,16 +461,16 @@ func TestValidateConfig(t *testing.T) {
 			},
 			Customization: &Customization{
 				Grid: CustomGrid{
-					Gap: "4rem",
+					Gap: template.CSS("4rem"),
 				},
 				Font: CustomFont{
-					Family: "Fira Code",
+					Family: template.CSS("Fira Code"),
 				},
 			},
 		}
 
 		tmpl := tmplWith(t, "t.gohtml")
-		err := ValidateConfig(&cfg, tmpl)
+		err := cfg.Validate(tmpl)
 		require.NoError(t, err)
 
 		// Set fields remain
@@ -320,116 +483,89 @@ func TestValidateConfig(t *testing.T) {
 		assert.Equal(t, defaultFontSize, cfg.Customization.Font.Size)
 		assert.Equal(t, defaultCardBackground, cfg.Customization.Card.BackgroundColor)
 	})
+}
 
-	t.Run("rejects template without .gohtml extension", func(t *testing.T) {
-		t.Parallel()
+func TestResolveProvidersAuth(t *testing.T) {
+	//	t.Parallel()  // Paralell inpossible due GetEnv
 
+	t.Run("resolves bearer token", func(t *testing.T) {
+		cfg := DashboardConfig{
+			Providers: map[string]Provider{
+				"jira": {Auth: AuthConfig{Bearer: &BearerAuth{Token: "env:JIRA_TOKEN"}}},
+			},
+		}
+		t.Setenv("JIRA_TOKEN", "secret123")
+
+		err := cfg.ResolveProvidersAuth()
+		require.NoError(t, err)
+		assert.Equal(t, "secret123", cfg.Providers["jira"].Auth.Bearer.Token)
+	})
+
+	t.Run("resolves basic username/password", func(t *testing.T) {
+		cfg := DashboardConfig{
+			Providers: map[string]Provider{
+				"svc": {Auth: AuthConfig{Basic: &BasicAuth{
+					Username: "env:USER_X",
+					Password: "env:PASS_X",
+				}}},
+			},
+		}
+		t.Setenv("USER_X", "bob@example.com")
+		t.Setenv("PASS_X", "ap1-t0ken")
+
+		err := cfg.ResolveProvidersAuth()
+		require.NoError(t, err)
+		b := cfg.Providers["svc"].Auth.Basic
+		require.NotNil(t, b)
+		assert.Equal(t, "bob@example.com", b.Username)
+		assert.Equal(t, "ap1-t0ken", b.Password)
+	})
+
+	t.Run("aggregates resolution errors", func(t *testing.T) {
+		cfg := DashboardConfig{
+			Providers: map[string]Provider{
+				"p1": {Auth: AuthConfig{Bearer: &BearerAuth{Token: "env:MISSING1"}}},
+				"p2": {Auth: AuthConfig{Basic: &BasicAuth{
+					Username: "env:MISSING2",
+					Password: "env:MISSING3",
+				}}},
+			},
+		}
+		err := cfg.ResolveProvidersAuth()
+		require.Error(t, err)
+		msg := err.Error()
+		assert.Contains(t, msg, `provider auth has errors:`)
+		assert.Contains(t, msg, `provider "p1": bearer auth token "env:MISSING1" is not resolvable`)
+		assert.Contains(t, msg, `provider "p2": basic auth username "env:MISSING2" is not resolvable`)
+		assert.Contains(t, msg, `provider "p2": basic auth password "env:MISSING3" is not resolvable`)
+	})
+
+	t.Run("Validate does not resolve env placeholders", func(t *testing.T) {
 		cfg := DashboardConfig{
 			Grid:            &GridConfig{Rows: 1, Columns: 1},
-			RefreshInterval: 10 * time.Second,
-			Providers:       map[string]Provider{"p": {}},
+			RefreshInterval: 5 * time.Second,
+			Providers: map[string]Provider{
+				"p": {Auth: AuthConfig{Bearer: &BearerAuth{Token: "env:TOK"}}},
+			},
 			Tiles: []Tile{
 				{
-					Title:    "missing extension",
-					Template: "template-without-extension", // no .gohtml
+					Title:    "ok",
+					Template: "ok.gohtml",
 					Position: Position{Row: 1, Col: 1},
 					Request:  Request{Provider: "p", Path: "/x"},
 				},
 			},
 		}
-
-		tmpl := tmplWith(t, "template-without-extension.gohtml") // valid template is registered with extension
-
-		err := ValidateConfig(&cfg, tmpl)
-		require.Error(t, err)
-
-		expected := []string{
-			`  - tile[0] (missing extension): template "template-without-extension" must end with ".gohtml"`,
-		}
-
-		assert.EqualError(t, err, "config has errors:\n"+strings.Join(expected, "\n"))
-	})
-
-	t.Run("defaults colSpan to 1 when unset or <= 0", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := DashboardConfig{
-			Grid:            &GridConfig{Rows: 1, Columns: 2},
-			RefreshInterval: 10 * time.Second,
-			Providers:       map[string]Provider{"p": {}},
-			Tiles: []Tile{
-				{
-					Title:    "default span",
-					Template: "default.gohtml",
-					Position: Position{Row: 1, Col: 1, ColSpan: 0}, // should default to 1 for bounds check
-					Request:  Request{Provider: "p", Path: "/x"},
-				},
-			},
-		}
-
-		tmpl := tmplWith(t, "default.gohtml")
-		err := ValidateConfig(&cfg, tmpl)
+		tmpl := tmplWith(t, "ok.gohtml")
+		err := cfg.Validate(tmpl)
 		require.NoError(t, err)
+		// still unresolved here
+		assert.Equal(t, "env:TOK", cfg.Providers["p"].Auth.Bearer.Token)
+
+		t.Setenv("TOK", "resolved")
+		require.NoError(t, cfg.ResolveProvidersAuth())
+		assert.Equal(t, "resolved", cfg.Providers["p"].Auth.Bearer.Token)
 	})
-
-	t.Run("rejects colSpan that exceeds grid width", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := DashboardConfig{
-			Grid:            &GridConfig{Rows: 1, Columns: 2},
-			RefreshInterval: 10 * time.Second,
-			Providers:       map[string]Provider{"p": {}},
-			Tiles: []Tile{
-				{
-					Title:    "wide",
-					Template: "wide.gohtml",
-					Position: Position{Row: 1, Col: 2, ColSpan: 2},
-					Request:  Request{Provider: "p", Path: "/x"},
-				},
-			},
-		}
-
-		tmpl := tmplWith(t, "wide.gohtml")
-		err := ValidateConfig(&cfg, tmpl)
-		require.Error(t, err)
-
-		assert.Contains(t, err.Error(), "colSpan 2 overflows grid width 2")
-	})
-
-	t.Run("rejects row and col less than 1", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := DashboardConfig{
-			Grid:            &GridConfig{Rows: 2, Columns: 2},
-			RefreshInterval: 10 * time.Second,
-			Providers:       map[string]Provider{"p": {}},
-			Tiles: []Tile{
-				{
-					Title:    "zero-based",
-					Template: "tile.gohtml",
-					Position: Position{Row: 0, Col: 0},
-					Request:  Request{Provider: "p", Path: "/x"},
-				},
-			},
-		}
-
-		tmpl := tmplWith(t, "tile.gohtml")
-		err := ValidateConfig(&cfg, tmpl)
-		require.Error(t, err)
-
-		assert.Contains(t, err.Error(), ": row 0 out of bounds")
-		assert.Contains(t, err.Error(), ": col 0 out of bounds")
-	})
-}
-
-// tmplWith returns a template containing the given template names.
-func tmplWith(t *testing.T, names ...string) *template.Template {
-	t.Helper()
-	tmpl := template.New("base")
-	for _, name := range names {
-		template.Must(tmpl.New(name).Parse("template " + name))
-	}
-	return tmpl
 }
 
 func TestSetStyleDefaults(t *testing.T) {
@@ -459,24 +595,24 @@ func TestSetStyleDefaults(t *testing.T) {
 
 		c := &Customization{
 			Grid: CustomGrid{
-				Gap:       "2rem",
-				Padding:   "3rem",
-				MarginTop: "4rem",
+				Gap:       template.CSS("2rem"),
+				Padding:   template.CSS("3rem"),
+				MarginTop: template.CSS("4rem"),
 			},
 			Card: CustomCard{
-				BorderColor:     "blue",
-				Padding:         "2px",
-				BackgroundColor: "#000",
-				BorderRadius:    "8px",
-				BoxShadow:       "none",
+				BorderColor:     template.CSS("blue"),
+				Padding:         template.CSS("2px"),
+				BackgroundColor: template.CSS("#000"),
+				BorderRadius:    template.CSS("8px"),
+				BoxShadow:       template.CSS("none"),
 			},
 			Header: CustomHeader{
-				Align:        "center",
-				MarginBottom: "5rem",
+				Align:        template.CSS("center"),
+				MarginBottom: template.CSS("5rem"),
 			},
 			Font: CustomFont{
-				Family: "monospace",
-				Size:   "18px",
+				Family: template.CSS("monospace"),
+				Size:   template.CSS("18px"),
 			},
 		}
 
@@ -501,8 +637,8 @@ func TestSetStyleDefaults(t *testing.T) {
 
 		c := &Customization{
 			Font: CustomFont{
-				Family: "Segoe UI, sans-serif",
-				Size:   "16px",
+				Family: template.CSS("Segoe UI, sans-serif"),
+				Size:   template.CSS("16px"),
 			},
 		}
 		setStyleDefaults(c)
@@ -544,7 +680,7 @@ func TestSortCellsByPosition(t *testing.T) {
 
 		cfg.SortCellsByPosition()
 
-		titles := []string{}
+		titles := make([]string, 0, len(cfg.Tiles))
 		for _, tile := range cfg.Tiles {
 			titles = append(titles, tile.Title)
 		}
@@ -588,18 +724,18 @@ func TestValidateCSSValue(t *testing.T) {
 
 	t.Run("accepts normal values", func(t *testing.T) {
 		t.Parallel()
-		require.NoError(t, validateCSSValue("grid.gap", "2rem"))
-		require.NoError(t, validateCSSValue("card.borderColor", "#ccc"))
-		require.NoError(t, validateCSSValue("font.family", "Segoe UI, sans-serif"))
+		require.NoError(t, validateCSSValue("grid.gap", template.CSS("2rem")))
+		require.NoError(t, validateCSSValue("card.borderColor", template.CSS("#ccc")))
+		require.NoError(t, validateCSSValue("font.family", template.CSS("Segoe UI, sans-serif")))
 	})
 
 	t.Run("rejects illegal characters", func(t *testing.T) {
 		t.Parallel()
-		err := validateCSSValue("font.family", `bad"value`)
+		err := validateCSSValue("font.family", template.CSS(`bad"value`))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), `font.family: contains illegal character '"'`)
 
-		err = validateCSSValue("grid.gap", "2rem<")
+		err = validateCSSValue("grid.gap", template.CSS("2rem<"))
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), `grid.gap: contains illegal character '<'`)
 	})
@@ -612,31 +748,31 @@ func TestValidateCSSs(t *testing.T) {
 		t.Parallel()
 		c := &Customization{
 			Grid: CustomGrid{
-				Gap:          "2rem",
-				Padding:      "0rem",
-				MarginTop:    "1rem",
-				MarginBottom: "1rem",
+				Gap:          template.CSS("2rem"),
+				Padding:      template.CSS("0rem"),
+				MarginTop:    template.CSS("1rem"),
+				MarginBottom: template.CSS("1rem"),
 			},
 			Card: CustomCard{
-				BorderColor:     "#ccc",
-				Padding:         "1rem",
-				BackgroundColor: "#fff",
-				BorderRadius:    "0.5rem",
-				BoxShadow:       "0 2px 4px rgba(0,0,0,0.05)",
+				BorderColor:     template.CSS("#ccc"),
+				Padding:         template.CSS("1rem"),
+				BackgroundColor: template.CSS("#fff"),
+				BorderRadius:    template.CSS("0.5rem"),
+				BoxShadow:       template.CSS("0 2px 4px rgba(0,0,0,0.05)"),
 			},
 			Header: CustomHeader{
-				Align:        "center",
-				MarginBottom: "0.5rem",
+				Align:        template.CSS("center"),
+				MarginBottom: template.CSS("0.5rem"),
 			},
 			Footer: CustomFooter{
-				MarginTop: "1rem",
+				MarginTop: template.CSS("1rem"),
 			},
 			Font: CustomFont{
-				Family: "Segoe UI, sans-serif",
-				Size:   "16px",
+				Family: template.CSS("Segoe UI, sans-serif"),
+				Size:   template.CSS("16px"),
 			},
 		}
-		setStyleDefaults(c) // safe regardless
+		setStyleDefaults(c)
 		errs := validateCSSs(c)
 		require.Empty(t, errs)
 	})
@@ -645,24 +781,25 @@ func TestValidateCSSs(t *testing.T) {
 		t.Parallel()
 		c := &Customization{
 			Grid: CustomGrid{
-				Gap: "2rem", // ok
+				Gap: template.CSS("2rem"), // ok
 			},
 			Card: CustomCard{
-				BorderColor: `#fff"`, // illegal quote
+				BorderColor: template.CSS(`#fff"`), // illegal quote
 			},
 			Font: CustomFont{
-				Family: "monospace<", // illegal <
-				Size:   "16px",       // ok
+				Family: template.CSS("monospace<"), // illegal <
+				Size:   template.CSS("16px"),       // ok
 			},
 		}
 		errs := validateCSSs(c)
 		require.Len(t, errs, 2)
-		assert.Contains(t, strings.Join(errs, "\n"), `card.borderColor: contains illegal character '"'`)
-		assert.Contains(t, strings.Join(errs, "\n"), `font.family: contains illegal character '<'`)
+		text := strings.Join(errs, "\n")
+		assert.Contains(t, text, `card.borderColor: contains illegal character '"'`)
+		assert.Contains(t, text, `font.family: contains illegal character '<'`)
 	})
 }
 
-// TestSetProviderDefaults validates defaulting of SkipTLSVerify.
+// Test setProviderDefaults behavior.
 func TestSetProviderDefaults(t *testing.T) {
 	t.Parallel()
 
@@ -710,9 +847,7 @@ func TestValidateProvidersAuth(t *testing.T) {
 			},
 		}
 		errs := validateProvidersAuth(&cfg)
-		if len(errs) != 2 {
-			t.Fatalf("expected 2 errors, got %d: %v", len(errs), errs)
-		}
+		assert.Len(t, errs, 2)
 	})
 
 	t.Run("bearer missing token", func(t *testing.T) {
@@ -723,9 +858,7 @@ func TestValidateProvidersAuth(t *testing.T) {
 			},
 		}
 		errs := validateProvidersAuth(&cfg)
-		if len(errs) != 1 {
-			t.Fatalf("expected 1 error, got %d: %v", len(errs), errs)
-		}
+		assert.Len(t, errs, 1)
 	})
 
 	t.Run("no auth or single valid method is OK", func(t *testing.T) {
@@ -738,8 +871,16 @@ func TestValidateProvidersAuth(t *testing.T) {
 			},
 		}
 		errs := validateProvidersAuth(&cfg)
-		if len(errs) != 0 {
-			t.Fatalf("expected no errors, got %d: %v", len(errs), errs)
-		}
+		assert.Len(t, errs, 0)
 	})
+}
+
+// tmplWith returns a template containing the given template names.
+func tmplWith(t *testing.T, names ...string) *template.Template {
+	t.Helper()
+	tmpl := template.New("base")
+	for _, name := range names {
+		template.Must(tmpl.New(name).Parse("template " + name))
+	}
+	return tmpl
 }
