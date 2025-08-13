@@ -57,6 +57,9 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	if err := cfg.Validate(tmpl); err != nil {
 		return fmt.Errorf("config validation error: %w", err)
 	}
+	if flags.SiteRoot != "" {
+		logger.Debug("Using site root", "siteRoot", flags.SiteRoot)
+	}
 
 	if err := cfg.ResolveProvidersAuth(); err != nil {
 		return fmt.Errorf("config provider auth resolution error: %w", err)
@@ -77,7 +80,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	}
 
 	// HTTP server
-	router := server.NewRouter(webFS, flags.TemplateDir, cfg, logger, runners, flags.Debug, version)
+	router := server.NewRouter(webFS, flags.TemplateDir, cfg, logger, runners, flags.Debug, version, flags.SiteRoot)
 	err = server.Run(ctx, flags.ListenAddr, router, logger)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("HTTP server exited with error", "error", err)

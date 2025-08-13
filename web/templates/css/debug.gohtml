@@ -24,12 +24,12 @@ body.debug-mode .debug-label {
 }
 
 /* Hide cards flagged as hidden by template output */
-.card.jp-hidden {
+.card.td-hidden {
   display: none !important;
 }
 
 /* In debug mode, still show hidden cards (visually de-emphasized) */
-body.debug-mode .card.jp-hidden {
+body.debug-mode .card.td-hidden {
   display: block !important;
   outline: 2px dashed #999;
   background-image: repeating-linear-gradient(
@@ -39,7 +39,7 @@ body.debug-mode .card.jp-hidden {
   );
 }
 
-body.debug-mode .card.jp-hidden > *:not(.debug-label) {
+body.debug-mode .card.td-hidden > *:not(.debug-label) {
   filter: grayscale(1) blur(1px);
   opacity: 0.35;
 }

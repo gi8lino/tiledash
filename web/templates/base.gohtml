@@ -6,8 +6,8 @@
     <meta name="refresh-interval" content="{{ .RefreshInterval }}" />
     <meta name="config-hash" content="{{ .ConfigHash }}" />
 
-    <link rel="preload" href="/static/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript> <link rel="stylesheet" href="/static/css/bootstrap.min.css"> </noscript>
+    <link rel="preload" href="{{ .SiteRoot }}/static/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript> <link rel="stylesheet" href="{{ .SiteRoot }}/static/css/bootstrap.min.css"> </noscript>
 
     <title>{{ .Title }}</title>
 

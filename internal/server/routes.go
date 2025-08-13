@@ -20,6 +20,7 @@ func NewRouter(
 	runners []providers.Runner, // interface slice (no pointer-to-interface)
 	debug bool,
 	version string,
+	siteRoot string,
 ) http.Handler {
 	root := http.NewServeMux()
 
@@ -33,7 +34,7 @@ func NewRouter(
 	root.Handle("POST /healthz", handlers.Healthz())
 
 	// Main dashboard handler.
-	root.Handle("/", handlers.BaseHandler(webFS, templateDir, version, cfg, logger))
+	root.Handle("/", handlers.BaseHandler(webFS, templateDir, siteRoot, version, cfg, logger))
 
 	// API endpoints (tile content + tile hash).
 	api := http.NewServeMux()

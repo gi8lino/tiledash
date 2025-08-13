@@ -195,6 +195,7 @@ tiledash \
   --config ./config.yaml \
   --template-dir ./templates \
   --listen-address :8080 \
+  --site-root https://example.com \
   --log-format text \
   --debug
 ```
@@ -204,8 +205,9 @@ Flags:
 - `--config` (path to YAML; default `config.yaml`)
 - `--template-dir` (default `templates`)
 - `--listen-address` (default `:8080`)
-- `--debug` (bool)
+- `--site-root` (URL; used to generate absolute URLs)
 - `--log-format` (`text` or `json`)
+- `--debug` (bool)
 
 ## Endpoints
 

@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"path/filepath"
+	"strings"
 
 	"github.com/containeroo/tinyflags"
 	"github.com/gi8lino/tiledash/internal/logging"
@@ -16,6 +17,7 @@ type Config struct {
 	LogFormat   logging.LogFormat // Log output format (text or json)
 	Config      string            // Path to config file
 	TemplateDir string            // Path to template directory
+	SiteRoot    string            // URL of site root
 }
 
 // ParseArgs parses CLI arguments into Config, handling version/help flags.
@@ -29,6 +31,13 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 
 	// Server
 	tf.StringVar(&cfg.Config, "config", "config.yaml", "Path to config file").
+		Value()
+
+	tf.StringVar(&cfg.SiteRoot, "site-root", "", "Path to site root. Will be used to generate absolute URLs.").
+		Finalize(func(s string) string {
+			return strings.TrimRight(s, "/")
+		}).
+		Placeholder("URL").
 		Value()
 
 	tf.StringVar(&cfg.TemplateDir, "template-dir", "./templates", "Path to template directory").
