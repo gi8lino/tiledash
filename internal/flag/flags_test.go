@@ -52,6 +52,16 @@ func TestParseArgs(t *testing.T) {
 		assert.Equal(t, absPath, cfg.TemplateDir)
 	})
 
+	t.Run("site root", func(t *testing.T) {
+		t.Parallel()
+
+		args := []string{"--site-root=https://example.com"}
+		var out strings.Builder
+		cfg, err := flag.ParseArgs("1.0.0", args, &out, mockGetEnv(nil))
+		require.NoError(t, err)
+		assert.Equal(t, "https://example.com", cfg.SiteRoot)
+	})
+
 	t.Run("listen address override", func(t *testing.T) {
 		t.Parallel()
 

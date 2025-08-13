@@ -61,7 +61,7 @@ func TestDashboard(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
-		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "1.0.0", cfg, logger)
+		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "", "1.0.0", cfg, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -104,7 +104,7 @@ func TestDashboard(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
-		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "dev", cfg, logger)
+		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "", "dev", cfg, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
