@@ -9,8 +9,8 @@
   {{- end }}
 {{- end }}
 
-{{- $epicKeys := keys $epicSet }}               {{/* Sorted list of unique epic keys */}}
-{{- $components := dict }}                      {{/* Map: component name → list of issues */}}
+{{- $epicKeys := (keys $epicSet) | sortAlpha -}}  {{/* Sorted list of unique epic keys */}}
+{{- $components := dict }}                        {{/* Map: component name → list of issues */}}
 
 {{ range $issue := .Data.issues }}
   {{- $fields := $issue.fields }}
@@ -37,24 +37,26 @@
       <th>Total</th>
     </tr>
   </thead>
+  {{- $compNames := (keys $components) | sortAlpha -}}
   <tbody>
-    {{ range $compName, $issues := $components }}
+    {{- range $compName := $compNames }}
+      {{- $issues := index $components $compName }}
       <tr>
         <td>{{ $compName }}</td>
         {{- $total := 0 }}
-        {{ range $epicKey := $epicKeys }}
+        {{- range $epicKey := $epicKeys }}
           {{- $count := 0 }}
           {{- range $issues }}
             {{- if eq (dig .fields.customfield_10100 "key") $epicKey }}
-              {{- $count = add $count 1 }}       {{/* Count issues per epic */}}
+              {{- $count = add $count 1 }}
             {{- end }}
           {{- end }}
           <td>{{ $count }}</td>
           {{- $total = add $total $count }}
-        {{ end }}
-        <td>{{ $total }}</td>                     {{/* Total issues per component */}}
+        {{- end }}
+        <td>{{ $total }}</td>
       </tr>
-    {{ end }}
+    {{- end }}
   </tbody>
 </table>
 
