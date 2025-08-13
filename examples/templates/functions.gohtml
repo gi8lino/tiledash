@@ -24,20 +24,22 @@
 
 {{ define "statusBadgeColor" }} <!-- Helper to map Jira status to Bootstrap badge classes -->
   {{- $colors := dict
-      "To Do" "bg-secondary"
+      "Blocked" "bg-warning text-dark"
+      "Cantileed" "bg-danger"
+      "Closed" "bg-success"
+      "Done" "bg-success"
+      "Failed" "bg-danger"
+      "Healthy" "bg-success"
+      "In Progress" "bg-warning"
+      "Needs Attention" "bg-warning"
+      "New" "bg-warning"
+      "On Hold" "bg-warning text-dark"
       "Open" "bg-secondary"
       "Planned" "bg-secondary"
-      "In Progress" "bg-primary"
-      "Working" "bg-primary"
-      "Blocked" "bg-warning text-dark"
-      "On Hold" "bg-warning text-dark"
-      "Done" "bg-success"
-      "Resolved" "bg-success"
-      "Closed" "bg-success"
-      "Healthy" "bg-success"
       "Rejected" "bg-danger"
-      "Failed" "bg-danger"
-      "Cantileed" "bg-danger"
+      "Resolved" "bg-success"
+      "To Do" "bg-secondary"
+      "Working" "bg-primary"
   -}} <!-- Define mapping of statuses to Bootstrap color classes -->
 
   {{ with index $colors . }}
