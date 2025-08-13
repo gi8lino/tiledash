@@ -5,9 +5,10 @@
     <meta charset="UTF-8" />
     <meta name="refresh-interval" content="{{ .RefreshInterval }}" />
     <meta name="config-hash" content="{{ .ConfigHash }}" />
+    <meta name="route-prefix" content="{{ .RoutePrefix }}">
 
-    <link rel="preload" href="{{ .SiteRoot }}/static/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript> <link rel="stylesheet" href="{{ .SiteRoot }}/static/css/bootstrap.min.css"> </noscript>
+    <link rel="preload" href="{{ .RoutePrefix }}/static/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript> <link rel="stylesheet" href="{{ .RoutePrefix }}/static/css/bootstrap.min.css"> </noscript>
 
     <title>{{ .Title }}</title>
 

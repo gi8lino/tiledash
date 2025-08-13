@@ -13,7 +13,7 @@ import (
 func BaseHandler(
 	webFS fs.FS,
 	templateDir string,
-	siteRoot string,
+	subPath string,
 	version string,
 	cfg config.DashboardConfig,
 	logger *slog.Logger,
@@ -29,7 +29,7 @@ func BaseHandler(
 			"Version":         version,
 			"Grid":            cfg.Grid,
 			"Title":           cfg.Title,
-			"SiteRoot":        siteRoot,
+			"SubPath":         subPath,
 			"RefreshInterval": int(cfg.RefreshInterval.Seconds()),
 			"Customization":   &cfg.Customization,
 			"Cells":           cfg.Tiles, // pass tiles directly for async placeholder generation

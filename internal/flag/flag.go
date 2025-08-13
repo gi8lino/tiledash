@@ -4,44 +4,42 @@ import (
 	"io"
 	"net"
 	"path/filepath"
-	"strings"
 
 	"github.com/containeroo/tinyflags"
 	"github.com/gi8lino/tiledash/internal/logging"
+	"github.com/gi8lino/tiledash/internal/utils"
 )
 
 // Config holds all application and Jira-specific configuration.
-type Config struct {
+type Config struct { // Config aggregates CLI flags after parsing.
 	ListenAddr  string            // HTTP bind address (e.g. ":8080")
 	Debug       bool              // Enables debug logging
 	LogFormat   logging.LogFormat // Log output format (text or json)
 	Config      string            // Path to config file
 	TemplateDir string            // Path to template directory
-	SiteRoot    string            // URL of site root
+	RoutePrefix string            // Canonical path prefix ("" or "/tiledash")
 }
 
 // ParseArgs parses CLI arguments into Config, handling version/help flags.
-func ParseArgs(version string, args []string, out io.Writer, getEnv func(string) string) (Config, error) {
+func ParseArgs(version string, args []string, out io.Writer, getEnv func(string) string) (Config, error) { // ParseArgs parses CLI args into Config.
 	var cfg Config
 	tf := tinyflags.NewFlagSet("tiledash", tinyflags.ContinueOnError)
 	tf.Version(version)
-	tf.SetGetEnvFn(getEnv) // useful for testing
+	tf.SetGetEnvFn(getEnv)
 	tf.EnvPrefix("TILEDASH")
 	tf.SetOutput(out)
 
 	// Server
-	tf.StringVar(&cfg.Config, "config", "config.yaml", "Path to config file").
-		Value()
+	tf.StringVar(&cfg.Config, "config", "config.yaml", "Path to config file").Value()
 
-	tf.StringVar(&cfg.SiteRoot, "site-root", "", "Path to site root. Will be used to generate absolute URLs.").
-		Finalize(func(s string) string {
-			return strings.TrimRight(s, "/")
+	route := tf.String("route-prefix", "", "Path prefix to mount the app (e.g., /tiledash). Empty = root.").
+		Finalize(func(input string) string {
+			return utils.NormalizeRoutePrefix(input) // canonical "" or "/tiledash"
 		}).
-		Placeholder("URL").
+		Placeholder("PATH").
 		Value()
 
 	tf.StringVar(&cfg.TemplateDir, "template-dir", "./templates", "Path to template directory").
-		// Finalize only works if user has set a value
 		Finalize(func(s string) string {
 			if !filepath.IsAbs(s) {
 				base := filepath.Dir(".")
@@ -51,27 +49,26 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 			return s
 		}).
 		Value()
+
 	listenAddr := tf.TCPAddr("listen-address", &net.TCPAddr{IP: nil, Port: 8080}, "HTTP server listen address").
 		Placeholder("ADDR:PORT").
 		Value()
 
 	// Logging
-	tf.BoolVar(&cfg.Debug, "debug", false, "Enable debug logging").
-		Value()
-	logFormat := tf.String("log-format", "text", "Log format").
-		Choices("text", "json").
-		Short("l").
-		Value()
+	tf.BoolVar(&cfg.Debug, "debug", false, "Enable debug logging").Value()
+	logFormat := tf.String("log-format", "text", "Log format").Choices("text", "json").Short("l").Value()
 
-	// Parse flags
+	// Parse
 	if err := tf.Parse(args); err != nil {
 		return Config{}, err
 	}
-	// This needs to be done after parsing, since the flag value is not set until after the Parse call.
+
+	// Post-parse
 	cfg.LogFormat = logging.LogFormat(*logFormat)
 	cfg.ListenAddr = (*listenAddr).String()
+	cfg.RoutePrefix = *route
+
 	if cfg.TemplateDir == "./templates" {
-		// Finalize only works if user has set a value, not for defaults
 		base := filepath.Dir(".")
 		cfg.TemplateDir = filepath.Join(base, cfg.TemplateDir)
 	}

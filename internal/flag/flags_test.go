@@ -48,18 +48,25 @@ func TestParseArgs(t *testing.T) {
 		assert.False(t, cfg.Debug)
 		assert.Equal(t, "text", string(cfg.LogFormat))
 		assert.Equal(t, ":8080", cfg.ListenAddr)
-
 		assert.Equal(t, absPath, cfg.TemplateDir)
 	})
 
-	t.Run("site root", func(t *testing.T) {
+	t.Run("route prefix default empty", func(t *testing.T) {
 		t.Parallel()
 
-		args := []string{"--site-root=https://example.com"}
 		var out strings.Builder
-		cfg, err := flag.ParseArgs("1.0.0", args, &out, mockGetEnv(nil))
+		cfg, err := flag.ParseArgs("v", []string{}, &out, func(string) string { return "" })
 		require.NoError(t, err)
-		assert.Equal(t, "https://example.com", cfg.SiteRoot)
+		assert.Empty(t, cfg.RoutePrefix)
+	})
+
+	t.Run("route-prefix normalized value", func(t *testing.T) {
+		t.Parallel()
+
+		var out strings.Builder
+		cfg, err := flag.ParseArgs("v", []string{"--route-prefix=tiledash/"}, &out, func(string) string { return "" })
+		require.NoError(t, err)
+		assert.Equal(t, cfg.RoutePrefix, "/tiledash")
 	})
 
 	t.Run("listen address override", func(t *testing.T) {

@@ -195,7 +195,6 @@ tiledash \
   --config ./config.yaml \
   --template-dir ./templates \
   --listen-address :8080 \
-  --site-root https://example.com \
   --log-format text \
   --debug
 ```
@@ -205,7 +204,7 @@ Flags:
 - `--config` (path to YAML; default `config.yaml`)
 - `--template-dir` (default `templates`)
 - `--listen-address` (default `:8080`)
-- `--site-root` (URL; used to generate absolute URLs)
+- `--route-prefix` (path prefix to mount the app (e.g., /tiledash).
 - `--log-format` (`text` or `json`)
 - `--debug` (bool)
 
@@ -220,6 +219,8 @@ Flags:
 | `/static/*`         | GET    | Static assets       |
 
 > Notes: IDs are 0-based. Hash endpoints are useful for cache-busting on the client.
+
+> Note: If you set `--route-prefix=/tiledash`, the above paths will be `/tiledash/{PATH}` instead of `/`.
 
 ## Local development: mock server
 

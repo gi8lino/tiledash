@@ -2,6 +2,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const DEBUG_KEY = "tiledash-debug";
   const configHash =
     document.querySelector('meta[name="config-hash"]')?.content || "";
+  const routePrefix =
+    document.querySelector('meta[name="route-prefix"]')?.content || "";
 
   // Track all card elements
   const cards = document.querySelectorAll("[data-tile-id]");
@@ -15,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!card || inFlight.has(id)) return;
     inFlight.add(id);
 
-    fetch(`/api/v1/tile/${id}`)
+    fetch(`${routePrefix}/api/v1/tile/${id}`)
       .then((res) => res.text())
       .then((html) => {
         card.innerHTML = html;
@@ -99,7 +101,7 @@ document.addEventListener("DOMContentLoaded", function () {
    * Main refresh loop: checks config and tile hashes, and reloads as needed.
    */
   function refresh() {
-    fetch("/api/v1/hash/config")
+    fetch(`${routePrefix}/api/v1/hash/config`)
       .then((res) => res.text())
       .then((newConfigHash) => {
         if (newConfigHash !== configHash) {
@@ -112,7 +114,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         cards.forEach((card) => {
           const id = card.getAttribute("data-tile-id");
-          fetch(`/api/v1/hash/${id}`)
+          fetch(`${routePrefix}/api/v1/hash/${id}`)
             .then((res) => res.text())
             .then((newHash) => {
               if (!tileHashes[id] || tileHashes[id] !== newHash) {
