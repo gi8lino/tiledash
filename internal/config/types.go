@@ -95,7 +95,7 @@ type Tile struct {
 	Template string   `yaml:"template"`
 	Position Position `yaml:"position"`
 	Request  Request  `yaml:"request"`
-	Hash     string   `yaml:"-"` // computed hash
+	Hash     string   `yaml:"-" json:"-"` // computed hash
 }
 
 // Position places a tile in the grid.
