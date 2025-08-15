@@ -43,8 +43,11 @@ func NewRouter(
 	api.Handle("GET /hash/{id}", handlers.HashHandler(cfg, logger))
 	root.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 
-	// Mount the whole app under the prefix if provided.
-	handler := mountUnderPrefix(root, routePrefix)
+	// Mount the whole app under the prefix if provided
+	var handler http.Handler = root
+	if routePrefix != "" {
+		handler = mountUnderPrefix(root, routePrefix)
+	}
 
 	// Optional debug logging middleware.
 	if debug {

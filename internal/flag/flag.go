@@ -7,7 +7,7 @@ import (
 
 	"github.com/containeroo/tinyflags"
 	"github.com/gi8lino/tiledash/internal/logging"
-	"github.com/gi8lino/tiledash/internal/utils"
+	"github.com/gi8lino/tiledash/internal/server"
 )
 
 // Config holds all application and Jira-specific configuration.
@@ -32,9 +32,9 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 	// Server
 	tf.StringVar(&cfg.Config, "config", "config.yaml", "Path to config file").Value()
 
-	route := tf.String("route-prefix", "", "Path prefix to mount the app (e.g., /tiledash). Empty = root.").
+	tf.StringVar(&cfg.RoutePrefix, "route-prefix", "", "Path prefix to mount the app (e.g., /tiledash). Empty = root.").
 		Finalize(func(input string) string {
-			return utils.NormalizeRoutePrefix(input) // canonical "" or "/tiledash"
+			return server.NormalizeRoutePrefix(input) // canonical "" or "/tiledash"
 		}).
 		Placeholder("PATH").
 		Value()
@@ -66,7 +66,6 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 	// Post-parse
 	cfg.LogFormat = logging.LogFormat(*logFormat)
 	cfg.ListenAddr = (*listenAddr).String()
-	cfg.RoutePrefix = *route
 
 	if cfg.TemplateDir == "./templates" {
 		base := filepath.Dir(".")
