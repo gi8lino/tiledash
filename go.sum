@@ -6,8 +6,8 @@ github.com/Masterminds/semver/v3 v3.3.0 h1:B8LGeaivUe71a5qox1ICM/JLl0NqZSW5CHyL+
 github.com/Masterminds/semver/v3 v3.3.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/Masterminds/sprig/v3 v3.3.0 h1:mQh0Yrg1XPo6vjYXgtf5OtijNAKJRNcTdOOGZe3tPhs=
 github.com/Masterminds/sprig/v3 v3.3.0/go.mod h1:Zy1iXRYNqNLUolqCpL4uhk6SHUMAOSCzdgBfDb35Lz0=
-github.com/containeroo/resolver v0.1.0 h1:2QGuMeY9H1T6GE53zPCnM3Zgpp/4XtGjN0eBSR8epSs=
-github.com/containeroo/resolver v0.1.0/go.mod h1:98QSZmbWP7A2YR2EU2SJZe34iFPKh2SDI9zJr2vO+Z8=
+github.com/containeroo/resolver v0.2.0 h1:H6ivJCmYc6zfLaCE7BVCulw9onsMxelAT1mIoreUmTI=
+github.com/containeroo/resolver v0.2.0/go.mod h1:98QSZmbWP7A2YR2EU2SJZe34iFPKh2SDI9zJr2vO+Z8=
 github.com/containeroo/tinyflags v0.0.43 h1:U/2TzLmXxlUFzXhCT45jzo3LjMdbhADWp6kiZArfQlw=
 github.com/containeroo/tinyflags v0.0.43/go.mod h1:SxHHkI4dTMtsXwhKuw9Q2pCqxoX/ULRwUDteqsfFczM=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/containeroo/resolver v0.1.0
+	github.com/containeroo/resolver v0.2.0
 	github.com/containeroo/tinyflags v0.0.43
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v3 v3.0.1
