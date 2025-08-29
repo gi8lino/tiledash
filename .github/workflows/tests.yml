@@ -10,7 +10,7 @@ on:
       - "internal/**"
       - "go.mod"
       - "go.sum"
-      - "Dockerfile"
+      - "Dockerfile.goreleaser"
   workflow_dispatch:
 
 jobs:

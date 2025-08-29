@@ -1,49 +1,76 @@
-project_name: JiraPanel
-
+---
+project_name: tiledash
 before:
   hooks:
     - go mod tidy
-
 builds:
-  - main: ./main.go
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-    goarch:
-      - amd64
+  - id: tiledash
+    main: ./main.go
+    binary: tiledash
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64, arm64]
     ldflags:
       - -s -w
       - -X main.Version={{ .Tag }}
       - -X main.Commit={{ .FullCommit }}
-
 dockers:
-  - image_templates:
-      - ghcr.io/gi8lino/tiledash:{{ .Tag }}
-      - ghcr.io/gi8lino/tiledash:latest
+  - ids: [tiledash] # tie this docker image to the 'tiledash' build
     use: buildx
-    dockerfile: Dockerfile
+    dockerfile: Dockerfile.goreleaser
     extra_files:
       - go.mod
       - go.sum
       - main.go
       - internal
       - web
+    image_templates:
+      - ghcr.io/gi8lino/tiledash:{{ .Tag }}-amd64
     build_flag_templates:
-      - --build-arg=LDFLAGS=-s -w -X main.Version={{ .Tag }} -X main.Commit={{ .FullCommit }}
       - --pull
       - --platform=linux/amd64
-      - --label=org.opencontainers.image.title=JiraPanel
-      - --label=org.opencontainers.image.description=JiraPanel
+      - --build-arg
+      - LDFLAGS=-s -w -X main.Version={{ .Tag }} -X main.Commit={{ .FullCommit }}
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description={{ .ProjectName }}
       - --label=org.opencontainers.image.url=https://github.com/gi8lino/tiledash
       - --label=org.opencontainers.image.source=https://github.com/gi8lino/tiledash
       - --label=org.opencontainers.image.version={{ .Version }}
       - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
       - --label=org.opencontainers.image.revision={{ .FullCommit }}
-      - --label=org.opencontainers.image.licenses=GPL-3.0
+      - --label=org.opencontainers.image.licenses="GNU General Public License v3.0"
+
+  - ids: [tiledash]
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    extra_files:
+      - go.mod
+      - go.sum
+      - main.go
+      - internal
+      - web
+    image_templates:
+      - ghcr.io/gi8lino/tiledash:{{ .Tag }}-arm64
+    build_flag_templates:
+      - --pull
+      - --platform=linux/arm64
+      - --build-arg
+      - LDFLAGS=-s -w -X main.Version={{ .Tag }} -X main.Commit={{ .FullCommit }}
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description={{ .ProjectName }}
+      - --label=org.opencontainers.image.url=https://github.com/gi8lino/tiledash
+      - --label=org.opencontainers.image.source=https://github.com/gi8lino/tiledash
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.licenses="GNU General Public License v3.0"
 
 docker_manifests:
   - name_template: ghcr.io/gi8lino/tiledash:{{ .Tag }}
     image_templates:
-      - ghcr.io/gi8lino/tiledash:{{ .Tag }}
-      - ghcr.io/gi8lino/tiledash:latest
+      - ghcr.io/gi8lino/tiledash:{{ .Tag }}-amd64
+      - ghcr.io/gi8lino/tiledash:{{ .Tag }}-arm64
+  - name_template: ghcr.io/gi8lino/tiledash:latest
+    image_templates:
+      - ghcr.io/gi8lino/tiledash:{{ .Tag }}-amd64
+      - ghcr.io/gi8lino/tiledash:{{ .Tag }}-arm64
