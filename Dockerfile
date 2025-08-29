@@ -14,10 +14,8 @@ COPY . .
 RUN go build -ldflags="$LDFLAGS" -o /tiledash ./main.go
 
 FROM gcr.io/distroless/static:nonroot
-
 WORKDIR /
 COPY --from=builder /tiledash ./
 USER 65532:65532
-
 ENTRYPOINT ["./tiledash"]
 
