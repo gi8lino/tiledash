@@ -49,6 +49,17 @@ Each file is named `<filterId>.json` and should roughly match Jira’s search re
 }
 ```
 
+## Fetching data from JIRA
+
+To get an issue from jira, you can use the following curl command:
+
+```bash
+curl -s \
+     -H "Accept: application/json" \
+     -H "Authorization: Basic YWRtaW46cGFzc3dvcmQ=" \
+     "https://jira.example.com/rest/api/2/issue/ENV-64"
+```
+
 ## Running
 
 ### With make

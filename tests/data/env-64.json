@@ -1,0 +1,20 @@
+{
+  "key": "ENV-64",
+  "fields": {
+    "assignee": {
+      "self": "https://jira.example.com/rest/api/2/user?username=user123",
+      "name": "user123",
+      "key": "JIRAUSERXXXXX",
+      "emailAddress": "user@example.com",
+      "avatarUrls": {
+        "48x48": "https://example.com/avatar/48",
+        "24x24": "https://example.com/avatar/24",
+        "16x16": "https://example.com/avatar/16",
+        "32x32": "https://example.com/avatar/32"
+      },
+      "displayName": "John Doe",
+      "active": true,
+      "timeZone": "Europe/Zurich"
+    }
+  }
+}

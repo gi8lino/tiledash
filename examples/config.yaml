@@ -26,13 +26,15 @@ customization:
     size: 16px
 
 providers:
-  jira-v2:
+  jira-v3:
     baseURL: "http://localhost:8081"
     skipTLSVerify: true
     auth:
       basic:
         username: "me@example.com"
         password: "JIRA_API_TOKEN"
+  jira-v2:
+    baseURL: "http://localhost:8081"
 
 tiles:
   - title: Prod Alert
@@ -48,10 +50,23 @@ tiles:
       ttl: 20s
       query:
         jql: filter=17203
+  - title: Engineer of the Week
+    template: eotw.gohtml
+    position:
+      row: 2
+      col: 1
+      colSpan: 2
+    request:
+      provider: jira-v2
+      method: GET
+      path: /rest/api/2/issue/ENV-64
+      ttl: 60s
+      query:
+        fields: assignee,summary,status
   - title: Env Epics
     template: epics.gohtml
     position:
-      row: 2
+      row: 3
       col: 1
     request:
       provider: jira-v2
@@ -62,7 +77,7 @@ tiles:
         jql: filter=17201
   - title: Open Environment Issues
     template: issues.gohtml
-    position: { row: 2, col: 2 }
+    position: { row: 3, col: 2 }
     request:
       provider: jira-v2
       method: GET
@@ -72,7 +87,7 @@ tiles:
         jql: filter=17203
   - title: Two Dimensional Open Environment Issues
     template: env_issues.gohtml
-    position: { row: 3, col: 1 }
+    position: { row: 4, col: 1 }
     request:
       provider: jira-v2
       method: GET
@@ -82,7 +97,7 @@ tiles:
         jql: filter=17203
   - title: Top 3 most Issues
     template: podium.gohtml
-    position: { row: 3, col: 2 }
+    position: { row: 4, col: 2 }
     request:
       provider: jira-v2
       method: GET
@@ -92,7 +107,7 @@ tiles:
         jql: filter=17203
   - title: "Issue Statistics: Open Environment Issues (Assignee)"
     template: assignees.gohtml
-    position: { row: 4, col: 1, colSpan: 2 }
+    position: { row: 5, col: 1, colSpan: 2 }
     request:
       provider: jira-v2
       method: GET

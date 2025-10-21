@@ -1,0 +1,9 @@
+<h2 class="mb-4 bg-danger text-white p-2 rounded">{{ .Title }}</h2>
+
+{{- $name := "Unassigned" -}}
+{{- with .Data.fields.assignee -}}
+  {{- with .displayName -}} {{- $name = . -}} {{- end -}}
+{{- end -}}
+
+<p class="mb-0 fw-semibold">{{ $name }}</p>
+
