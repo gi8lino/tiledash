@@ -226,7 +226,7 @@ Flags:
 
 If you want to develop templates and requests without hitting real APIs, use the included mock server. It can emulate Jira’s `/rest/api/2/search` with optional pagination.
 
-➡️ See **mock-server/README.md** for full usage, flags, and data layout.
+➡️ See **tests/README.md** for full usage, flags, and data layout.
 
 ## Migration notes (from JiraPanel)
 
