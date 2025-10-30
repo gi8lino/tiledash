@@ -11,7 +11,7 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 # renovate: datasource=github-releases depName=golangci/golangci-lint
-GOLANGCI_LINT_VERSION ?= v2.5.0
+GOLANGCI_LINT_VERSION ?= v2.6.0
 # renovate: datasource=npm depName=bootstrap
 BOOTSTRAP_VERSION ?= 5.3.8
 # renovate: datasource=github-releases depName=tristen/tablesort
