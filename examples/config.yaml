@@ -3,7 +3,7 @@ title: My Jira Dashboard
 refreshInterval: 60s
 grid:
   columns: 2
-  rows: 5
+  rows: 6
 
 customization:
   grid:
@@ -35,6 +35,8 @@ providers:
         password: "JIRA_API_TOKEN"
   jira-v2:
     baseURL: "http://localhost:8081"
+#  randomapi:
+#    baseURL: "http://localhost:8082"
 
 tiles:
   - title: Prod Alert
@@ -115,3 +117,11 @@ tiles:
       ttl: 20s
       query:
         jql: filter=17203
+  # - title: "Message of the Day"
+  #   template: motd.gohtml
+  #   position: { row: 6, col: 1, colSpan: 2 }
+  #   request:
+  #     path: /random
+  #     provider: randomapi
+  #     method: GET
+  #     ttl: 24h

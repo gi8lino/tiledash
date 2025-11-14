@@ -10,7 +10,11 @@ configMapGenerator:
   - name: tiledash-templates
     files:
       - templates/assignees.gohtml
+      - templates/env_alert.gohtml
       - templates/env_issues.gohtml
+      - templates/eotw.gohtml
       - templates/epics.gohtml
       - templates/functions.gohtml
       - templates/issues.gohtml
+      - templates/motd.gohtml
+      - templates/podium.gohtml
