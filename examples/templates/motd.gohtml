@@ -1,8 +1,2 @@
 <h2 class="mb-4 bg-success text-white p-2 rounded">{{ .Title }}</h2>
-
-{{- $message := "no message today" -}}
-{{- with .Data.joke -}}
-  {{- with .displayName -}} {{- $message = . -}} {{- end -}}
-{{- end -}}
-
 <p class="mb-0 fw-semibold">{{ .Data.setup }} {{ .Data.punchline }}</p>
