@@ -39,6 +39,7 @@
             grid-row: {{ $tile.Position.Row }};
           "
           data-tile-id="{{ $i }}"
+          data-tile-title="{{ $tile.Title }}"
           data-row="{{ $tile.Position.Row }}"
           data-col="{{ $tile.Position.Col }}"
           data-col-span="{{ or $tile.Position.ColSpan 1 }}"
@@ -57,4 +58,3 @@
   </body>
 </html>
 {{ end }}
-

@@ -61,6 +61,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const col = card.getAttribute("data-col");
     const span = card.getAttribute("data-col-span");
     const tmpl = card.getAttribute("data-template");
+    const title = card.getAttribute("data-tile-title") || "Untitled";
+    const id = card.getAttribute("data-tile-id");
     const hidden = card.classList.contains("td-hidden") ? " (hidden)" : "";
 
     // Avoid stacking duplicates
@@ -69,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const label = document.createElement("div");
     label.className = "debug-label";
-    label.innerHTML = `row: ${row} | col: ${col} | span: ${span}${hidden}\ntemplate: ${tmpl}`;
+    label.innerHTML = `id: ${id} | title: ${title}\nrow: ${row} | col: ${col} | span: ${span}${hidden}\ntemplate: ${tmpl}`;
     card.appendChild(label);
   }
 
@@ -120,13 +122,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         cards.forEach((card) => {
           const id = card.getAttribute("data-tile-id");
+          const title = card.getAttribute("data-tile-title") || "Untitled";
           const oldHash = tileHashes[id];
           fetch(`${routePrefix}/api/v1/hash/${id}`)
             .then((res) => res.text())
             .then((newHash) => {
               const hashMatches = oldHash === newHash;
               console.log(
-                `[tiledash] Tile ${id} hash ${hashMatches ? "unchanged" : "changed"} (old=${oldHash ?? "none"}, new=${newHash})`,
+                `[tiledash] Tile ${title} (id=${id}) hash ${hashMatches ? "unchanged" : "changed"} (old=${oldHash ?? "none"}, new=${newHash})`,
               );
               if (!hashMatches) {
                 tileHashes[id] = newHash;
