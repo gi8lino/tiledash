@@ -103,17 +103,22 @@ document.addEventListener("DOMContentLoaded", function () {
    * Main refresh loop: checks config and tile hashes, and reloads as needed.
    */
   function refresh() {
-    console.log(
-      `[tiledash] Refresh tick at ${new Date().toISOString()}: checking config and tiles`,
-    );
+    const debug = document.body.classList.contains("debug-mode");
+    if (debug) {
+      console.log(
+        `[tiledash] Refresh tick at ${new Date().toISOString()}: checking config and tiles`,
+      );
+    }
 
     fetch(`${routePrefix}/api/v1/hash/config`)
       .then((res) => res.text())
       .then((newConfigHash) => {
         const configMatches = newConfigHash === configHash;
-        console.log(
-          `[tiledash] Config hash ${configMatches ? "unchanged" : "changed"} (old=${configHash}, new=${newConfigHash})`,
-        );
+        if (debug) {
+          console.log(
+            `[tiledash] Config hash ${configMatches ? "unchanged" : "changed"} (old=${configHash}, new=${newConfigHash})`,
+          );
+        }
 
         if (!configMatches) {
           location.reload();
@@ -128,9 +133,11 @@ document.addEventListener("DOMContentLoaded", function () {
             .then((res) => res.text())
             .then((newHash) => {
               const hashMatches = oldHash === newHash;
-              console.log(
-                `[tiledash] Tile «${title}» (id=${id}) hash ${hashMatches ? "unchanged" : "changed"} (old=${oldHash ?? "none"}, new=${newHash})`,
-              );
+              if (debug) {
+                console.log(
+                  `[tiledash] Tile «${title}» (id=${id}) hash ${hashMatches ? "unchanged" : "changed"} (old=${oldHash ?? "none"}, new=${newHash})`,
+                );
+              }
               if (!hashMatches) {
                 tileHashes[id] = newHash;
                 reloadCard(id, card);

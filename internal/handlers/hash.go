@@ -42,7 +42,11 @@ func HashHandler(
 
 			result, status, renderErr := renderer.RenderTile(r.Context(), idx)
 			if renderErr != nil {
-				logger.Error("hash computation failed", "id", id, "status", status, "error", renderErr)
+				if status == http.StatusNotFound || status == http.StatusBadRequest {
+					http.Error(w, "invalid tile id", status)
+					return
+				}
+				logger.Error("hash computation failed", "id", id, "status", status, "error", renderErr.Error())
 				http.Error(w, "failed to compute hash", status)
 				return
 			}

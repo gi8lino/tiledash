@@ -67,7 +67,7 @@ func (t *TileRenderer) RenderTile(ctx context.Context, idx int) (Result, int, *t
 		t.mu.RLock()
 		entry := t.cache[idx]
 		t.mu.RUnlock()
-		if !entry.expires.IsZero() && now.Before(entry.expires) {
+		if !entry.expires.IsZero() && now.Before(entry.expires) && entry.rendered.Hash != "" {
 			return entry.rendered, http.StatusOK, nil
 		}
 	}

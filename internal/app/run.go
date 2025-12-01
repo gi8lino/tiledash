@@ -48,18 +48,22 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	}
 
 	// Try to parse user templates
-	tmpl, err := templates.ParseCellTemplates(flags.TemplateDir, templates.TemplateFuncMap())
+	cellTmpl, err := templates.ParseCellTemplates(flags.TemplateDir, templates.TemplateFuncMap())
 	if err != nil {
 		return fmt.Errorf("template parse error: %w", err)
 	}
 
 	// Validate config
-	if err := cfg.Validate(tmpl); err != nil {
+	if err := cfg.Validate(cellTmpl); err != nil {
 		return fmt.Errorf("config validation error: %w", err)
 	}
 	if flags.RoutePrefix != "" {
 		logger.Debug("Using route prefix", "prefix", flags.RoutePrefix)
 	}
+
+	// Parse error template
+	funcMap := templates.TemplateFuncMap()
+	errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
 
 	if err := cfg.ResolveProvidersAuth(); err != nil {
 		return fmt.Errorf("config provider auth resolution error: %w", err)
@@ -80,7 +84,17 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	}
 
 	// HTTP server
-	router := server.NewRouter(webFS, flags.TemplateDir, cfg, logger, runners, flags.Debug, version, flags.RoutePrefix)
+	router := server.NewRouter(
+		webFS,
+		cellTmpl,
+		errTmpl,
+		cfg,
+		logger,
+		runners,
+		flags.Debug,
+		version,
+		flags.RoutePrefix,
+	)
 	err = server.Run(ctx, flags.ListenAddr, router, logger)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("HTTP server exited with error", "error", err)

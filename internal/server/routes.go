@@ -1,6 +1,7 @@
 package server
 
 import (
+	"html/template"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -10,13 +11,13 @@ import (
 	"github.com/gi8lino/tiledash/internal/middleware"
 	"github.com/gi8lino/tiledash/internal/providers"
 	"github.com/gi8lino/tiledash/internal/render"
-	"github.com/gi8lino/tiledash/internal/templates"
 )
 
 // NewRouter creates and wires the HTTP mux with handlers and middleware; mounts under routerPrefix  if provided.
 func NewRouter(
 	webFS fs.FS,
-	templateDir string,
+	cellTmpl *template.Template,
+	errTmpl *template.Template,
 	cfg config.DashboardConfig,
 	logger *slog.Logger,
 	runners []providers.Runner,
@@ -27,12 +28,6 @@ func NewRouter(
 	// Inner mux registers canonical routes rooted at "/".
 	root := http.NewServeMux()
 
-	funcMap := templates.TemplateFuncMap()
-	errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
-	cellTmpl, err := templates.ParseCellTemplates(templateDir, funcMap)
-	if err != nil {
-		panic(err)
-	}
 	renderer := render.NewTileRenderer(cfg, runners, cellTmpl, logger)
 
 	// Serve embedded static files at /static/*.
