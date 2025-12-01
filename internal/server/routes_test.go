@@ -160,7 +160,13 @@ func TestNewRouter(t *testing.T) {
 				{Template: "example.gohtml", Title: "Hashed"},
 			},
 		}
-		var runners []providers.Runner
+		runners := []providers.Runner{
+			mockRunner{
+				fn: func(ctx context.Context) (providers.Accumulator, int, int, error) {
+					return providers.Accumulator{"merged": map[string]any{"ok": true}}, 1, http.StatusOK, nil
+				},
+			},
+		}
 
 		router := server.NewRouter(webFS, tmpDir, cfg, logger, runners, debug, version, "")
 

@@ -2,15 +2,18 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gi8lino/tiledash/internal/config"
+	"github.com/gi8lino/tiledash/internal/providers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +35,7 @@ func TestHashHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		handler := HashHandler(cfg, logger)
+		handler := HashHandler(cfg, nil, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -49,11 +52,7 @@ func TestHashHandler(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.DashboardConfig{
-			Tiles: []config.Tile{
-				{
-					Title: "Cell One",
-				},
-			},
+			Tiles: []config.Tile{{Title: "Cell One"}},
 		}
 		var logs bytes.Buffer
 		logger := slog.New(slog.NewTextHandler(&logs, nil))
@@ -63,7 +62,15 @@ func TestHashHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		handler := HashHandler(cfg, logger)
+		runners := []providers.Runner{
+			mockRunner{
+				fn: func(ctx context.Context) (providers.Accumulator, int, int, error) {
+					return providers.Accumulator{"merged": map[string]any{"foo": "bar"}}, 1, http.StatusOK, nil
+				},
+			},
+		}
+
+		handler := HashHandler(cfg, runners, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -72,6 +79,42 @@ func TestHashHandler(t *testing.T) {
 		body := w.Body.String()
 		require.Equal(t, http.StatusOK, res.StatusCode)
 		assert.Regexp(t, `^[a-f0-9]+$`, body)
+	})
+
+	t.Run("tile hash reflects runner data", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.DashboardConfig{
+			Tiles: []config.Tile{{Title: "Cell Two"}},
+		}
+		var logs bytes.Buffer
+		logger := slog.New(slog.NewTextHandler(&logs, nil))
+
+		acc := providers.Accumulator{"merged": map[string]any{"value": 42}}
+		expected, err := hashAny(acc)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/hash/0", nil)
+		req.SetPathValue("id", "0")
+
+		w := httptest.NewRecorder()
+
+		runners := []providers.Runner{
+			mockRunner{
+				fn: func(ctx context.Context) (providers.Accumulator, int, int, error) {
+					return acc, 1, http.StatusOK, nil
+				},
+			},
+		}
+
+		handler := HashHandler(cfg, runners, logger)
+		handler.ServeHTTP(w, req)
+
+		res := w.Result()
+		defer res.Body.Close() // nolint:errcheck
+
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Equal(t, expected, strings.TrimSpace(w.Body.String()))
 	})
 
 	t.Run("invalid tile id returns 400", func(t *testing.T) {
@@ -86,7 +129,7 @@ func TestHashHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		handler := HashHandler(cfg, logger)
+		handler := HashHandler(cfg, nil, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -109,7 +152,7 @@ func TestHashHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		handler := HashHandler(cfg, logger)
+		handler := HashHandler(cfg, nil, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -130,7 +173,7 @@ func TestHashHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		handler := HashHandler(cfg, logger)
+		handler := HashHandler(cfg, nil, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -138,6 +181,14 @@ func TestHashHandler(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 	})
+}
+
+type mockRunner struct {
+	fn func(ctx context.Context) (providers.Accumulator, int, int, error)
+}
+
+func (m mockRunner) Do(ctx context.Context) (providers.Accumulator, int, int, error) {
+	return m.fn(ctx)
 }
 
 func TestHashAny(t *testing.T) {

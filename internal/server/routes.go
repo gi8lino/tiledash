@@ -40,7 +40,7 @@ func NewRouter(
 	// API endpoints (tile content + tile hash), exposed under /api/v1/*.
 	api := http.NewServeMux()
 	api.Handle("GET /tile/{id}", handlers.TileHandler(webFS, templateDir, version, cfg, runners, logger))
-	api.Handle("GET /hash/{id}", handlers.HashHandler(cfg, logger))
+	api.Handle("GET /hash/{id}", handlers.HashHandler(cfg, runners, logger))
 	root.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 
 	// Mount the whole app under the prefix if provided

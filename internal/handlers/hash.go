@@ -9,12 +9,14 @@ import (
 	"strconv"
 
 	"github.com/gi8lino/tiledash/internal/config"
+	"github.com/gi8lino/tiledash/internal/providers"
 )
 
 // HashHandler returns an HTTP handler that responds with a hash of either the full config
-// or a specific tile layout, based on the requested path parameter.
+// or the current data for a specific tile, based on the requested path parameter.
 func HashHandler(
 	cfg config.DashboardConfig,
+	runners []providers.Runner,
 	logger *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -40,13 +42,25 @@ func HashHandler(
 				return
 			}
 
-			tile, err := cfg.GetCellByIndex(idx)
-			if err != nil {
+			if _, err = cfg.GetCellByIndex(idx); err != nil {
 				http.Error(w, "tile not found", http.StatusNotFound)
 				return
 			}
 
-			hash, err := hashAny(tile)
+			acc, _, status, err := runners[idx].Do(r.Context())
+			if err != nil {
+				if status == 0 {
+					status = http.StatusBadGateway
+				}
+				logger.Error("hash computation failed", "id", id, "status", status, "error", err)
+				http.Error(w, "failed to compute hash", status)
+				return
+			}
+
+			// Drop internal dedupe bookkeeping before hashing to keep the hash focused on visible data.
+			delete(acc, "__seen")
+
+			hash, err := hashAny(acc)
 			if err != nil {
 				logger.Error("hash computation failed", "id", id, "error", err)
 				http.Error(w, "failed to compute hash", http.StatusInternalServerError)
