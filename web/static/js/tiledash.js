@@ -101,32 +101,36 @@ document.addEventListener("DOMContentLoaded", function () {
    * Main refresh loop: checks config and tile hashes, and reloads as needed.
    */
   function refresh() {
+    console.log(
+      `[tiledash] Refresh tick at ${new Date().toISOString()}: checking config and tiles`,
+    );
+
     fetch(`${routePrefix}/api/v1/hash/config`)
       .then((res) => res.text())
       .then((newConfigHash) => {
-        if (newConfigHash !== configHash) {
-          if (document.body.classList.contains("debug-mode")) {
-            console.log("Config hash changed. Reloading page...");
-          }
+        const configMatches = newConfigHash === configHash;
+        console.log(
+          `[tiledash] Config hash ${configMatches ? "unchanged" : "changed"} (old=${configHash}, new=${newConfigHash})`,
+        );
+
+        if (!configMatches) {
           location.reload();
           return;
         }
 
         cards.forEach((card) => {
           const id = card.getAttribute("data-tile-id");
+          const oldHash = tileHashes[id];
           fetch(`${routePrefix}/api/v1/hash/${id}`)
             .then((res) => res.text())
             .then((newHash) => {
-              if (!tileHashes[id] || tileHashes[id] !== newHash) {
-                if (document.body.classList.contains("debug-mode")) {
-                  console.log(
-                    `Reloading tile ${id} (old=${tileHashes[id]}, new=${newHash})`,
-                  );
-                }
+              const hashMatches = oldHash === newHash;
+              console.log(
+                `[tiledash] Tile ${id} hash ${hashMatches ? "unchanged" : "changed"} (old=${oldHash ?? "none"}, new=${newHash})`,
+              );
+              if (!hashMatches) {
                 tileHashes[id] = newHash;
                 reloadCard(id, card);
-              } else if (document.body.classList.contains("debug-mode")) {
-                console.log(`Cell ${id} unchanged (hash=${newHash})`);
               }
             })
             .catch((err) => {
