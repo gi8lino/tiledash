@@ -1,22 +1,20 @@
 package handlers
 
 import (
-	"encoding/json"
-	"fmt"
-	"hash/fnv"
 	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/gi8lino/tiledash/internal/config"
-	"github.com/gi8lino/tiledash/internal/providers"
+	"github.com/gi8lino/tiledash/internal/hash"
+	"github.com/gi8lino/tiledash/internal/render"
 )
 
 // HashHandler returns an HTTP handler that responds with a hash of either the full config
 // or the current data for a specific tile, based on the requested path parameter.
 func HashHandler(
 	cfg config.DashboardConfig,
-	runners []providers.Runner,
+	renderer *render.TileRenderer,
 	logger *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -25,65 +23,32 @@ func HashHandler(
 		switch id {
 		case "config":
 			// Hash the entire dashboard config
-			hash, err := hashAny(cfg)
+			h, err := hash.Any(cfg)
 			if err != nil {
 				http.Error(w, "failed to compute hash for config", http.StatusInternalServerError)
 				return
 			}
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(hash)) // nolint:errcheck
+			w.Write([]byte(h)) // nolint:errcheck
 			return
 
 		default:
 			// Attempt to parse the id as a tile index
 			idx, err := strconv.Atoi(id)
-			if err != nil {
+			if err != nil || renderer == nil {
 				http.Error(w, "invalid tile id", http.StatusBadRequest)
 				return
 			}
 
-			if _, err = cfg.GetCellByIndex(idx); err != nil {
-				http.Error(w, "tile not found", http.StatusNotFound)
-				return
-			}
-
-			acc, _, status, err := runners[idx].Do(r.Context())
-			if err != nil {
-				if status == 0 {
-					status = http.StatusBadGateway
-				}
-				logger.Error("hash computation failed", "id", id, "status", status, "error", err)
+			result, status, renderErr := renderer.RenderTile(r.Context(), idx)
+			if renderErr != nil {
+				logger.Error("hash computation failed", "id", id, "status", status, "error", renderErr)
 				http.Error(w, "failed to compute hash", status)
 				return
 			}
 
-			// Drop internal dedupe bookkeeping before hashing to keep the hash focused on visible data.
-			delete(acc, "__seen")
-
-			hash, err := hashAny(acc)
-			if err != nil {
-				logger.Error("hash computation failed", "id", id, "error", err)
-				http.Error(w, "failed to compute hash", http.StatusInternalServerError)
-				return
-			}
-
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(hash)) // nolint:errcheck
+			w.Write([]byte(result.Hash)) // nolint:errcheck
 		}
 	}
-}
-
-// hashAny serializes the given value and returns its FNV-1a 64-bit hash as a hex string.
-func hashAny(a any) (string, error) {
-	data, err := json.Marshal(a)
-	if err != nil {
-		return "", fmt.Errorf("failed to serialize: %w", err)
-	}
-
-	h := fnv.New64a()
-	if _, err := h.Write(data); err != nil {
-		return "", fmt.Errorf("failed to hash data: %w", err)
-	}
-
-	return fmt.Sprintf("%x", h.Sum64()), nil
 }

@@ -15,6 +15,8 @@ import (
 
 	"github.com/gi8lino/tiledash/internal/config"
 	"github.com/gi8lino/tiledash/internal/providers"
+	"github.com/gi8lino/tiledash/internal/render"
+	"github.com/gi8lino/tiledash/internal/templates"
 	"github.com/gi8lino/tiledash/internal/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,14 +63,6 @@ func TestTileHandler(t *testing.T) {
 			RefreshInterval: 5 * time.Second,
 		}
 
-		// runner returns a single-page JSON object; normalizeData exposes it under .Data
-		runners := []providers.Runner{
-			fakeRunner{
-				acc:   providers.Accumulator(map[string]any{"key": "value"}),
-				pages: 1, status: http.StatusOK,
-			},
-		}
-
 		var logs bytes.Buffer
 		logger := slog.New(slog.NewTextHandler(&logs, nil))
 
@@ -77,7 +71,22 @@ func TestTileHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		h := TileHandler(webFS, tmpDir, "vX", cfg, runners, logger)
+		funcMap := templates.TemplateFuncMap()
+		errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
+		cellTmpl, err := templates.ParseCellTemplates(tmpDir, funcMap)
+		require.NoError(t, err)
+
+		// runner returns a single-page JSON object; normalizeData exposes it under .Data
+		runners := []providers.Runner{
+			fakeRunner{
+				acc:   providers.Accumulator(map[string]any{"key": "value"}),
+				pages: 1, status: http.StatusOK,
+			},
+		}
+
+		renderer := render.NewTileRenderer(cfg, runners, cellTmpl, logger)
+
+		h := TileHandler(renderer, errTmpl, logger)
 		h.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -125,7 +134,13 @@ func TestTileHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		h := TileHandler(webFS, tmpDir, "dev", cfg, runners, logger)
+		funcMap := templates.TemplateFuncMap()
+		errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
+		cellTmpl, err := templates.ParseCellTemplates(tmpDir, funcMap)
+		require.NoError(t, err)
+		renderer := render.NewTileRenderer(cfg, runners, cellTmpl, logger)
+
+		h := TileHandler(renderer, errTmpl, logger)
 		h.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -133,7 +148,7 @@ func TestTileHandler(t *testing.T) {
 		body, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 
-		require.Equal(t, http.StatusBadGateway, res.StatusCode)
+		require.Equal(t, http.StatusInternalServerError, res.StatusCode)
 
 		// The handler sets Message="request failed"
 		assert.Equal(t, `<div class="error">Error: request failed</div>`, strings.TrimSpace(string(body)))
@@ -159,7 +174,13 @@ func TestTileHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		h := TileHandler(webFS, ".", "x", cfg, runners, logger)
+		funcMap := templates.TemplateFuncMap()
+		errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
+		cellTmpl, err := templates.ParseCellTemplates(".", funcMap)
+		require.NoError(t, err)
+		renderer := render.NewTileRenderer(cfg, runners, cellTmpl, logger)
+
+		h := TileHandler(renderer, errTmpl, logger)
 		h.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -190,7 +211,13 @@ func TestTileHandler(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		h := TileHandler(webFS, ".", "x", cfg, runners, logger)
+		funcMap := templates.TemplateFuncMap()
+		errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
+		cellTmpl, err := templates.ParseCellTemplates(".", funcMap)
+		require.NoError(t, err)
+		renderer := render.NewTileRenderer(cfg, runners, cellTmpl, logger)
+
+		h := TileHandler(renderer, errTmpl, logger)
 		h.ServeHTTP(w, req)
 
 		res := w.Result()

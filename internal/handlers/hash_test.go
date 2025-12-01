@@ -9,11 +9,16 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/gi8lino/tiledash/internal/config"
+	"github.com/gi8lino/tiledash/internal/hash"
 	"github.com/gi8lino/tiledash/internal/providers"
+	"github.com/gi8lino/tiledash/internal/render"
+	"github.com/gi8lino/tiledash/internal/templates"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,16 +56,18 @@ func TestHashHandler(t *testing.T) {
 	t.Run("returns tile hash", func(t *testing.T) {
 		t.Parallel()
 
+		tmpDir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "tile.gohtml"), []byte(`{{define "tile.gohtml"}}{{index .Data "foo"}}{{end}}`), 0o644))
+
 		cfg := config.DashboardConfig{
-			Tiles: []config.Tile{{Title: "Cell One"}},
+			Tiles: []config.Tile{{Title: "Cell One", Template: "tile.gohtml"}},
 		}
 		var logs bytes.Buffer
 		logger := slog.New(slog.NewTextHandler(&logs, nil))
 
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/hash/0", nil)
-		req.SetPathValue("id", "0")
-
-		w := httptest.NewRecorder()
+		funcMap := templates.TemplateFuncMap()
+		cellTmpl, err := templates.ParseCellTemplates(tmpDir, funcMap)
+		require.NoError(t, err)
 
 		runners := []providers.Runner{
 			mockRunner{
@@ -70,28 +77,40 @@ func TestHashHandler(t *testing.T) {
 			},
 		}
 
-		handler := HashHandler(cfg, runners, logger)
+		renderer := render.NewTileRenderer(cfg, runners, cellTmpl, logger)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/hash/0", nil)
+		req.SetPathValue("id", "0")
+
+		w := httptest.NewRecorder()
+
+		handler := HashHandler(cfg, renderer, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
 		defer res.Body.Close() // nolint:errcheck
 
-		body := w.Body.String()
+		body := strings.TrimSpace(w.Body.String())
 		require.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Regexp(t, `^[a-f0-9]+$`, body)
+		expected, herr := hash.Any("bar")
+		require.NoError(t, herr)
+		assert.Equal(t, expected, body)
 	})
 
 	t.Run("tile hash reflects runner data", func(t *testing.T) {
 		t.Parallel()
 
+		tmpDir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, "tile.gohtml"), []byte(`{{define "tile.gohtml"}}{{index .Data "value"}}{{end}}`), 0o644))
+
 		cfg := config.DashboardConfig{
-			Tiles: []config.Tile{{Title: "Cell Two"}},
+			Tiles: []config.Tile{{Title: "Cell Two", Template: "tile.gohtml"}},
 		}
 		var logs bytes.Buffer
 		logger := slog.New(slog.NewTextHandler(&logs, nil))
 
-		acc := providers.Accumulator{"merged": map[string]any{"value": 42}}
-		expected, err := hashAny(acc)
+		funcMap := templates.TemplateFuncMap()
+		cellTmpl, err := templates.ParseCellTemplates(tmpDir, funcMap)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/hash/0", nil)
@@ -102,18 +121,22 @@ func TestHashHandler(t *testing.T) {
 		runners := []providers.Runner{
 			mockRunner{
 				fn: func(ctx context.Context) (providers.Accumulator, int, int, error) {
-					return acc, 1, http.StatusOK, nil
+					return providers.Accumulator{"merged": map[string]any{"value": 42}}, 1, http.StatusOK, nil
 				},
 			},
 		}
 
-		handler := HashHandler(cfg, runners, logger)
+		renderer := render.NewTileRenderer(cfg, runners, cellTmpl, logger)
+
+		handler := HashHandler(cfg, renderer, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
 		defer res.Body.Close() // nolint:errcheck
 
 		assert.Equal(t, http.StatusOK, res.StatusCode)
+		expected, err := hash.Any("42")
+		require.NoError(t, err)
 		assert.Equal(t, expected, strings.TrimSpace(w.Body.String()))
 	})
 
@@ -141,18 +164,22 @@ func TestHashHandler(t *testing.T) {
 	t.Run("tile index out of bounds returns 404", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := config.DashboardConfig{
-			Tiles: []config.Tile{},
-		}
+		cfg := config.DashboardConfig{Tiles: []config.Tile{}}
 		var logs bytes.Buffer
 		logger := slog.New(slog.NewTextHandler(&logs, nil))
+
+		tmpDir := t.TempDir()
+		funcMap := templates.TemplateFuncMap()
+		cellTmpl, err := templates.ParseCellTemplates(tmpDir, funcMap)
+		require.NoError(t, err)
+		renderer := render.NewTileRenderer(cfg, []providers.Runner{}, cellTmpl, logger)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/hash/9", nil)
 		req.SetPathValue("id", "9")
 
 		w := httptest.NewRecorder()
 
-		handler := HashHandler(cfg, nil, logger)
+		handler := HashHandler(cfg, renderer, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -205,7 +232,7 @@ func TestHashAny(t *testing.T) {
 		h.Write(data) // nolint:errcheck
 		expected := fmt.Sprintf("%x", h.Sum64())
 
-		actual, err := hashAny(input)
+		actual, err := hash.Any(input)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	})
@@ -215,7 +242,7 @@ func TestHashAny(t *testing.T) {
 
 		ch := make(chan int) // cannot be marshaled to JSON
 
-		_, err := hashAny(ch)
+		_, err := hash.Any(ch)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to serialize")
 	})

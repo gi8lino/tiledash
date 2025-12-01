@@ -1,33 +1,17 @@
 package handlers
 
 import (
-	"io/fs"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"strconv"
 
-	"github.com/gi8lino/tiledash/internal/config"
-	"github.com/gi8lino/tiledash/internal/providers"
+	"github.com/gi8lino/tiledash/internal/render"
 	"github.com/gi8lino/tiledash/internal/templates"
 )
 
-// TileHandler serves a tile by index using precompiled runners.
-func TileHandler(
-	webFS fs.FS,
-	templateDir string,
-	version string,
-	cfg config.DashboardConfig,
-	runners []providers.Runner, // interface slice (not []*Runner)
-	logger *slog.Logger,
-) http.HandlerFunc {
-	funcMap := templates.TemplateFuncMap()
-
-	errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
-	tileTmpl, err := templates.ParseCellTemplates(templateDir, funcMap)
-	if err != nil {
-		panic(err) // fail early if templates are broken
-	}
-
+// TileHandler serves a tile by index using precompiled runners and cached renders.
+func TileHandler(renderer *render.TileRenderer, errTmpl *template.Template, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		if id == "" {
@@ -35,32 +19,21 @@ func TileHandler(
 			return
 		}
 		idx, convErr := strconv.Atoi(id)
-		if convErr != nil || idx < 0 || idx >= len(runners) {
+		if convErr != nil {
 			logger.Error("invalid tile id", "id", id)
 			renderCellError(w, http.StatusBadRequest, errTmpl,
 				templates.NewRenderError("render", "Invalid tile id", "index out of range"))
 			return
 		}
 
-		// Execute precompiled request; paginator (if any) is transparent here.
-		acc, pages, status, err := runners[idx].Do(r.Context())
-		if err != nil {
-			logger.Error("fetch error", "status", status, "pages", pages, "error", err.Error())
-			renderCellError(w, http.StatusBadGateway, errTmpl,
-				templates.NewRenderError("upstream", "request failed", err.Error()))
-			return
-		}
-
-		// Render template from accumulator. normalizeData handles merged/first page.
-		html, renderErr := templates.RenderCell(r.Context(), idx, cfg, tileTmpl, acc)
+		result, status, renderErr := renderer.RenderTile(r.Context(), idx)
 		if renderErr != nil {
-			logger.Error("render tile error", "error", renderErr.Error())
-			renderCellError(w, http.StatusInternalServerError, errTmpl, renderErr)
+			renderCellError(w, status, errTmpl, renderErr)
 			return
 		}
 
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(html))
+		_, _ = w.Write([]byte(result.HTML))
 	}
 }

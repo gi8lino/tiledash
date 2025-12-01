@@ -9,6 +9,8 @@ import (
 	"github.com/gi8lino/tiledash/internal/handlers"
 	"github.com/gi8lino/tiledash/internal/middleware"
 	"github.com/gi8lino/tiledash/internal/providers"
+	"github.com/gi8lino/tiledash/internal/render"
+	"github.com/gi8lino/tiledash/internal/templates"
 )
 
 // NewRouter creates and wires the HTTP mux with handlers and middleware; mounts under routerPrefix  if provided.
@@ -25,6 +27,14 @@ func NewRouter(
 	// Inner mux registers canonical routes rooted at "/".
 	root := http.NewServeMux()
 
+	funcMap := templates.TemplateFuncMap()
+	errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
+	cellTmpl, err := templates.ParseCellTemplates(templateDir, funcMap)
+	if err != nil {
+		panic(err)
+	}
+	renderer := render.NewTileRenderer(cfg, runners, cellTmpl, logger)
+
 	// Serve embedded static files at /static/*.
 	staticContent, _ := fs.Sub(webFS, "web/static")       // sub-FS with static assets
 	fileServer := http.FileServer(http.FS(staticContent)) // file server for static
@@ -35,12 +45,12 @@ func NewRouter(
 	root.Handle("POST /healthz", handlers.Healthz())
 
 	// Main dashboard handler.
-	root.Handle("/", handlers.BaseHandler(webFS, templateDir, routePrefix, version, cfg, logger))
+	root.Handle("/", handlers.BaseHandler(webFS, routePrefix, version, cfg, renderer, logger))
 
 	// API endpoints (tile content + tile hash), exposed under /api/v1/*.
 	api := http.NewServeMux()
-	api.Handle("GET /tile/{id}", handlers.TileHandler(webFS, templateDir, version, cfg, runners, logger))
-	api.Handle("GET /hash/{id}", handlers.HashHandler(cfg, runners, logger))
+	api.Handle("GET /tile/{id}", handlers.TileHandler(renderer, errTmpl, logger))
+	api.Handle("GET /hash/{id}", handlers.HashHandler(cfg, renderer, logger))
 	root.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 
 	// Mount the whole app under the prefix if provided

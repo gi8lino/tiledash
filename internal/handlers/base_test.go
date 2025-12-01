@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,6 +13,10 @@ import (
 	"time"
 
 	"github.com/gi8lino/tiledash/internal/config"
+	"github.com/gi8lino/tiledash/internal/hash"
+	"github.com/gi8lino/tiledash/internal/providers"
+	"github.com/gi8lino/tiledash/internal/render"
+	"github.com/gi8lino/tiledash/internal/templates"
 	"github.com/gi8lino/tiledash/internal/testutils"
 
 	"github.com/stretchr/testify/assert"
@@ -33,14 +38,6 @@ func TestDashboard(t *testing.T) {
 			"web/templates/errors/page.gohtml": &fstest.MapFile{Data: []byte(`{{define "page_error"}}Error: {{.Message}}{{end}}`)},
 		}
 
-		// Create a tile template directory to pass to BaseHandler (not directly used by BaseHandler,
-		// but we keep it to mirror your runtime layout).
-		tmpDir := t.TempDir()
-		testutils.MustWriteFile(t,
-			filepath.Join(tmpDir, "templates", "tile_example.gohtml"),
-			`{{define "tile_example.html"}}<div>{{.Title}}</div>{{end}}`,
-		)
-
 		cfg := config.DashboardConfig{
 			Title: "My Dashboard",
 			Grid:  &config.GridConfig{Columns: 3, Rows: 2},
@@ -61,7 +58,7 @@ func TestDashboard(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
-		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "", "1.0.0", cfg, logger)
+		handler := BaseHandler(webFS, "", "1.0.0", cfg, nil, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -104,7 +101,7 @@ func TestDashboard(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
-		handler := BaseHandler(webFS, filepath.Join(tmpDir, "templates"), "", "dev", cfg, logger)
+		handler := BaseHandler(webFS, "", "dev", cfg, nil, logger)
 		handler.ServeHTTP(w, req)
 
 		res := w.Result()
@@ -119,32 +116,47 @@ func TestDashboard(t *testing.T) {
 	})
 }
 
-func TestComputeCellHashes(t *testing.T) {
+func TestComputeRenderedHashes(t *testing.T) {
 	t.Parallel()
 
-	t.Run("computes hashes for all tiles", func(t *testing.T) {
+	t.Run("uses rendered HTML hash per tile", func(t *testing.T) {
 		t.Parallel()
+
+		tmpDir := t.TempDir()
+		testutils.MustWriteFile(t,
+			filepath.Join(tmpDir, "tile.gohtml"),
+			`{{define "tile.gohtml"}}<div>{{.Title}}</div>{{end}}`,
+		)
 
 		cfg := config.DashboardConfig{
 			Tiles: []config.Tile{
 				{
 					Title:    "First",
-					Template: "simple.gohtml",
+					Template: "tile.gohtml",
 					Position: config.Position{Row: 1, Col: 1},
-				},
-				{
-					Title:    "Second",
-					Template: "detailed.gohtml",
-					Position: config.Position{Row: 2, Col: 1},
 				},
 			},
 		}
 
+		tmpl, err := templates.ParseCellTemplates(tmpDir, templates.TemplateFuncMap())
+		require.NoError(t, err)
+
+		runners := []providers.Runner{
+			fakeRunner{
+				acc:    providers.Accumulator(map[string]any{"foo": "bar"}),
+				pages:  1,
+				status: http.StatusOK,
+			},
+		}
+
 		logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-		computeCellHashes(&cfg, logger)
+		renderer := render.NewTileRenderer(cfg, runners, tmpl, logger)
+
+		computeRenderedHashes(context.Background(), renderer, &cfg, logger)
 
 		require.NotEmpty(t, cfg.Tiles[0].Hash)
-		require.NotEmpty(t, cfg.Tiles[1].Hash)
-		assert.NotEqual(t, cfg.Tiles[0].Hash, cfg.Tiles[1].Hash)
+		expected, err := hash.Any("<div>First</div>")
+		require.NoError(t, err)
+		assert.Equal(t, expected, cfg.Tiles[0].Hash)
 	})
 }
