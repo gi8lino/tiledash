@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .then((newHash) => {
               const hashMatches = oldHash === newHash;
               console.log(
-                `[tiledash] Tile ${title} (id=${id}) hash ${hashMatches ? "unchanged" : "changed"} (old=${oldHash ?? "none"}, new=${newHash})`,
+                `[tiledash] Tile «${title}» (id=${id}) hash ${hashMatches ? "unchanged" : "changed"} (old=${oldHash ?? "none"}, new=${newHash})`,
               );
               if (!hashMatches) {
                 tileHashes[id] = newHash;
