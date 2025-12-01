@@ -88,12 +88,19 @@ func TestMountUnderPrefix(t *testing.T) {
 
 		h := mountUnderPrefix(inner, "/tiledash")
 
-		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/tiledash", nil) // bare prefix without slash
-		h.ServeHTTP(rec, req)
+		for _, method := range []string{http.MethodGet, http.MethodHead} {
+			method := method
+			t.Run(method, func(t *testing.T) {
+				t.Parallel()
 
-		require.Equal(t, http.StatusMovedPermanently, rec.Code)
-		assert.Equal(t, "/tiledash/", rec.Header().Get("Location"))
+				rec := httptest.NewRecorder()
+				req := httptest.NewRequest(method, "/tiledash", nil) // bare prefix without slash
+				h.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusMovedPermanently, rec.Code)
+				assert.Equal(t, "/tiledash/", rec.Header().Get("Location"))
+			})
+		}
 	})
 
 	t.Run("prefixed paths are stripped and routed to inner handler", func(t *testing.T) {

@@ -36,12 +36,9 @@ func mountUnderPrefix(h http.Handler, prefix string) http.Handler {
 	}
 	mux := http.NewServeMux()
 
-	// Redirect bare "/tiledash" to "/tiledash/" so subtree handlers match.
-	mux.HandleFunc("GET "+prefix, func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, prefix+"/", http.StatusMovedPermanently)
-	})
-
 	// Mount everything under prefix and strip it so internal routes live at "/".
+	// ServeMux will automatically redirect bare "/tiledash" to "/tiledash/" because
+	// the registered pattern ends with a slash.
 	mux.Handle(prefix+"/", http.StripPrefix(prefix, h))
 
 	// Not mounting at "/" ensures non-prefixed URLs 404, which is desirable when hosting under a subpath.
