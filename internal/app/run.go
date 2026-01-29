@@ -29,6 +29,11 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 
 	// Parse CLI flags
 	flags, err := flag.ParseArgs(version, args, w, getEnv)
+
+	// Setup logger immediately so startup errors are correctly logged.
+	logger := logging.SetupLogger(flags.LogFormat, flags.Debug, w)
+	logger.Info("Starting tiledash", "version", version)
+
 	if err != nil {
 		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
 			fmt.Fprint(w, err.Error()) // nolint:errcheck
@@ -37,25 +42,24 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		return fmt.Errorf("parsing error: %w", err)
 	}
 
-	// Setup logger
-	logger := logging.SetupLogger(flags.LogFormat, flags.Debug, w)
-	logger.Info("Starting tiledash", "version", version)
-
 	// Load config
 	cfg, err := config.LoadConfig(flags.Config)
 	if err != nil {
-		return fmt.Errorf("loading config error: %w", err)
+		logger.Error("Loading config error", "error", err)
+		return err
 	}
 
 	// Try to parse user templates
 	cellTmpl, err := templates.ParseCellTemplates(flags.TemplateDir, templates.TemplateFuncMap())
 	if err != nil {
-		return fmt.Errorf("template parse error: %w", err)
+		logger.Error("template parsing error", "error", err)
+		return err
 	}
 
 	// Validate config
 	if err := cfg.Validate(cellTmpl); err != nil {
-		return fmt.Errorf("config validation error: %w", err)
+		logger.Error("config validation error", "error", err)
+		return err
 	}
 	if flags.RoutePrefix != "" {
 		logger.Debug("Using route prefix", "prefix", flags.RoutePrefix)
@@ -66,7 +70,8 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	errTmpl := templates.ParseCellErrorTemplate(webFS, funcMap)
 
 	if err := cfg.ResolveProvidersAuth(); err != nil {
-		return fmt.Errorf("config provider auth resolution error: %w", err)
+		logger.Error("config provider auth resolution error", "error", err)
+		return err
 	}
 
 	cfg.SortCellsByPosition() // Sorts all tiles top-to-bottom, left-to-right
@@ -74,13 +79,15 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	// Providers → registry
 	reg, err := providers.BuildRegistry(cfg.Providers) // uses config.Provider
 	if err != nil {
-		return fmt.Errorf("error building registry: %w", err)
+		logger.Error("error building registry", "error", err)
+		return err
 	}
 
 	// Compile runners, one per tile
 	runners, err := providers.BuildRunners(reg, cfg.Tiles)
 	if err != nil {
-		return fmt.Errorf("error building runners: %w", err)
+		logger.Error("error building runners", "error", err)
+		return err
 	}
 
 	// HTTP server
@@ -99,5 +106,6 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("HTTP server exited with error", "error", err)
 	}
-	return err
+
+	return nil
 }

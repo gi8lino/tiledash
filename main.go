@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"embed"
-	"fmt"
 	"os"
 
 	"github.com/gi8lino/tiledash/internal/app"
@@ -22,7 +21,6 @@ func main() {
 	ctx := context.Background()
 
 	if err := app.Run(ctx, webFS, Version, Commit, os.Args[1:], os.Stdout, os.Getenv); err != nil {
-		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
