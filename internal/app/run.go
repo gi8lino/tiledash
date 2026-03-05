@@ -15,9 +15,10 @@ import (
 	"github.com/gi8lino/tiledash/internal/flag"
 	"github.com/gi8lino/tiledash/internal/logging"
 	"github.com/gi8lino/tiledash/internal/providers"
-	"github.com/gi8lino/tiledash/internal/server"
+	"github.com/gi8lino/tiledash/internal/routes"
 	"github.com/gi8lino/tiledash/internal/templates"
 
+	"github.com/containeroo/httpgrace/server"
 	"github.com/containeroo/tinyflags"
 )
 
@@ -91,7 +92,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	}
 
 	// HTTP server
-	router := server.NewRouter(
+	router := routes.NewRouter(
 		webFS,
 		cellTmpl,
 		errTmpl,

@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
+	github.com/containeroo/httpgrace v0.0.5
 	github.com/containeroo/resolver v0.3.1
 	github.com/containeroo/tinyflags v0.0.64
 	github.com/stretchr/testify v1.11.1
@@ -24,5 +25,6 @@ require (
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
 	golang.org/x/crypto v0.26.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )

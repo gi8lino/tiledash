@@ -1,4 +1,4 @@
-package server_test
+package routes_test
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/gi8lino/tiledash/internal/config"
 	"github.com/gi8lino/tiledash/internal/providers"
-	"github.com/gi8lino/tiledash/internal/server"
+	"github.com/gi8lino/tiledash/internal/routes"
 	"github.com/gi8lino/tiledash/internal/templates"
 	"github.com/gi8lino/tiledash/internal/testutils"
 
@@ -67,7 +67,7 @@ func TestNewRouter(t *testing.T) {
 		cfg := config.DashboardConfig{Title: "Home"}
 		var runners []providers.Runner // not used by "/" handler
 
-		router := server.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
+		router := routes.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
 
 		req := httptest.NewRequest("GET", "/", nil)
 		rec := httptest.NewRecorder()
@@ -83,7 +83,7 @@ func TestNewRouter(t *testing.T) {
 		cfg := config.DashboardConfig{}
 		var runners []providers.Runner
 
-		router := server.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
+		router := routes.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
 
 		req := httptest.NewRequest("GET", "/static/css/bootstrap.min.css", nil)
 		rec := httptest.NewRecorder()
@@ -99,7 +99,7 @@ func TestNewRouter(t *testing.T) {
 		cfg := config.DashboardConfig{}
 		var runners []providers.Runner
 
-		router := server.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
+		router := routes.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
 
 		req := httptest.NewRequest("GET", "/healthz", nil)
 		rec := httptest.NewRecorder()
@@ -115,7 +115,7 @@ func TestNewRouter(t *testing.T) {
 		cfg := config.DashboardConfig{}
 		var runners []providers.Runner
 
-		router := server.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
+		router := routes.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
 
 		req := httptest.NewRequest("POST", "/healthz", nil)
 		rec := httptest.NewRecorder()
@@ -146,7 +146,7 @@ func TestNewRouter(t *testing.T) {
 			},
 		}
 
-		router := server.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
+		router := routes.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
 
 		req := httptest.NewRequest("GET", "/api/v1/tile/0", nil)
 		rec := httptest.NewRecorder()
@@ -172,7 +172,7 @@ func TestNewRouter(t *testing.T) {
 			},
 		}
 
-		router := server.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
+		router := routes.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
 
 		req := httptest.NewRequest("GET", "/api/v1/hash/0", nil)
 		rec := httptest.NewRecorder()
@@ -192,7 +192,7 @@ func TestNewRouter(t *testing.T) {
 		}
 		var runners []providers.Runner
 
-		router := server.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
+		router := routes.NewRouter(webFS, cellTmpl, errTmpl, cfg, logger, runners, debug, version, "")
 
 		req := httptest.NewRequest("GET", "/api/v1/hash/config", nil)
 		rec := httptest.NewRecorder()
