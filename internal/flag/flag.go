@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/gi8lino/tiledash/internal/logging"
-	"github.com/gi8lino/tiledash/internal/routes"
 
+	"github.com/containeroo/httpprefix"
 	"github.com/containeroo/tinyflags"
 )
 
@@ -35,7 +35,7 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 
 	tf.StringVar(&cfg.RoutePrefix, "route-prefix", "", "Path prefix to mount the app (e.g., /tiledash). Empty = root.").
 		Finalize(func(input string) string {
-			return routes.NormalizeRoutePrefix(input) // canonical "" or "/tiledash"
+			return httpprefix.NormalizeRoutePrefix(input) // canonical "" or "/tiledash"
 		}).
 		Placeholder("PATH").
 		Value()

@@ -8,6 +8,8 @@ github.com/Masterminds/sprig/v3 v3.3.0 h1:mQh0Yrg1XPo6vjYXgtf5OtijNAKJRNcTdOOGZe
 github.com/Masterminds/sprig/v3 v3.3.0/go.mod h1:Zy1iXRYNqNLUolqCpL4uhk6SHUMAOSCzdgBfDb35Lz0=
 github.com/containeroo/httpgrace v0.0.5 h1:9kSvJgCYHx6l/SwDOPhGNVBoBBO56OqMvzVq7LV8G70=
 github.com/containeroo/httpgrace v0.0.5/go.mod h1:fxz9CocSiqeqNpoB/768Bi4xdly7qU7DHoHHL1vRSV8=
+github.com/containeroo/httpprefix v0.0.1 h1:sSPLNYJgoHvhRqKVTadC08aBIV010DQD6hiBGyaE1rA=
+github.com/containeroo/httpprefix v0.0.1/go.mod h1:RUVtNKpy2OZ24ijpBsR3XijBASISwBm22da9j41Y3m8=
 github.com/containeroo/resolver v0.3.1 h1:a9WY7ArZJxndQDFkcqWlH+AKB1lL//QeNYa5lJvpvv0=
 github.com/containeroo/resolver v0.3.1/go.mod h1:98QSZmbWP7A2YR2EU2SJZe34iFPKh2SDI9zJr2vO+Z8=
 github.com/containeroo/tinyflags v0.0.64 h1:OPQxaBjtS4aSNjjbZ+qs2H7Eyr77Up09M+RNb1fuIIg=

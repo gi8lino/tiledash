@@ -11,6 +11,8 @@ import (
 	"github.com/gi8lino/tiledash/internal/middleware"
 	"github.com/gi8lino/tiledash/internal/providers"
 	"github.com/gi8lino/tiledash/internal/render"
+
+	"github.com/containeroo/httpprefix"
 )
 
 // NewRouter creates and wires the HTTP mux with handlers and middleware; mounts under routerPrefix  if provided.
@@ -51,7 +53,7 @@ func NewRouter(
 	// Mount the whole app under the prefix if provided
 	var handler http.Handler = root
 	if routePrefix != "" {
-		handler = mountUnderPrefix(root, routePrefix)
+		handler = httpprefix.MountUnderPrefix(root, routePrefix)
 	}
 
 	// Optional debug logging middleware.
