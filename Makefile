@@ -15,7 +15,7 @@ GOLANGCI_LINT_VERSION ?= v2.11.4
 # renovate: datasource=npm depName=bootstrap
 BOOTSTRAP_VERSION ?= 5.3.8
 # renovate: datasource=github-releases depName=tristen/tablesort
-TABLESORT_VERSION ?= 5.7.0
+TABLESORT_VERSION ?= 5.7.1
 
 .PHONY: test cover clean update patch minor major tag
 
