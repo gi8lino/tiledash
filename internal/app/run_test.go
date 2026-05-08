@@ -94,7 +94,7 @@ refreshInterval: 1s
 		var out bytes.Buffer
 		err := app.Run(ctx, webFS, "vX", "yyy", []string{"--totally-unknown"}, &out, dummyEnv)
 		require.Error(t, err)
-		assert.EqualError(t, err, "parsing error: unknown flag: --totally-unknown")
+		assert.EqualError(t, err, "parsing error: unknown flag --totally-unknown")
 	})
 
 	t.Run("Missing config file surfaces load error", func(t *testing.T) {
