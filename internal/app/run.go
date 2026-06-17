@@ -7,9 +7,6 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/gi8lino/tiledash/internal/config"
 	"github.com/gi8lino/tiledash/internal/flag"
@@ -25,8 +22,8 @@ import (
 // Run starts the tiledash application.
 func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string, w io.Writer, getEnv func(string) string) error {
 	// Create a cantileable context on SIGINT/SIGTERM
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-	defer cancel()
+	ctx, stop := server.SignalContext(ctx)
+	defer stop()
 
 	// Parse CLI flags
 	flags, err := flag.ParseArgs(version, args, w, getEnv)
