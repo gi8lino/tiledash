@@ -1,11 +1,8 @@
 package flag
 
 import (
-	"io"
 	"net"
 	"path/filepath"
-
-	"github.com/gi8lino/tiledash/internal/logging"
 
 	"github.com/containeroo/httpprefix"
 	"github.com/containeroo/tinyflags"
@@ -13,22 +10,20 @@ import (
 
 // Config holds all application and Jira-specific configuration.
 type Config struct { // Config aggregates CLI flags after parsing.
-	ListenAddr  string            // HTTP bind address (e.g. ":8080")
-	Debug       bool              // Enables debug logging
-	LogFormat   logging.LogFormat // Log output format (text or json)
-	Config      string            // Path to config file
-	TemplateDir string            // Path to template directory
-	RoutePrefix string            // Canonical path prefix ("" or "/tiledash")
+	ListenAddr  string // HTTP bind address (e.g. ":8080")
+	Debug       bool   // Enables debug logging
+	LogFormat   string // Log output format (text or json)
+	Config      string // Path to config file
+	TemplateDir string // Path to template directory
+	RoutePrefix string // Canonical path prefix ("" or "/tiledash")
 }
 
 // ParseArgs parses CLI arguments into Config, handling version/help flags.
-func ParseArgs(version string, args []string, out io.Writer, getEnv func(string) string) (Config, error) { // ParseArgs parses CLI args into Config.
+func ParseArgs(args []string, version string) (Config, error) { // ParseArgs parses CLI args into Config.
 	var cfg Config
 	tf := tinyflags.NewFlagSet("tiledash", tinyflags.ContinueOnError)
 	tf.Version(version)
-	tf.SetGetEnvFn(getEnv)
 	tf.EnvPrefix("TILEDASH")
-	tf.SetOutput(out)
 
 	// Server
 	tf.StringVar(&cfg.Config, "config", "config.yaml", "Path to config file").Value()
@@ -65,7 +60,7 @@ func ParseArgs(version string, args []string, out io.Writer, getEnv func(string)
 	}
 
 	// Post-parse
-	cfg.LogFormat = logging.LogFormat(*logFormat)
+	cfg.LogFormat = *logFormat
 	cfg.ListenAddr = (*listenAddr).String()
 
 	if cfg.TemplateDir == "./templates" {

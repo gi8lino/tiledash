@@ -28,8 +28,6 @@ func TestRun(t *testing.T) {
 		"web/templates/errors/tile.gohtml": &fstest.MapFile{Data: []byte(`{{define "tile_error"}}terr{{end}}`)},
 	}
 
-	dummyEnv := func(string) string { return "" }
-
 	t.Run("Success (minimal config, empty tiles, ephemeral port)", func(t *testing.T) {
 		t.Parallel()
 
@@ -57,7 +55,8 @@ refreshInterval: 1s
 		}
 
 		var out bytes.Buffer
-		err := app.Run(ctx, webFS, "v1", "deadbeef", args, &out, dummyEnv)
+		var errOut bytes.Buffer
+		err := app.Run(ctx, webFS, "v1", "deadbeef", args, &out, &errOut)
 		require.NoError(t, err)
 	})
 
@@ -68,7 +67,8 @@ refreshInterval: 1s
 		defer cancel()
 
 		var out bytes.Buffer
-		err := app.Run(ctx, webFS, "v1.2.3", "abc", []string{"--help"}, &out, dummyEnv)
+		var errOut bytes.Buffer
+		err := app.Run(ctx, webFS, "v1.2.3", "abc", []string{"--help"}, &out, &errOut)
 		require.NoError(t, err)
 		assert.Contains(t, out.String(), "Usage")
 	})
@@ -80,7 +80,8 @@ refreshInterval: 1s
 		defer cancel()
 
 		var out bytes.Buffer
-		err := app.Run(ctx, webFS, "v9.8.7", "cafebabe", []string{"--version"}, &out, dummyEnv)
+		var errOut bytes.Buffer
+		err := app.Run(ctx, webFS, "v9.8.7", "cafebabe", []string{"--version"}, &out, &errOut)
 		require.NoError(t, err)
 		assert.Contains(t, out.String(), "v9.8.7")
 	})
@@ -92,9 +93,10 @@ refreshInterval: 1s
 		defer cancel()
 
 		var out bytes.Buffer
-		err := app.Run(ctx, webFS, "vX", "yyy", []string{"--totally-unknown"}, &out, dummyEnv)
+		var errOut bytes.Buffer
+		err := app.Run(ctx, webFS, "vX", "yyy", []string{"--totally-unknown"}, &out, &errOut)
 		require.Error(t, err)
-		assert.EqualError(t, err, "parsing error: unknown flag --totally-unknown")
+		assert.EqualError(t, err, "unknown flag --totally-unknown")
 	})
 
 	t.Run("Missing config file surfaces load error", func(t *testing.T) {
@@ -110,7 +112,8 @@ refreshInterval: 1s
 			"--template-dir=" + t.TempDir(),
 			"--listen-address=127.0.0.1:0",
 		}
-		err := app.Run(ctx, webFS, "v1", "deadbeef", args, &out, dummyEnv)
+		var errOut bytes.Buffer
+		err := app.Run(ctx, webFS, "v1", "deadbeef", args, &out, &errOut)
 		require.Error(t, err)
 		assert.EqualError(t, err, "read config: open /nope/does-not-exist.yaml: no such file or directory")
 	})

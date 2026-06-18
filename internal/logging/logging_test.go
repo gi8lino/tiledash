@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/gi8lino/tiledash/internal/flag"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +16,7 @@ func TestSetupLogger(t *testing.T) {
 		t.Parallel()
 
 		var buf bytes.Buffer
-		logger := SetupLogger(LogFormatJSON, false, &buf)
+		logger := SetupLogger(flag.Config{LogFormat: string(LogFormatJSON)}, &buf)
 
 		logger.Info("test message", "key", "value")
 
@@ -31,7 +32,7 @@ func TestSetupLogger(t *testing.T) {
 		t.Parallel()
 
 		var buf bytes.Buffer
-		logger := SetupLogger(LogFormatText, false, &buf)
+		logger := SetupLogger(flag.Config{LogFormat: string(LogFormatText)}, &buf)
 
 		logger.Info("hello world", "foo", "bar")
 
@@ -45,7 +46,7 @@ func TestSetupLogger(t *testing.T) {
 		t.Parallel()
 
 		var buf bytes.Buffer
-		logger := SetupLogger("invalid", false, &buf)
+		logger := SetupLogger(flag.Config{LogFormat: "invalid"}, &buf)
 
 		logger.Info("fallback check", "k", "v")
 
@@ -60,7 +61,7 @@ func TestSetupLogger(t *testing.T) {
 		t.Parallel()
 
 		var buf bytes.Buffer
-		logger := SetupLogger(LogFormatText, true, &buf)
+		logger := SetupLogger(flag.Config{LogFormat: string(LogFormatText), Debug: true}, &buf)
 
 		logger.Debug("debug enabled", "foo", "bar")
 
