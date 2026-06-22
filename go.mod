@@ -7,7 +7,7 @@ require (
 	github.com/containeroo/httpgrace v0.1.1
 	github.com/containeroo/httpprefix v0.0.2
 	github.com/containeroo/resolver v0.3.1
-	github.com/containeroo/tinyflags v0.0.78
+	github.com/containeroo/tinyflags v0.0.79
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1
 )
