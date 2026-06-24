@@ -24,7 +24,7 @@ dockers_v2:
       - tiledash
     labels:
       org.opencontainers.image.created: "{{ .Date }}"
-      org.opencontainers.image.description: "Small HTTP check-in monitor with JSON status, bearer-token auth, and webhook/email notifications."
+      org.opencontainers.image.description: "Create custom dashboards from a API returning JSON data"
       org.opencontainers.image.licenses: "GPL-3.0-only"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.source: "https://github.com/gi8lino/tiledash"
