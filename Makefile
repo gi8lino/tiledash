@@ -6,7 +6,7 @@ LOCALBIN ?= $(shell pwd)/bin
 
 ## Tool Versions
 # renovate: datasource=github-releases depName=gi8lino/dev-tools
-DEV_TOOLS_VERSION ?= v0.5.0
+DEV_TOOLS_VERSION ?= v0.7.0
 
 ## Tool Binaries
 DEV_TOOL_NAMES := dev-port open-browser dev-tag make-help go-install-tool
