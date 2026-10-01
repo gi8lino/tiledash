@@ -23,23 +23,28 @@ func Run(
 	webFS fs.FS,
 	version, commit string,
 	args []string,
-	stdOut, stdErr io.Writer,
+	stdout, stderr io.Writer,
 ) error {
 	// Parse CLI flags
 	flags, err := flag.ParseArgs(args, version)
 	if err != nil {
 		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
-			_, _ = fmt.Fprint(stdOut, err)
+			_, _ = fmt.Fprint(stdout, err)
 			return nil
 		}
-		_, _ = fmt.Fprintln(stdErr, err)
+		_, _ = fmt.Fprintln(stderr, err)
 		return err
 	}
 
 	// Setup logger immediately so startup errors are correctly logged.
-	logger := logging.SetupLogger(flags, stdOut)
+	logger := logging.Setup(flags.LogFormat, flags.Debug, stdout)
+
 	setupLog := logger.With("component", "setup")
 	setupLog.Info("Starting tiledash", "version", version)
+
+	if len(flags.Overrides) > 0 {
+		setupLog.Info("CLI Overrides", "event", "cli_overrides", "overrides", flags.Overrides.Values())
+	}
 
 	// Load config
 	cfg, err := config.LoadConfig(flags.Config)

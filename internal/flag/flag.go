@@ -6,16 +6,18 @@ import (
 
 	"github.com/containeroo/httpprefix"
 	"github.com/containeroo/tinyflags"
+	"github.com/gi8lino/tiledash/internal/logging"
 )
 
 // Config holds all application and Jira-specific configuration.
 type Config struct { // Config aggregates CLI flags after parsing.
-	ListenAddr  string // HTTP bind address (e.g. ":8080")
-	Debug       bool   // Enables debug logging
-	LogFormat   string // Log output format (text or json)
-	Config      string // Path to config file
-	TemplateDir string // Path to template directory
-	RoutePrefix string // Canonical path prefix ("" or "/tiledash")
+	ListenAddr  string              // HTTP bind address (e.g. ":8080")
+	Debug       bool                // Enables debug logging
+	LogFormat   logging.LogFormat   // Log output format (text or json)
+	Config      string              // Path to config file
+	TemplateDir string              // Path to template directory
+	RoutePrefix string              // Canonical path prefix ("" or "/tiledash")
+	Overrides   tinyflags.Overrides // CLI overrides
 }
 
 // ParseArgs parses CLI arguments into Config, handling version/help flags.
@@ -52,7 +54,17 @@ func ParseArgs(args []string, version string) (Config, error) { // ParseArgs par
 
 	// Logging
 	tf.BoolVar(&cfg.Debug, "debug", false, "Enable debug logging").Value()
-	logFormat := tf.String("log-format", "text", "Log format").Choices("text", "json").Short("l").Value()
+	logFormat := tinyflags.Enum(
+		tf,
+		"log-format",
+		logging.LogFormatJSON,
+		"Log output format",
+		logging.LogFormatText,
+		logging.LogFormatJSON,
+	).
+		Short("l").
+		Placeholder("FORMAT").
+		Value()
 
 	// Parse
 	if err := tf.Parse(args); err != nil {
@@ -62,6 +74,7 @@ func ParseArgs(args []string, version string) (Config, error) { // ParseArgs par
 	// Post-parse
 	cfg.LogFormat = *logFormat
 	cfg.ListenAddr = (*listenAddr).String()
+	cfg.Overrides = tf.Overrides()
 
 	if cfg.TemplateDir == "./templates" {
 		base := filepath.Dir(".")

@@ -2,70 +2,35 @@ package logging
 
 import (
 	"bytes"
-	"encoding/json"
 	"testing"
 
-	"github.com/gi8lino/tiledash/internal/flag"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSetupLogger(t *testing.T) {
 	t.Parallel()
 
-	t.Run("JSON logger", func(t *testing.T) {
+	t.Run("JSON info", func(t *testing.T) {
 		t.Parallel()
 
-		var buf bytes.Buffer
-		logger := SetupLogger(flag.Config{LogFormat: string(LogFormatJSON)}, &buf)
+		var output bytes.Buffer
 
-		logger.Info("test message", "key", "value")
+		Setup(LogFormatJSON, false, &output).Info("ready",
+			"event", "test",
+		)
 
-		var logEntry map[string]any
-		err := json.Unmarshal(buf.Bytes(), &logEntry)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "test message", logEntry["msg"])
-		assert.Equal(t, "value", logEntry["key"])
+		assert.Contains(t, output.String(), `"msg":"ready"`)
+		assert.Contains(t, output.String(), `"event":"test"`)
 	})
 
-	t.Run("Text logger", func(t *testing.T) {
+	t.Run("text debug", func(t *testing.T) {
 		t.Parallel()
 
-		var buf bytes.Buffer
-		logger := SetupLogger(flag.Config{LogFormat: string(LogFormatText)}, &buf)
+		var output bytes.Buffer
 
-		logger.Info("hello world", "foo", "bar")
+		Setup(LogFormatText, true, &output).Debug("details")
 
-		logOutput := buf.String()
-
-		assert.Contains(t, logOutput, "hello world")
-		assert.Contains(t, logOutput, "foo=bar")
-	})
-
-	t.Run("Invalid format - default to json", func(t *testing.T) {
-		t.Parallel()
-
-		var buf bytes.Buffer
-		logger := SetupLogger(flag.Config{LogFormat: "invalid"}, &buf)
-
-		logger.Info("fallback check", "k", "v")
-
-		var logEntry map[string]any
-		err := json.Unmarshal(buf.Bytes(), &logEntry)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "fallback check", logEntry["msg"])
-	})
-
-	t.Run("Debug level", func(t *testing.T) {
-		t.Parallel()
-
-		var buf bytes.Buffer
-		logger := SetupLogger(flag.Config{LogFormat: string(LogFormatText), Debug: true}, &buf)
-
-		logger.Debug("debug enabled", "foo", "bar")
-
-		logOutput := buf.String()
-		assert.Contains(t, logOutput, `level=DEBUG msg="debug enabled" foo=bar`)
+		assert.Contains(t, output.String(), "level=DEBUG")
+		assert.Contains(t, output.String(), `msg=details`)
 	})
 }

@@ -19,7 +19,7 @@ func TestParseArgs(t *testing.T) {
 
 		assert.Equal(t, "config.yaml", cfg.Config)
 		assert.False(t, cfg.Debug)
-		assert.Equal(t, "text", string(cfg.LogFormat))
+		assert.Equal(t, "json", string(cfg.LogFormat))
 		assert.Equal(t, ":8080", cfg.ListenAddr)
 
 		// TemplateDir is finalized to an absolute path ending with "templates".
@@ -37,7 +37,7 @@ func TestParseArgs(t *testing.T) {
 
 		assert.Equal(t, "config.yaml", cfg.Config)
 		assert.False(t, cfg.Debug)
-		assert.Equal(t, "text", string(cfg.LogFormat))
+		assert.Equal(t, "json", string(cfg.LogFormat))
 		assert.Equal(t, ":8080", cfg.ListenAddr)
 		assert.Equal(t, absPath, cfg.TemplateDir)
 	})

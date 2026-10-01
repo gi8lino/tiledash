@@ -3,11 +3,9 @@ package logging
 import (
 	"io"
 	"log/slog"
-
-	"github.com/gi8lino/tiledash/internal/flag"
 )
 
-// LogFormat defines the supported log formats.
+// LogFormat defines a supported structured log format.
 type LogFormat string
 
 const (
@@ -15,23 +13,20 @@ const (
 	LogFormatJSON LogFormat = "json"
 )
 
-// SetupLogger configures a structured logger with the parsed CLI flags.
-func SetupLogger(cfg flag.Config, output io.Writer) *slog.Logger {
-	handlerOpts := &slog.HandlerOptions{}
+// Setup creates a structured logger for the selected format and level.
+func Setup(format LogFormat, debug bool, output io.Writer) *slog.Logger {
+	options := &slog.HandlerOptions{}
 
-	if cfg.Debug {
-		handlerOpts.Level = slog.LevelDebug
+	if debug {
+		options.Level = slog.LevelDebug
 	}
 
 	var handler slog.Handler
-	switch LogFormat(cfg.LogFormat) {
-	case LogFormatJSON:
-		handler = slog.NewJSONHandler(output, handlerOpts)
-	case LogFormatText:
-		handler = slog.NewTextHandler(output, handlerOpts)
-	default:
-		// Default to JSON if an invalid format is provided.
-		handler = slog.NewJSONHandler(output, handlerOpts)
+
+	if format == LogFormatText {
+		handler = slog.NewTextHandler(output, options)
+	} else {
+		handler = slog.NewJSONHandler(output, options)
 	}
 
 	return slog.New(handler)
