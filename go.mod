@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/containeroo/httpgrace v0.2.1
 	github.com/containeroo/httpprefix v0.2.0
-	github.com/containeroo/resolver v0.3.2
+	github.com/containeroo/resolver v0.5.0
 	github.com/containeroo/tinyflags v0.6.0
 	github.com/stretchr/testify v1.12.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -26,5 +26,5 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
-	gopkg.in/ini.v1 v1.67.3 // indirect
+	gopkg.in/ini.v1 v1.68.0 // indirect
 )
