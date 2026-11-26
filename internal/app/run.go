@@ -6,8 +6,8 @@ import (
 	"io"
 	"io/fs"
 
+	"github.com/gi8lino/tiledash/internal/cli"
 	"github.com/gi8lino/tiledash/internal/config"
-	"github.com/gi8lino/tiledash/internal/flag"
 	"github.com/gi8lino/tiledash/internal/logging"
 	"github.com/gi8lino/tiledash/internal/providers"
 	"github.com/gi8lino/tiledash/internal/routes"
@@ -26,7 +26,7 @@ func Run(
 	stdout, stderr io.Writer,
 ) error {
 	// Parse CLI flags
-	flags, err := flag.ParseArgs(args, version)
+	flags, err := cli.ParseArgs(args, version)
 	if err != nil {
 		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
 			_, _ = fmt.Fprint(stdout, err)

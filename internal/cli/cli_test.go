@@ -1,11 +1,11 @@
-package flag_test
+package cli_test
 
 import (
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/gi8lino/tiledash/internal/flag"
+	"github.com/gi8lino/tiledash/internal/cli"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,7 +14,7 @@ func TestParseArgs(t *testing.T) {
 	t.Run("minimal defaults", func(t *testing.T) {
 		t.Parallel()
 
-		cfg, err := flag.ParseArgs(nil, "v1.2.3")
+		cfg, err := cli.ParseArgs(nil, "v1.2.3")
 		require.NoError(t, err)
 
 		assert.Equal(t, "config.yaml", cfg.Config)
@@ -32,7 +32,7 @@ func TestParseArgs(t *testing.T) {
 		absPath, _ := filepath.Abs("./testdata/templates")
 		args := []string{"--template-dir=./testdata/templates"}
 
-		cfg, err := flag.ParseArgs(args, "v1.2.3")
+		cfg, err := cli.ParseArgs(args, "v1.2.3")
 		require.NoError(t, err)
 
 		assert.Equal(t, "config.yaml", cfg.Config)
@@ -45,7 +45,7 @@ func TestParseArgs(t *testing.T) {
 	t.Run("route prefix default empty", func(t *testing.T) {
 		t.Parallel()
 
-		cfg, err := flag.ParseArgs([]string{}, "v")
+		cfg, err := cli.ParseArgs([]string{}, "v")
 		require.NoError(t, err)
 		assert.Empty(t, cfg.RoutePrefix)
 	})
@@ -53,7 +53,7 @@ func TestParseArgs(t *testing.T) {
 	t.Run("route-prefix normalized value", func(t *testing.T) {
 		t.Parallel()
 
-		cfg, err := flag.ParseArgs([]string{"--route-prefix=tiledash/"}, "v")
+		cfg, err := cli.ParseArgs([]string{"--route-prefix=tiledash/"}, "v")
 		require.NoError(t, err)
 		assert.Equal(t, cfg.RoutePrefix, "/tiledash")
 	})
@@ -62,7 +62,7 @@ func TestParseArgs(t *testing.T) {
 		t.Parallel()
 
 		args := []string{"--listen-address=127.0.0.1:9090"}
-		cfg, err := flag.ParseArgs(args, "1.0.0")
+		cfg, err := cli.ParseArgs(args, "1.0.0")
 		require.NoError(t, err)
 		assert.Equal(t, "127.0.0.1:9090", cfg.ListenAddr)
 	})
@@ -71,7 +71,7 @@ func TestParseArgs(t *testing.T) {
 		t.Parallel()
 
 		args := []string{"--log-format=json"}
-		cfg, err := flag.ParseArgs(args, "dev")
+		cfg, err := cli.ParseArgs(args, "dev")
 		require.NoError(t, err)
 		assert.Equal(t, "json", string(cfg.LogFormat))
 	})
@@ -80,7 +80,7 @@ func TestParseArgs(t *testing.T) {
 		t.Parallel()
 
 		args := []string{"-l", "json"}
-		cfg, err := flag.ParseArgs(args, "dev")
+		cfg, err := cli.ParseArgs(args, "dev")
 		require.NoError(t, err)
 		assert.Equal(t, "json", string(cfg.LogFormat))
 	})
@@ -89,7 +89,7 @@ func TestParseArgs(t *testing.T) {
 		t.Parallel()
 
 		args := []string{"--log-format=xml"} // not in {text,json}
-		_, err := flag.ParseArgs(args, "dev")
+		_, err := cli.ParseArgs(args, "dev")
 		require.Error(t, err)
 	})
 
@@ -97,7 +97,7 @@ func TestParseArgs(t *testing.T) {
 		t.Parallel()
 
 		args := []string{"--debug"}
-		cfg, err := flag.ParseArgs(args, "dev")
+		cfg, err := cli.ParseArgs(args, "dev")
 		require.NoError(t, err)
 		assert.True(t, cfg.Debug)
 	})
@@ -106,7 +106,7 @@ func TestParseArgs(t *testing.T) {
 		t.Parallel()
 
 		args := []string{"--template-dir=./testdata/templates"}
-		cfg, err := flag.ParseArgs(args, "dev")
+		cfg, err := cli.ParseArgs(args, "dev")
 		require.NoError(t, err)
 
 		assert.True(t, filepath.IsAbs(cfg.TemplateDir))
@@ -121,7 +121,7 @@ func TestParseArgs(t *testing.T) {
 
 		abs := filepath.Join(t.TempDir(), "tpls")
 		args := []string{"--template-dir=" + abs}
-		cfg, err := flag.ParseArgs(args, "dev")
+		cfg, err := cli.ParseArgs(args, "dev")
 		require.NoError(t, err)
 
 		assert.Equal(t, abs, cfg.TemplateDir)
@@ -131,7 +131,7 @@ func TestParseArgs(t *testing.T) {
 		t.Parallel()
 
 		args := []string{"--config=/path/to/my-config.yaml"}
-		cfg, err := flag.ParseArgs(args, "dev")
+		cfg, err := cli.ParseArgs(args, "dev")
 		require.NoError(t, err)
 		assert.Equal(t, "/path/to/my-config.yaml", cfg.Config)
 	})
@@ -142,7 +142,7 @@ func TestParseArgs(t *testing.T) {
 		t.Setenv("TILEDASH_CONFIG", "env-config.yaml")
 		t.Setenv("TILEDASH_TEMPLATE_DIR", "env-templates")
 
-		cfg, err := flag.ParseArgs(nil, "dev")
+		cfg, err := cli.ParseArgs(nil, "dev")
 		require.NoError(t, err)
 
 		assert.Equal(t, "json", string(cfg.LogFormat))
@@ -158,7 +158,7 @@ func TestParseArgs(t *testing.T) {
 		t.Parallel()
 
 		args := []string{"--listen-address=not-an-addr"}
-		_, err := flag.ParseArgs(args, "dev")
+		_, err := cli.ParseArgs(args, "dev")
 		require.Error(t, err)
 	})
 }

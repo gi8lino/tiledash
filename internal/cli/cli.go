@@ -1,4 +1,4 @@
-package flag
+package cli
 
 import (
 	"net"
@@ -9,8 +9,8 @@ import (
 	"github.com/gi8lino/tiledash/internal/logging"
 )
 
-// Config holds all application and Jira-specific configuration.
-type Config struct { // Config aggregates CLI flags after parsing.
+// Flags holds all application and Jira-specific configuration.
+type Flags struct { // Config aggregates CLI flags after parsing.
 	ListenAddr  string              // HTTP bind address (e.g. ":8080")
 	Debug       bool                // Enables debug logging
 	LogFormat   logging.LogFormat   // Log output format (text or json)
@@ -21,23 +21,22 @@ type Config struct { // Config aggregates CLI flags after parsing.
 }
 
 // ParseArgs parses CLI arguments into Config, handling version/help flags.
-func ParseArgs(args []string, version string) (Config, error) { // ParseArgs parses CLI args into Config.
-	var cfg Config
+func ParseArgs(args []string, version string) (flags Flags, err error) { // ParseArgs parses CLI args into Config.
 	tf := tinyflags.NewFlagSet("tiledash", tinyflags.ContinueOnError)
 	tf.Version(version)
 	tf.EnvPrefix("TILEDASH")
 
 	// Server
-	tf.StringVar(&cfg.Config, "config", "config.yaml", "Path to config file").Value()
+	tf.StringVar(&flags.Config, "config", "config.yaml", "Path to config file").Value()
 
-	tf.StringVar(&cfg.RoutePrefix, "route-prefix", "", "Path prefix to mount the app (e.g., /tiledash). Empty = root.").
+	tf.StringVar(&flags.RoutePrefix, "route-prefix", "", "Path prefix to mount the app (e.g., /tiledash). Empty = root.").
 		Finalize(func(input string) string {
 			return httpprefix.NormalizeRoutePrefix(input) // canonical "" or "/tiledash"
 		}).
 		Placeholder("PATH").
 		Value()
 
-	tf.StringVar(&cfg.TemplateDir, "template-dir", "./templates", "Path to template directory").
+	tf.StringVar(&flags.TemplateDir, "template-dir", "./templates", "Path to template directory").
 		Finalize(func(s string) string {
 			if !filepath.IsAbs(s) {
 				base := filepath.Dir(".")
@@ -53,7 +52,7 @@ func ParseArgs(args []string, version string) (Config, error) { // ParseArgs par
 		Value()
 
 	// Logging
-	tf.BoolVar(&cfg.Debug, "debug", false, "Enable debug logging").Value()
+	tf.BoolVar(&flags.Debug, "debug", false, "Enable debug logging").Value()
 	logFormat := tinyflags.Enum(
 		tf,
 		"log-format",
@@ -68,18 +67,18 @@ func ParseArgs(args []string, version string) (Config, error) { // ParseArgs par
 
 	// Parse
 	if err := tf.Parse(args); err != nil {
-		return Config{}, err
+		return Flags{}, err
 	}
 
 	// Post-parse
-	cfg.LogFormat = *logFormat
-	cfg.ListenAddr = (*listenAddr).String()
-	cfg.Overrides = tf.Overrides()
+	flags.LogFormat = *logFormat
+	flags.ListenAddr = (*listenAddr).String()
+	flags.Overrides = tf.Overrides()
 
-	if cfg.TemplateDir == "./templates" {
+	if flags.TemplateDir == "./templates" {
 		base := filepath.Dir(".")
-		cfg.TemplateDir = filepath.Join(base, cfg.TemplateDir)
+		flags.TemplateDir = filepath.Join(base, flags.TemplateDir)
 	}
 
-	return cfg, nil
+	return flags, nil
 }
